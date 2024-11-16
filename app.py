@@ -37,9 +37,10 @@ def optimize():
         with open(temp_file2.name, 'w') as f:
             f.write(optimized_mol2_2)
 
+        # Return the files as downloadable attachments
         return jsonify({
-            "optimized_file1": temp_file1.name,
-            "optimized_file2": temp_file2.name
+            "optimized_file1": send_file(temp_file1.name, as_attachment=True, download_name="optimized1.mol2"),
+            "optimized_file2": send_file(temp_file2.name, as_attachment=True, download_name="optimized2.mol2")
         })
     finally:
         # Clean up the temporary files after the response is sent
