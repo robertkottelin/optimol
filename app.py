@@ -1,6 +1,8 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 def calculate_energy_and_optimize(molecule1):
     """
@@ -32,3 +34,4 @@ def optimize():
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)
+
