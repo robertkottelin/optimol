@@ -15,45 +15,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout the code from the repository
       - uses: actions/checkout@v4
 
-      # Set up Python
       - name: Set up Python version
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      # Create and activate a virtual environment
       - name: Create and start virtual environment
         run: |
           python -m venv venv
           source venv/bin/activate
-
-      # Install dependencies (including ase and flask-cors)
+      
       - name: Install dependencies
-        run: |
-          source venv/bin/activate
-          pip install -r requirements.txt
-          pip install ase flask-cors
+        run: pip install -r requirements.txt
+        
+      # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
 
-      # Optional: Run tests (add if you have tests)
-      # - name: Run tests
-      #   run: |
-      #     source venv/bin/activate
-      #     pytest
-
-      # Package the application for deployment
       - name: Zip artifact for deployment
-        run: |
-          zip -r release.zip . -x "venv/*" ".git/*" "*.zip"
+        run: zip release.zip ./* -r
 
-      # Upload the packaged app as an artifact
-      - name: Upload artifact for deployment job
+      - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
         with:
           name: python-app
-          path: release.zip
+          path: |
+            release.zip
+            !venv/
 
   deploy:
     runs-on: ubuntu-latest
@@ -62,20 +50,18 @@ jobs:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
-      id-token: write # Required for requesting the JWT
+      id-token: write #This is required for requesting the JWT
 
     steps:
-      # Download the artifact created during the build step
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
           name: python-app
 
-      # Unzip the artifact
       - name: Unzip artifact for deployment
         run: unzip release.zip
 
-      # Log in to Azure
+      
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -83,10 +69,10 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_743A1AE0B0484302A297E0C4C0B6DA8B }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_E9255A3763D943E49D6F6B96B383C4D8 }}
 
-      # Deploy the app to Azure Web App
       - name: 'Deploy to Azure Web App'
-        id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
+        id: deploy-to-webapp
         with:
           app-name: 'molcompute'
           slot-name: 'Production'
+          
