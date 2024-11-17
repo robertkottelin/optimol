@@ -4,6 +4,8 @@ from ase.optimize import BFGS
 from ase.calculators.emt import EMT
 
 app = Flask(__name__)
+from flask_cors import CORS
+CORS(app, origins=["*"], methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type"])
 
 def optimize_molecule(data):
     """
