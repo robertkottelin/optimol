@@ -1,11 +1,11 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from ase import Atoms
 from ase.optimize import BFGS
 from ase.calculators.emt import EMT
 
 app = Flask(__name__)
-from flask_cors import CORS
-CORS(app, origins=["*"], methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type"])
+CORS(app, origins=["http://localhost:3000"], methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type"])
 
 def optimize_molecule(data):
     """
@@ -50,11 +50,6 @@ def optimize():
         return jsonify({"optimized_file1": optimized_data})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-@app.route('https://molcompute-bcbmhphmb7h5e0cy.northeurope-01.azurewebsites.net/')
-def home():
-    return "Flask app is running!", 200
-
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)
