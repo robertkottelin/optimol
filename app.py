@@ -51,7 +51,7 @@ def optimize():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/')
+@app.route('https://molcompute-bcbmhphmb7h5e0cy.northeurope-01.azurewebsites.net/')
 def home():
     return "Flask app is running!", 200
 
