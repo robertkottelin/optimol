@@ -1,11 +1,9 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS
 from ase import Atoms
 from ase.optimize import BFGS
 from ase.calculators.emt import EMT
 
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:3000"], methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type"])
 
 def optimize_molecule(data):
     """
