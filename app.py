@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins="*")
 
 def calculate_energy_and_optimize(molecule1):
     """
