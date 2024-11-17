@@ -1,37 +1,55 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from ase import Atoms
+from ase.optimize import BFGS
+from ase.calculators.emt import EMT
 
 app = Flask(__name__)
-CORS(app, origins="*")
+CORS(app, origins=["http://localhost:3000"], methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type"])
 
-def calculate_energy_and_optimize(molecule1):
+def optimize_molecule(data):
     """
-    Placeholder for energy calculation and coordinate optimization.
-    Modify the coordinates slightly for demonstration.
+    Optimize the molecular geometry based on quantum energy calculations.
+    This example uses ASE and EMT for demonstration.
     """
-    for atom in molecule1["atoms"]:
-        atom["x"] += 0.1
-        atom["y"] += 0.1
-        atom["z"] += 0.1
+    # Convert input data to ASE Atoms object
+    atoms = []
+    for atom in data["atoms"]:
+        atoms.append((atom["element"], (atom["x"], atom["y"], atom["z"])))
 
-    return molecule1
+    molecule = Atoms(symbols=[a[0] for a in atoms], positions=[a[1] for a in atoms])
+
+    # Assign a basic calculator (EMT) for optimization
+    molecule.calc = EMT()
+
+    # Optimize the geometry using BFGS algorithm
+    optimizer = BFGS(molecule)
+    optimizer.run(fmax=0.02)  # Stop when forces are below 0.02 eV/Å
+
+    # Extract optimized positions
+    optimized_atoms = []
+    for i, atom in enumerate(molecule):
+        optimized_atoms.append({
+            "id": i + 1,
+            "element": atom.symbol,
+            "x": atom.position[0],
+            "y": atom.position[1],
+            "z": atom.position[2],
+        })
+
+    return {"atoms": optimized_atoms}
 
 @app.route('/optimize', methods=['POST'])
 def optimize():
     data = request.get_json()
+    if not data or "file1" not in data:
+        return jsonify({"error": "Invalid input"}), 400
 
-    if "file1" not in data:
-        return jsonify({"error": "'file1' must be provided as JSON."}), 400
-
-    molecule1 = data["file1"]
-
-    # Perform optimization
-    optimized_molecule1 = calculate_energy_and_optimize(molecule1)
-
-    return jsonify({
-        "optimized_file1": optimized_molecule1
-    })
+    try:
+        optimized_data = optimize_molecule(data["file1"])
+        return jsonify({"optimized_file1": optimized_data})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)
-
