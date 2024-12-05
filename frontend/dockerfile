@@ -1,0 +1,20 @@
+# Use an official NGINX image as the base
+FROM nginx:alpine
+
+# Set working directory in the container
+WORKDIR /usr/share/nginx/html
+
+# Remove the default NGINX configuration file
+RUN rm -rf ./*
+
+# Copy the build output from React
+COPY build .
+
+# Copy a custom NGINX configuration file (optional)
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Expose the HTTP port
+EXPOSE 80
+
+# Start the NGINX server
+CMD ["nginx", "-g", "daemon off;"]

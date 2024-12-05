@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
+import apiBaseUrl from "./config";
+
 
 const App = () => {
   const [optimizedMolecule, setOptimizedMolecule] = useState(null); // State to store optimized molecule
@@ -42,22 +44,22 @@ const App = () => {
       alert("Please upload a file first.");
       return;
     }
-
+  
     try {
-      const response = await axios.post("http://localhost:5000/optimize", moleculeData);
+      const response = await axios.post(`${apiBaseUrl}/optimize`, moleculeData);
       setOptimizedMolecule(response.data.optimized_file1); // Set optimized molecule in state
     } catch (error) {
       console.error("Error optimizing molecule:", error);
       alert("Error optimizing molecule. Check the console for details.");
     }
-  };
+  };  
 
   const handleQuantumOptimize = async () => {
     if (!moleculeData) {
       alert("Please upload a file first.");
       return;
     }
-
+  
     try {
       const payload = {
         file1: {
@@ -66,14 +68,14 @@ const App = () => {
         optimizer: "COBYLA", // Default optimizer
         p: 2, // Default number of QAOA layers
       };
-
-      const response = await axios.post("http://localhost:5000/quantum-optimize", payload);
+  
+      const response = await axios.post(`${apiBaseUrl}/quantum-optimize`, payload);
       setOptimizedMolecule(response.data.optimized_file1); // Set optimized molecule in state
     } catch (error) {
       console.error("Error optimizing molecule with quantum method:", error);
       alert("Error optimizing molecule with quantum method. Check the console for details.");
     }
-  };
+  };  
 
   const handleDownload = () => {
     if (!optimizedMolecule) {
