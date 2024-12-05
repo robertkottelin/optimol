@@ -1,0 +1,7 @@
+flask
+flask-cors
+qiskit
+qiskit-aer
+ase
+scipy
+numpy
