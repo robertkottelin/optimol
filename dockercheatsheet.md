@@ -16,8 +16,10 @@ sudo docker push robertkottelin/optimize-molecule:backend-latest
 
 
 FRONTEND:
+npm run build
+
 build:
-sudo docker build -t optimize-molecule .
+sudo docker build --no-cache -t optimize-molecule .
 
 run:
 sudo docker run -p 8080:8080 optimize-molecule

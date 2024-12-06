@@ -35,13 +35,27 @@ def optimize_molecule(data):
 
     molecule = Atoms(symbols=[a[0] for a in atoms], positions=[a[1] for a in atoms])
     molecule.calc = EMT()
+
+    # Validate initial geometry
+    if any(np.linalg.norm(atom1 - atom2) < 0.5 for atom1, atom2 in zip(molecule.positions[:-1], molecule.positions[1:])):
+        raise ValueError("Initial geometry contains overlapping atoms or invalid distances.")
+
     optimizer = BFGS(molecule)
-    optimizer.run(fmax=0.02)
+    optimizer.run(fmax=0.005, steps=500) # TODO: let user adjust fmax and steps
+
+    # Validate positions after optimization
+    if not np.all(np.isfinite(molecule.positions)):
+        raise ValueError("Optimization failed: atomic positions contain NaN.")
 
     optimized_atoms = [
         {"id": i + 1, "element": atom.symbol, "x": atom.position[0], "y": atom.position[1], "z": atom.position[2]}
         for i, atom in enumerate(molecule)
     ]
+    
+    # Final validation
+    if any(np.isnan(coord) for atom in optimized_atoms for coord in (atom["x"], atom["y"], atom["z"])):
+        raise ValueError("Optimization result contains NaN in atomic positions.")
+
     return {"atoms": optimized_atoms}
 
 from qiskit.primitives import Sampler
@@ -50,7 +64,7 @@ from qiskit.circuit import Parameter
 
 from scipy.optimize import minimize
 from scipy.optimize import minimize
-def optimize_molecule_qaoa(data, optimizer='COBYLA', p=2):
+def optimize_molecule_qaoa(data, optimizer='COBYLA', p=10):
     """
     Optimize a molecular geometry using QAOA and return adjusted positions.
     """
@@ -94,7 +108,7 @@ def optimize_molecule_qaoa(data, optimizer='COBYLA', p=2):
             fun=objective_function,
             x0=initial_point,
             method=optimizer.lower(),
-            options={"maxiter": 500}
+            options={"maxiter": 1000}
         )
         optimal_params = optimization_result.x
         min_energy = optimization_result.fun
