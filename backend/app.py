@@ -9,10 +9,21 @@ from qiskit_algorithms.optimizers import COBYLA, SPSA
 from qiskit_algorithms.minimum_eigensolvers import QAOA
 from qiskit.primitives import Estimator, StatevectorSampler
 import numpy as np
+import os
+
+# Import your configuration file
+from config import DevelopmentConfig, ProductionConfig, AllowAllConfig
 
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:3000"], methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type"])
 
+# Load the configuration based on the environment
+if os.environ.get("DEVELOPMENT"):
+    app.config.from_object(AllowAllConfig)
+else:
+    app.config.from_object(ProductionConfig)
+
+# Apply CORS using the loaded configuration
+CORS(app, origins=["https://orca-app-pmrz6.ondigitalocean.app"], methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type"])
 
 def optimize_molecule(data):
     """
@@ -109,12 +120,15 @@ def optimize_molecule_qaoa(data, optimizer='COBYLA', p=2):
         print("Error in optimize_molecule_qaoa:", str(e))
         raise
 
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 @app.route('/optimize', methods=['POST'])
 def classical_optimize():
-    """
-    Optimize molecular geometry using classical methods.
-    """
+    logging.debug("Request received at /optimize")
+    logging.debug("Headers: %s", request.headers)
+    logging.debug("Data: %s", request.get_json())
+
     data = request.get_json()
     if not data or "file1" not in data:
         return jsonify({"error": "Invalid input"}), 400
@@ -123,8 +137,8 @@ def classical_optimize():
         optimized_data = optimize_molecule(data["file1"])
         return jsonify({"optimized_file1": optimized_data})
     except Exception as e:
+        logging.error("Error in /optimize: %s", str(e))
         return jsonify({"error": str(e)}), 500
-
 
 @app.route('/quantum-optimize', methods=['POST'])
 def quantum_optimize():
@@ -144,6 +158,10 @@ def quantum_optimize():
         # Log detailed error for debugging
         print("Error in quantum_optimize:", str(e))
         return jsonify({"error": str(e)}), 500
+
+@app.route('/test', methods=['POST'])
+def optimize_test():
+    return "POST test request received successfully!"
 
 @app.route('/')
 def index():

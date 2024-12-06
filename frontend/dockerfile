@@ -14,7 +14,7 @@ COPY build .
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expose the HTTP port
-EXPOSE 80
+EXPOSE 8080
 
 # Start the NGINX server
 CMD ["nginx", "-g", "daemon off;"]

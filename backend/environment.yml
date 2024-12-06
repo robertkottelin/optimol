@@ -1,4 +1,4 @@
-name: molecule_env
+name: optimize-molecule
 channels:
   - defaults
   - conda-forge
