@@ -15,6 +15,7 @@ import os
 from config import DevelopmentConfig, ProductionConfig, AllowAllConfig
 
 app = Flask(__name__)
+# test merge
 
 # Load the configuration based on the environment
 if os.environ.get("DEVELOPMENT"):
