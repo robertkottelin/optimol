@@ -1,3 +1,5 @@
+# GIT CHEATSHEET
+
 ## Initialize and Clone
 git clone https://github.com/robertkottelin/optimol.git
 cd optimol
