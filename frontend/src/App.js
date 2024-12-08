@@ -255,7 +255,7 @@ const App = () => {
             margin: "auto",
           }}
         >
-          <h2>How To Use This App</h2>
+          <h2>How To Use:</h2>
           <p>
             This app optimizes molecular geometry using either classical or quantum energy optimization techniques.
           </p>
