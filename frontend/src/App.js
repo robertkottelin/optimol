@@ -252,6 +252,19 @@ const App = () => {
               </ul>
             </li>
           </ul>
+          <h3>Download Optimized Molecule:</h3>
+          <p>
+            After optimization, you can download the optimized molecule data as a JSON file for further analysis or visualization.
+          </p>
+          <h3>Upcoming features:</h3>
+          <ul>
+            <li>Visualize the molecule geometry before and after optimization.</li>
+            <li>Customize optimization parameters (fmax, steps, maxiter, QAOA layers).</li>
+            <li>Support for additional optimization methods (e.g., VQE, Nelder-Mead).</li>
+            <li>Support for additional file formats (e.g., XYZ, PDB).</li>
+            <li>Compare classical and quantum optimization results.</li>
+            <li>Optimize multiple molecules simultaneously.</li>
+          </ul>
         </div>
       )}
 
