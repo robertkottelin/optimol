@@ -261,7 +261,7 @@ const App = () => {
           </p>
           <h3>Steps to Use:</h3>
           <ol>
-            <li>Prepare a JSON file containing your molecule data in the following format:</li>
+            <li>Prepare a JSON file containing your molecule data in the following format (add more elements for bigger molecules):</li>
             <pre>
               {`{
   "file1": {
