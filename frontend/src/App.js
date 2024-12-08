@@ -140,6 +140,7 @@ const App = () => {
         }}
       />
       <div style={{ display: "flex", gap: "20px" }}>
+        <p>Classical optimization parameters:</p>
         <div>
           <label>fmax:</label>
           <input
@@ -159,6 +160,7 @@ const App = () => {
             placeholder="steps"
           />
         </div>
+        <p>Quantum optimization parameters:</p>
         <div>
           <label>maxiter:</label>
           <input
@@ -309,7 +311,9 @@ const App = () => {
           <h3>Upcoming features:</h3>
           <ul>
             <li>Visualize the molecule geometry before and after optimization.</li>
-            <li>Customize optimization parameters (fmax, steps, maxiter, QAOA layers).</li>
+            <li>
+              <s>Customize optimization parameters (fmax, steps, maxiter, QAOA layers).</s>
+            </li>            
             <li>Support for additional optimization methods (e.g., VQE, Nelder-Mead).</li>
             <li>Support for additional file formats (e.g., XYZ, PDB).</li>
             <li>Compare classical and quantum optimization results.</li>
