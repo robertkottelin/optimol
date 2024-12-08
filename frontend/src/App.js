@@ -152,9 +152,10 @@ const App = () => {
           z: atom.z,
         }));
         console.log("Atoms being added:", atoms); // Debugging
-        
-        viewer.addModel();
-        viewer.addAtoms(atoms);
+  
+        const model = viewer.addModel(); // Add a new model to the viewer
+        model.addAtoms(atoms); // Add atoms to the model
+  
         viewer.setStyle({}, { sphere: { radius: 0.5 }, stick: { radius: 0.2 } });
         viewer.zoomTo();
         viewer.render();
@@ -174,7 +175,7 @@ const App = () => {
         }}
       ></div>
     );
-  };    
+  };     
 
   return (
     <div style={{ padding: "20px", textAlign: "center" }}>
