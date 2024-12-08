@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import axios from "axios";
 import apiBaseUrl from "./config";
 
@@ -121,6 +121,49 @@ const App = () => {
     );
   };
 
+  const MoleculeViewer = ({ moleculeData }) => {
+    const viewerRef = useRef();
+
+    useEffect(() => {
+      if (!moleculeData || !moleculeData.atoms) return;
+
+      // Initialize 3Dmol.js Viewer
+      const viewer = $3Dmol.createViewer(viewerRef.current, {
+        backgroundColor: "white",
+      });
+      viewer.clear();
+
+      // Add atoms to viewer
+      moleculeData.atoms.forEach((atom) => {
+        viewer.addAtoms([
+          {
+            elem: atom.element,
+            x: atom.x,
+            y: atom.y,
+            z: atom.z,
+          },
+        ]);
+      });
+
+      // Render molecule
+      viewer.setStyle({}, { sphere: { radius: 0.5 }, stick: { radius: 0.2 } });
+      viewer.zoomTo();
+      viewer.render();
+    }, [moleculeData]);
+
+    return (
+      <div
+        ref={viewerRef}
+        style={{
+          width: "100%",
+          height: "400px",
+          border: "1px solid #ccc",
+          marginBottom: "20px",
+        }}
+      ></div>
+    );
+  };
+
   return (
     <div style={{ padding: "20px", textAlign: "center" }}>
       <h1>Optimize Molecule</h1>
@@ -135,8 +178,22 @@ const App = () => {
           marginBottom: "20px",
         }}
       />
+      {moleculeData && (
+        <>
+          <h3>Uploaded Molecule Visualization:</h3>
+          <MoleculeViewer moleculeData={moleculeData.file1} />
+        </>
+      )}
+
+      {optimizedMolecule && (
+        <>
+          <h3>Optimized Molecule Visualization:</h3>
+          <MoleculeViewer moleculeData={optimizedMolecule} />
+        </>
+      )}
+
       <div style={{ display: "flex", gap: "20px" }}>
-      <p>Classical parameters:</p>
+        <p>Classical parameters:</p>
         <div>
           <label>fmax:</label>
           <input
