@@ -132,23 +132,28 @@ const App = () => {
         console.warn("No molecule data found for visualization.");
         return;
       }
-
-      console.log("Viewer Ref:", viewerRef.current); // Log the reference to the viewer container
-      console.log("Molecule Atoms:", moleculeData.atoms); // Log the atoms passed to the viewer    
   
+      console.log("Viewer Ref:", viewerRef.current); // Debugging
+      console.log("Molecule Atoms:", moleculeData.atoms); // Debugging
+  
+      // Initialize the viewer
       const viewer = $3Dmol.createViewer(viewerRef.current, {
-        backgroundColor: 'white',
+        backgroundColor: "white",
       });
+      console.log("Viewer initialized:", viewer); // Debugging
       viewer.clear();
   
       try {
-        viewer.addAtoms(moleculeData.atoms.map(atom => ({
+        // Map molecule data to atoms for the viewer
+        const atoms = moleculeData.atoms.map((atom) => ({
           elem: atom.element,
           x: atom.x,
           y: atom.y,
           z: atom.z,
-        })));
+        }));
+        console.log("Atoms being added:", atoms); // Debugging
   
+        viewer.addAtoms(atoms);
         viewer.setStyle({}, { sphere: { radius: 0.5 }, stick: { radius: 0.2 } });
         viewer.zoomTo();
         viewer.render();
@@ -161,15 +166,14 @@ const App = () => {
       <div
         ref={viewerRef}
         style={{
-          width: '100%',
-          height: '400px',
-          border: '1px solid #ccc',
-          marginBottom: '20px',
+          width: "100%",
+          height: "400px",
+          border: "1px solid #ccc",
+          marginBottom: "20px",
         }}
       ></div>
     );
-  };
-    
+  };    
 
   return (
     <div style={{ padding: "20px", textAlign: "center" }}>
