@@ -125,27 +125,23 @@ const App = () => {
     const viewerRef = useRef();
 
     useEffect(() => {
-      if (!moleculeData || !moleculeData.atoms) return;
-
-      // Initialize 3Dmol.js Viewer
-      const viewer = $3Dmol.createViewer(viewerRef.current, {
-        backgroundColor: "white",
-      });
+      console.log("Molecule Data Passed to Viewer:", moleculeData);
+    
+      if (typeof $3Dmol === "undefined") {
+        console.error("3Dmol.js is not loaded. Check the CDN.");
+        return;
+      }
+    
+      const viewer = $3Dmol.createViewer(viewerRef.current, { backgroundColor: "white" });
       viewer.clear();
-
-      // Add atoms to viewer
-      moleculeData.atoms.forEach((atom) => {
+    
+      moleculeData?.atoms.forEach((atom) => {
+        console.log("Adding atom:", atom);
         viewer.addAtoms([
-          {
-            elem: atom.element,
-            x: atom.x,
-            y: atom.y,
-            z: atom.z,
-          },
+          { elem: atom.element, x: atom.x, y: atom.y, z: atom.z },
         ]);
       });
-
-      // Render molecule
+    
       viewer.setStyle({}, { sphere: { radius: 0.5 }, stick: { radius: 0.2 } });
       viewer.zoomTo();
       viewer.render();
