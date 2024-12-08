@@ -136,7 +136,7 @@ const App = () => {
         }}
       />
       <div style={{ display: "flex", gap: "20px" }}>
-      <p>Classical parameters:</p>
+        <p>Classical parameters:</p>
         <div>
           <label>fmax:</label>
           <input
@@ -177,10 +177,66 @@ const App = () => {
         </div>
       </div>
       <div style={{ marginTop: "20px", display: "flex", justifyContent: "center", gap: "10px" }}>
-        <button onClick={handleOptimize}>Classical Optimize</button>
-        <button onClick={handleQuantumOptimize}>Quantum Optimize</button>
-        <button onClick={() => setShowInstructions(!showInstructions)}>How To Use</button>
-        <button onClick={handleDownload}>Download Optimized Molecule</button>
+        <button
+          onClick={handleOptimize}
+          style={{
+            padding: "10px 20px",
+            backgroundColor: "#333333", // Charcoal color
+            color: "#f0f0f0", // Light grey text
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer",
+            boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)", // Matte shadow
+            fontSize: "16px",
+          }}
+        >
+          Classical Optimize
+        </button>
+        <button
+          onClick={handleQuantumOptimize}
+          style={{
+            padding: "10px 20px",
+            backgroundColor: "#555555", // Dark grey color
+            color: "#ffffff", // White text
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer",
+            boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)", // Matte shadow
+            fontSize: "16px",
+          }}
+        >
+          Quantum Optimize
+        </button>
+        <button
+          onClick={() => setShowInstructions(!showInstructions)}
+          style={{
+            padding: "10px 20px",
+            backgroundColor: "#444444", // Mid-grey color
+            color: "#e0e0e0", // Light grey text
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer",
+            boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)", // Matte shadow
+            fontSize: "16px",
+          }}
+        >
+          How To Use
+        </button>
+        <button
+          onClick={handleDownload}
+          style={{
+            padding: "10px 20px",
+            backgroundColor: "#2e2e2e", // Slightly darker charcoal
+            color: "#f5f5f5", // Very light grey text
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer",
+            boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)", // Matte shadow
+            fontSize: "16px",
+          }}
+        >
+          Download Optimized Molecule
+        </button>
       </div>
 
       {showInstructions && (
