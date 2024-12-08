@@ -117,7 +117,8 @@ const App = () => {
 
   return (
     <div style={{ padding: "20px", textAlign: "center" }}>
-      <h1>Molecule Optimizer</h1>
+      <h1>Optimize Molecule</h1>
+      <h2>Based on Classical and Quantum Energy Calculations</h2>
       <input
         type="file"
         onChange={handleFileUpload}
@@ -216,7 +217,8 @@ const App = () => {
   "file1": {
     "atoms": [
       { "id": 1, "element": "H", "x": 0.0, "y": 0.0, "z": 0.0 },
-      { "id": 2, "element": "H", "x": 0.0, "y": 0.0, "z": 0.74 }
+      { "id": 2, "element": "H", "x": 0.0, "y": 0.0, "z": 0.74 },
+      { "id": 3, "element": "O", "x": 0.0, "y": 0.74, "z": 0.0 }
     ]
   }
 }`}
