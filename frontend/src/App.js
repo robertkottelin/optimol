@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import axios from "axios";
 import apiBaseUrl from "./config";
 
-
 const App = () => {
   const [optimizedMolecule, setOptimizedMolecule] = useState(null); // State to store optimized molecule
   const [moleculeData, setMoleculeData] = useState(null); // State to store uploaded molecule data
@@ -26,14 +25,14 @@ const App = () => {
     reader.onload = (e) => {
       try {
         const fileContent = e.target.result;
-        const parsedData = JSON.parse(fileContent); // Parse the JSON file content
+        const parsedData = JSON.parse(fileContent);
 
         if (!validateMoleculeJSON(parsedData)) {
           alert("Invalid molecule JSON format.");
           return;
         }
 
-        setMoleculeData(parsedData); // Store parsed data for later use
+        setMoleculeData(parsedData);
         alert("File uploaded successfully. Choose an optimization method.");
       } catch (error) {
         console.error("Error processing the file:", error);
@@ -41,7 +40,7 @@ const App = () => {
       }
     };
 
-    reader.readAsText(file); // Read the file as text
+    reader.readAsText(file);
   };
 
   const handleOptimize = async () => {
@@ -94,7 +93,7 @@ const App = () => {
     }
 
     const jsonData = {
-      file1: optimizedMolecule, // Wrap in the same format as input
+      file1: optimizedMolecule,
     };
     const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -102,14 +101,11 @@ const App = () => {
     const link = document.createElement("a");
     link.href = url;
     link.download = "optimized_molecule.json";
-    document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
 
   const validateMoleculeJSON = (data) => {
-    // Basic validation to ensure the JSON structure matches the expected format
     return (
       data &&
       data.file1 &&
@@ -140,7 +136,6 @@ const App = () => {
         }}
       />
       <div style={{ display: "flex", gap: "20px" }}>
-        <p>Classical optimization parameters:</p>
         <div>
           <label>fmax:</label>
           <input
@@ -160,7 +155,6 @@ const App = () => {
             placeholder="steps"
           />
         </div>
-        <p>Quantum optimization parameters:</p>
         <div>
           <label>maxiter:</label>
           <input
@@ -180,66 +174,11 @@ const App = () => {
           />
         </div>
       </div>
-      <div
-        style={{
-          marginTop: "20px",
-          display: "flex",
-          justifyContent: "center",
-          gap: "10px",
-        }}
-      >
-        <button
-          onClick={handleOptimize}
-          style={{
-            padding: "10px 20px",
-            backgroundColor: "#007bff",
-            color: "white",
-            border: "none",
-            borderRadius: "5px",
-            cursor: "pointer",
-          }}
-        >
-          Classical Optimize
-        </button>
-        <button
-          onClick={handleQuantumOptimize}
-          style={{
-            padding: "10px 20px",
-            backgroundColor: "#28a745",
-            color: "white",
-            border: "none",
-            borderRadius: "5px",
-            cursor: "pointer",
-          }}
-        >
-          Quantum Optimize
-        </button>
-        <button
-          onClick={() => setShowInstructions(!showInstructions)}
-          style={{
-            padding: "10px 20px",
-            backgroundColor: "#ffc107",
-            color: "black",
-            border: "none",
-            borderRadius: "5px",
-            cursor: "pointer",
-          }}
-        >
-          How To Use
-        </button>
-        <button
-          onClick={handleDownload}
-          style={{
-            padding: "10px 20px",
-            backgroundColor: "#6c757d",
-            color: "white",
-            border: "none",
-            borderRadius: "5px",
-            cursor: "pointer",
-          }}
-        >
-          Download Optimized Molecule
-        </button>
+      <div style={{ marginTop: "20px", display: "flex", justifyContent: "center", gap: "10px" }}>
+        <button onClick={handleOptimize}>Classical Optimize</button>
+        <button onClick={handleQuantumOptimize}>Quantum Optimize</button>
+        <button onClick={() => setShowInstructions(!showInstructions)}>How To Use</button>
+        <button onClick={handleDownload}>Download Optimized Molecule</button>
       </div>
 
       {showInstructions && (
@@ -261,7 +200,7 @@ const App = () => {
           </p>
           <h3>Steps to Use:</h3>
           <ol>
-            <li>Prepare a JSON file containing your molecule data in the following format (add more elements for bigger molecules):</li>
+            <li>Prepare a JSON file containing your molecule data in the following format:</li>
             <pre>
               {`{
   "file1": {
@@ -275,10 +214,8 @@ const App = () => {
             </pre>
             <li>Upload your JSON file using the file upload button.</li>
             <li>Modify optimization parameters (see description below).</li>
-            <li>Click on "Classical Optimize" or "Quantum Optimize" based on your preference.</li>
-            <li>
-              The results will be displayed below, including the optimized molecular geometry and, for quantum optimization, additional details like energy and parameters.
-            </li>
+            <li>Click "Classical Optimize" or "Quantum Optimize".</li>
+            <li>Download the optimized molecule data if needed.</li>
           </ol>
           <h3>Optimization Methods:</h3>
           <ul>
@@ -309,16 +246,11 @@ const App = () => {
           <p>
             After optimization, you can download the optimized molecule data as a JSON file for further analysis or visualization.
           </p>
-          <h3>Upcoming features:</h3>
+          <h3>Upcoming Features:</h3>
           <ul>
             <li>Visualize the molecule geometry before and after optimization.</li>
-            <li>
-              <s>Customize optimization parameters (fmax, steps, maxiter, QAOA layers).</s>
-            </li>
-            <li>Support for additional optimization methods (e.g., VQE, Nelder-Mead).</li>
-            <li>Support for additional file formats (e.g., XYZ, PDB).</li>
             <li>Compare classical and quantum optimization results.</li>
-            <li>Optimize multiple molecules simultaneously.</li>
+            <li>Support for additional file formats (e.g., XYZ, PDB).</li>
           </ul>
         </div>
       )}
@@ -338,38 +270,52 @@ const App = () => {
         >
           <h2>Optimized Molecule</h2>
           <pre>{JSON.stringify(optimizedMolecule.atoms, null, 2)}</pre>
-
-          <>
-            <h2>Optimization Details</h2>
-            <p>
-              <strong>Minimum Energy:</strong> {optimizedMolecule.min_energy.toFixed(6)}
-            </p>
-            <h3>Optimization Parameters:</h3>
-            <ul>
-              <li><strong>fmax:</strong> {fmax} (Classical)</li>
-              <li><strong>steps:</strong> {steps} (Classical)</li>
-              <li><strong>maxiter:</strong> {maxiter} (Quantum)</li>
-              <li><strong>p:</strong> {qaoaLayers} (Quantum)</li>
-            </ul>
-            <h3>Optimal QAOA Parameters:</h3>
-            <ul>
-              {optimizedMolecule.optimal_params.map((param, index) => (
-                <li key={index}>
-                  <strong>{index % 2 === 0 ? "γ" : "β"}:</strong> {param.toFixed(6)}
-                </li>
-              ))}
-            </ul>
-            <p>
-              The parameters represent the angles used in the QAOA ansatz:
+          <h3>Optimization Details</h3>
+          <p>
+            <strong>Minimum Energy:</strong> {optimizedMolecule.min_energy?.toFixed(6)}
+          </p>
+          <h3>Optimization Parameters:</h3>
+          <ul>
+            <li>
+              <strong>fmax:</strong> {fmax} (Classical)
+            </li>
+            <li>
+              <strong>steps:</strong> {steps} (Classical)
+            </li>
+            <li>
+              <strong>maxiter:</strong> {maxiter} (Quantum)
+            </li>
+            <li>
+              <strong>QAOA Layers (p):</strong> {qaoaLayers} (Quantum)
+            </li>
+          </ul>
+          {optimizedMolecule.optimal_params && (
+            <>
+              <h3>Optimal QAOA Parameters:</h3>
               <ul>
-                <li><strong>γ (Cost Operator Angles):</strong> Guides energy minimization.</li>
-                <li><strong>β (Mixer Operator Angles):</strong> Guides exploration of feasible states.</li>
+                {optimizedMolecule.optimal_params.map((param, index) => (
+                  <li key={index}>
+                    <strong>{index % 2 === 0 ? "γ" : "β"}:</strong> {param.toFixed(6)}
+                  </li>
+                ))}
               </ul>
-            </p>
-          </>
+              <p>
+                The parameters represent the angles used in the QAOA ansatz:
+                <ul>
+                  <li>
+                    <strong>γ (Cost Operator Angles):</strong> Guides energy minimization.
+                  </li>
+                  <li>
+                    <strong>β (Mixer Operator Angles):</strong> Guides exploration of feasible states.
+                  </li>
+                </ul>
+              </p>
+            </>
+          )}
         </div>
       )}
     </div>
   );
-}
+};
+
 export default App;
