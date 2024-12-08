@@ -123,38 +123,44 @@ const App = () => {
 
   const MoleculeViewer = ({ moleculeData }) => {
     const viewerRef = useRef();
-
+  
     useEffect(() => {
-      console.log("Molecule Data Passed to Viewer:", moleculeData);
-    
-      if (typeof $3Dmol === "undefined") {
-        console.error("3Dmol.js is not loaded. Check the CDN.");
-        return;
-      }
-    
-      const viewer = $3Dmol.createViewer(viewerRef.current, { backgroundColor: "white" });
-      viewer.clear();
-    
-      moleculeData?.atoms.forEach((atom) => {
-        console.log("Adding atom:", atom);
-        viewer.addAtoms([
-          { elem: atom.element, x: atom.x, y: atom.y, z: atom.z },
-        ]);
-      });
-    
-      viewer.setStyle({}, { sphere: { radius: 0.5 }, stick: { radius: 0.2 } });
-      viewer.zoomTo();
-      viewer.render();
+      const load3Dmol = async () => {
+        const $3Dmol = await import('3dmol/build/3Dmol.js');
+        if (!moleculeData || !moleculeData.atoms) return;
+  
+        const viewer = $3Dmol.createViewer(viewerRef.current, {
+          backgroundColor: 'white',
+        });
+        viewer.clear();
+  
+        moleculeData.atoms.forEach((atom) => {
+          viewer.addAtoms([
+            {
+              elem: atom.element,
+              x: atom.x,
+              y: atom.y,
+              z: atom.z,
+            },
+          ]);
+        });
+  
+        viewer.setStyle({}, { sphere: { radius: 0.5 }, stick: { radius: 0.2 } });
+        viewer.zoomTo();
+        viewer.render();
+      };
+  
+      load3Dmol();
     }, [moleculeData]);
-
+  
     return (
       <div
         ref={viewerRef}
         style={{
-          width: "100%",
-          height: "400px",
-          border: "1px solid #ccc",
-          marginBottom: "20px",
+          width: '100%',
+          height: '400px',
+          border: '1px solid #ccc',
+          marginBottom: '20px',
         }}
       ></div>
     );
