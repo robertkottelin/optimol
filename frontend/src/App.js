@@ -314,7 +314,7 @@ const App = () => {
             <li>Visualize the molecule geometry before and after optimization.</li>
             <li>
               <s>Customize optimization parameters (fmax, steps, maxiter, QAOA layers).</s>
-            </li>            
+            </li>
             <li>Support for additional optimization methods (e.g., VQE, Nelder-Mead).</li>
             <li>Support for additional file formats (e.g., XYZ, PDB).</li>
             <li>Compare classical and quantum optimization results.</li>
@@ -347,10 +347,10 @@ const App = () => {
               </p>
               <h3>Optimization Parameters:</h3>
               <ul>
-                <li><strong>fmax:</strong> 0.02 (Classical)</li>
-                <li><strong>steps:</strong> 100 (Classical)</li>
-                <li><strong>maxiter:</strong> 500 (Quantum)</li>
-                <li><strong>p:</strong> 10 (Quantum)</li>
+                <li><strong>fmax:</strong> {fmax} (Classical)</li>
+                <li><strong>steps:</strong> {steps} (Classical)</li>
+                <li><strong>maxiter:</strong> {maxiter} (Quantum)</li>
+                <li><strong>p:</strong> {qaoaLayers} (Quantum)</li>
               </ul>
               <h3>Optimal QAOA Parameters:</h3>
               <ul>
