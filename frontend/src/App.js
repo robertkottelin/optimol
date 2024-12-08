@@ -339,39 +339,73 @@ const App = () => {
           <h2>Optimized Molecule</h2>
           <pre>{JSON.stringify(optimizedMolecule.atoms, null, 2)}</pre>
 
+          <h2>Optimization Details</h2>
+
+          {/* Display Minimum Energy */}
           {optimizedMolecule.min_energy !== undefined && (
+            <p>
+              <strong>Minimum Energy:</strong>{" "}
+              <span style={{ color: "#28a745" }}>
+                {optimizedMolecule.min_energy.toFixed(6)}
+              </span>
+            </p>
+          )}
+
+          {/* Display Optimization Parameters */}
+          <h3>Optimization Parameters:</h3>
+          <ul>
+            {optimizedMolecule.isClassical && (
+              <>
+                <li>
+                  <strong>fmax:</strong> {fmax} (Classical)
+                </li>
+                <li>
+                  <strong>steps:</strong> {steps} (Classical)
+                </li>
+              </>
+            )}
+            {optimizedMolecule.isQuantum && (
+              <>
+                <li>
+                  <strong>maxiter:</strong> {maxiter} (Quantum)
+                </li>
+                <li>
+                  <strong>p:</strong> {qaoaLayers} (Quantum)
+                </li>
+              </>
+            )}
+          </ul>
+
+          {/* Display Optimal QAOA Parameters */}
+          {optimizedMolecule.optimal_params && (
             <>
-              <h2>Optimization Details</h2>
-              <p>
-                <strong>Minimum Energy:</strong> {optimizedMolecule.min_energy.toFixed(6)}
-              </p>
-              <h3>Optimization Parameters:</h3>
-              <ul>
-                <li><strong>fmax:</strong> {fmax} (Classical)</li>
-                <li><strong>steps:</strong> {steps} (Classical)</li>
-                <li><strong>maxiter:</strong> {maxiter} (Quantum)</li>
-                <li><strong>p:</strong> {qaoaLayers} (Quantum)</li>
-              </ul>
               <h3>Optimal QAOA Parameters:</h3>
               <ul>
                 {optimizedMolecule.optimal_params.map((param, index) => (
                   <li key={index}>
-                    <strong>{index % 2 === 0 ? "γ" : "β"}:</strong> {param.toFixed(6)}
+                    <strong>{index % 2 === 0 ? "γ" : "β"}:</strong>{" "}
+                    {param.toFixed(6)}
                   </li>
                 ))}
               </ul>
-              <p>
-                The parameters represent the angles used in the QAOA ansatz:
+              <div>
+                <p>The parameters represent the angles used in the QAOA ansatz:</p>
                 <ul>
-                  <li><strong>γ (Cost Operator Angles):</strong> Guides energy minimization.</li>
-                  <li><strong>β (Mixer Operator Angles):</strong> Guides exploration of feasible states.</li>
+                  <li>
+                    <strong>γ (Cost Operator Angles):</strong> Guides energy
+                    minimization.
+                  </li>
+                  <li>
+                    <strong>β (Mixer Operator Angles):</strong> Guides exploration of
+                    feasible states.
+                  </li>
                 </ul>
-              </p>
+              </div>
             </>
           )}
         </div>
       )}
     </div>
   );
-}
+};
 export default App;
