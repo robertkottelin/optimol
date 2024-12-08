@@ -40,8 +40,12 @@ def optimize_molecule(data):
     if any(np.linalg.norm(atom1 - atom2) < 0.5 for atom1, atom2 in zip(molecule.positions[:-1], molecule.positions[1:])):
         raise ValueError("Initial geometry contains overlapping atoms or invalid distances.")
 
+    # Retrieve user-specified parameters or use defaults
+    fmax = data.get("fmax", 0.005)
+    steps = data.get("steps", 500)
+
     optimizer = BFGS(molecule)
-    optimizer.run(fmax=0.005, steps=500) # TODO: let user adjust fmax and steps
+    optimizer.run(fmax=fmax, steps=steps)
 
     # Validate positions after optimization
     if not np.all(np.isfinite(molecule.positions)):
@@ -51,7 +55,7 @@ def optimize_molecule(data):
         {"id": i + 1, "element": atom.symbol, "x": atom.position[0], "y": atom.position[1], "z": atom.position[2]}
         for i, atom in enumerate(molecule)
     ]
-    
+
     # Final validation
     if any(np.isnan(coord) for atom in optimized_atoms for coord in (atom["x"], atom["y"], atom["z"])):
         raise ValueError("Optimization result contains NaN in atomic positions.")
@@ -69,6 +73,8 @@ def optimize_molecule_qaoa(data, optimizer='COBYLA', p=10):
     Optimize a molecular geometry using QAOA and return adjusted positions.
     """
     try:
+        maxiter = data.get("maxiter", 1000)  # Retrieve maxiter from request
+
         # Validate incoming data structure
         if "atoms" not in data:
             raise ValueError("Missing 'atoms' in input data.")
@@ -108,8 +114,9 @@ def optimize_molecule_qaoa(data, optimizer='COBYLA', p=10):
             fun=objective_function,
             x0=initial_point,
             method=optimizer.lower(),
-            options={"maxiter": 1000}
+            options={"maxiter": maxiter}
         )
+
         optimal_params = optimization_result.x
         min_energy = optimization_result.fun
         print("Optimization completed.")

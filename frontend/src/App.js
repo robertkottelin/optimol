@@ -8,6 +8,11 @@ const App = () => {
   const [moleculeData, setMoleculeData] = useState(null); // State to store uploaded molecule data
   const [showInstructions, setShowInstructions] = useState(false); // State to toggle instructions
 
+  const [fmax, setFmax] = useState(0.005);
+  const [steps, setSteps] = useState(500);
+  const [maxiter, setMaxiter] = useState(1000);
+  const [qaoaLayers, setQaoaLayers] = useState(2);
+
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
 
@@ -46,8 +51,14 @@ const App = () => {
     }
 
     try {
-      const response = await axios.post(`${apiBaseUrl}/optimize`, moleculeData);
-      setOptimizedMolecule(response.data.optimized_file1); // Set optimized molecule in state
+      const payload = {
+        file1: moleculeData.file1,
+        fmax: fmax,
+        steps: steps,
+      };
+
+      const response = await axios.post(`${apiBaseUrl}/optimize`, payload);
+      setOptimizedMolecule(response.data.optimized_file1);
     } catch (error) {
       console.error("Error optimizing molecule:", error);
       alert("Error optimizing molecule. Check the console for details.");
@@ -62,15 +73,14 @@ const App = () => {
 
     try {
       const payload = {
-        file1: {
-          atoms: moleculeData.file1.atoms, // Explicitly pass atoms array
-        },
-        optimizer: "COBYLA", // Default optimizer
-        p: 2, // Default number of QAOA layers
+        file1: moleculeData.file1,
+        optimizer: "COBYLA",
+        p: qaoaLayers,
+        maxiter: maxiter,
       };
 
       const response = await axios.post(`${apiBaseUrl}/quantum-optimize`, payload);
-      setOptimizedMolecule(response.data.optimized_file1); // Set optimized molecule in state
+      setOptimizedMolecule(response.data.optimized_file1);
     } catch (error) {
       console.error("Error optimizing molecule with quantum method:", error);
       alert("Error optimizing molecule with quantum method. Check the console for details.");
@@ -129,7 +139,45 @@ const App = () => {
           marginBottom: "20px",
         }}
       />
-
+      <div style={{ display: "flex", gap: "20px" }}>
+        <div>
+          <label>fmax:</label>
+          <input
+            type="number"
+            step="0.001"
+            value={fmax}
+            onChange={(e) => setFmax(Number(e.target.value))}
+            placeholder="fmax"
+          />
+        </div>
+        <div>
+          <label>steps:</label>
+          <input
+            type="number"
+            value={steps}
+            onChange={(e) => setSteps(Number(e.target.value))}
+            placeholder="steps"
+          />
+        </div>
+        <div>
+          <label>maxiter:</label>
+          <input
+            type="number"
+            value={maxiter}
+            onChange={(e) => setMaxiter(Number(e.target.value))}
+            placeholder="maxiter"
+          />
+        </div>
+        <div>
+          <label>QAOA Layers (p):</label>
+          <input
+            type="number"
+            value={qaoaLayers}
+            onChange={(e) => setQaoaLayers(Number(e.target.value))}
+            placeholder="p"
+          />
+        </div>
+      </div>
       <div
         style={{
           marginTop: "20px",
@@ -175,7 +223,7 @@ const App = () => {
             cursor: "pointer",
           }}
         >
-          How To
+          How To Use
         </button>
         <button
           onClick={handleDownload}
