@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import apiBaseUrl from "./config";
+import * as $3Dmol from '3dmol';
+console.log("$3Dmol loaded:", $3Dmol);
+
 
 const App = () => {
   const [optimizedMolecule, setOptimizedMolecule] = useState(null); // State to store optimized molecule
@@ -125,58 +128,48 @@ const App = () => {
     const viewerRef = useRef();
   
     useEffect(() => {
-      const load3Dmol = async () => {
-        try {
-          const $3Dmol = await import('3dmol/build/3Dmol.js');
-          console.log("3Dmol.js loaded:", $3Dmol);
+      if (!moleculeData || !moleculeData.atoms) {
+        console.warn("No molecule data found for visualization.");
+        return;
+      }
+
+      console.log("Viewer Ref:", viewerRef.current); // Log the reference to the viewer container
+      console.log("Molecule Atoms:", moleculeData.atoms); // Log the atoms passed to the viewer    
   
-          if (!moleculeData || !moleculeData.atoms) {
-            console.warn("No molecule data found for visualization.");
-            return;
-          }
+      const viewer = $3Dmol.createViewer(viewerRef.current, {
+        backgroundColor: 'white',
+      });
+      viewer.clear();
   
-          console.log("Molecule Data for Viewer:", moleculeData);
+      try {
+        viewer.addAtoms(moleculeData.atoms.map(atom => ({
+          elem: atom.element,
+          x: atom.x,
+          y: atom.y,
+          z: atom.z,
+        })));
   
-          const viewer = $3Dmol.createViewer(viewerRef.current, {
-            backgroundColor: 'white',
-          });
-          viewer.clear();
-  
-          moleculeData.atoms.forEach((atom) => {
-            viewer.addAtoms([
-              {
-                elem: atom.element,
-                x: atom.x,
-                y: atom.y,
-                z: atom.z,
-              },
-            ]);
-          });
-  
-          viewer.setStyle({}, { sphere: { radius: 0.5 }, stick: { radius: 0.2 } });
-          viewer.zoomTo();
-          viewer.render();
-        } catch (error) {
-          console.error("Error loading 3Dmol.js or rendering molecule:", error);
-        }
-      };
-  
-      load3Dmol();
+        viewer.setStyle({}, { sphere: { radius: 0.5 }, stick: { radius: 0.2 } });
+        viewer.zoomTo();
+        viewer.render();
+      } catch (error) {
+        console.error("Error rendering molecule:", error);
+      }
     }, [moleculeData]);
   
     return (
       <div
         ref={viewerRef}
         style={{
-          width: '80%',
-          height: '400px', // Increased height
+          width: '100%',
+          height: '400px',
           border: '1px solid #ccc',
           marginBottom: '20px',
         }}
       ></div>
     );
   };
-  
+    
 
   return (
     <div style={{ padding: "20px", textAlign: "center" }}>
