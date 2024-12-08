@@ -126,28 +126,39 @@ const App = () => {
   
     useEffect(() => {
       const load3Dmol = async () => {
-        const $3Dmol = await import('3dmol/build/3Dmol.js');
-        if (!moleculeData || !moleculeData.atoms) return;
+        try {
+          const $3Dmol = await import('3dmol/build/3Dmol.js');
+          console.log("3Dmol.js loaded:", $3Dmol);
   
-        const viewer = $3Dmol.createViewer(viewerRef.current, {
-          backgroundColor: 'white',
-        });
-        viewer.clear();
+          if (!moleculeData || !moleculeData.atoms) {
+            console.warn("No molecule data found for visualization.");
+            return;
+          }
   
-        moleculeData.atoms.forEach((atom) => {
-          viewer.addAtoms([
-            {
-              elem: atom.element,
-              x: atom.x,
-              y: atom.y,
-              z: atom.z,
-            },
-          ]);
-        });
+          console.log("Molecule Data for Viewer:", moleculeData);
   
-        viewer.setStyle({}, { sphere: { radius: 0.5 }, stick: { radius: 0.2 } });
-        viewer.zoomTo();
-        viewer.render();
+          const viewer = $3Dmol.createViewer(viewerRef.current, {
+            backgroundColor: 'white',
+          });
+          viewer.clear();
+  
+          moleculeData.atoms.forEach((atom) => {
+            viewer.addAtoms([
+              {
+                elem: atom.element,
+                x: atom.x,
+                y: atom.y,
+                z: atom.z,
+              },
+            ]);
+          });
+  
+          viewer.setStyle({}, { sphere: { radius: 0.5 }, stick: { radius: 0.2 } });
+          viewer.zoomTo();
+          viewer.render();
+        } catch (error) {
+          console.error("Error loading 3Dmol.js or rendering molecule:", error);
+        }
       };
   
       load3Dmol();
@@ -158,13 +169,14 @@ const App = () => {
         ref={viewerRef}
         style={{
           width: '80%',
-          height: '100px',
+          height: '400px', // Increased height
           border: '1px solid #ccc',
           marginBottom: '20px',
         }}
       ></div>
     );
   };
+  
 
   return (
     <div style={{ padding: "20px", textAlign: "center" }}>
