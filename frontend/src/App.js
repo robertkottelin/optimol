@@ -136,6 +136,7 @@ const App = () => {
         }}
       />
       <div style={{ display: "flex", gap: "20px" }}>
+      <p>Classical optimization parameters:</p>
         <div>
           <label>fmax:</label>
           <input
@@ -156,6 +157,7 @@ const App = () => {
           />
         </div>
         <div>
+        <p>Quantum optimization parameters:</p>
           <label>maxiter:</label>
           <input
             type="number"
