@@ -2,11 +2,11 @@ import React, { useState } from "react";
 import axios from "axios";
 import apiBaseUrl from "./config";
 
+
 const App = () => {
   const [optimizedMolecule, setOptimizedMolecule] = useState(null); // State to store optimized molecule
   const [moleculeData, setMoleculeData] = useState(null); // State to store uploaded molecule data
   const [showInstructions, setShowInstructions] = useState(false); // State to toggle instructions
-  const [selectedMethod, setSelectedMethod] = useState(null); // Track selected optimization method
 
   const [fmax, setFmax] = useState(0.005);
   const [steps, setSteps] = useState(500);
@@ -51,7 +51,6 @@ const App = () => {
     }
 
     try {
-      setSelectedMethod("classical");
       const payload = {
         file1: moleculeData.file1,
         fmax: fmax,
@@ -73,7 +72,6 @@ const App = () => {
     }
 
     try {
-      setSelectedMethod("quantum");
       const payload = {
         file1: moleculeData.file1,
         optimizer: "COBYLA",
@@ -244,6 +242,87 @@ const App = () => {
         </button>
       </div>
 
+      {showInstructions && (
+        <div
+          style={{
+            marginTop: "20px",
+            textAlign: "left",
+            padding: "10px",
+            border: "1px solid gray",
+            borderRadius: "5px",
+            backgroundColor: "#f9f9f9",
+            maxWidth: "600px",
+            margin: "auto",
+          }}
+        >
+          <h2>How To Use:</h2>
+          <p>
+            This app optimizes molecular geometry using either classical or quantum energy optimization techniques.
+          </p>
+          <h3>Steps to Use:</h3>
+          <ol>
+            <li>Prepare a JSON file containing your molecule data in the following format (add more elements for bigger molecules):</li>
+            <pre>
+              {`{
+  "file1": {
+    "atoms": [
+      { "id": 1, "element": "H", "x": 0.0, "y": 0.0, "z": 0.0 },
+      { "id": 2, "element": "H", "x": 0.0, "y": 0.0, "z": 0.74 },
+      { "id": 3, "element": "O", "x": 0.0, "y": 0.74, "z": 0.0 }
+    ]
+  }
+}`}
+            </pre>
+            <li>Upload your JSON file using the file upload button.</li>
+            <li>Modify optimization parameters (see description below).</li>
+            <li>Click on "Classical Optimize" or "Quantum Optimize" based on your preference.</li>
+            <li>
+              The results will be displayed below, including the optimized molecular geometry and, for quantum optimization, additional details like energy and parameters.
+            </li>
+          </ol>
+          <h3>Optimization Methods:</h3>
+          <ul>
+            <li>
+              <strong>Classical Optimize:</strong> Uses classical computational chemistry methods to minimize the energy of the molecular geometry.
+              <ul>
+                <li>
+                  <strong>fmax:</strong> The force convergence criterion. Lower values require finer adjustments (default: 0.005).
+                </li>
+                <li>
+                  <strong>steps:</strong> The maximum number of iterations for the optimizer (default: 500).
+                </li>
+              </ul>
+            </li>
+            <li>
+              <strong>Quantum Optimize:</strong> Employs a quantum optimization algorithm (QAOA) to explore energy minimization with quantum methods.
+              <ul>
+                <li>
+                  <strong>maxiter:</strong> The maximum number of iterations for the optimizer during parameter tuning (default: 1000).
+                </li>
+                <li>
+                  <strong>p:</strong> The number of QAOA layers, determining the complexity of the quantum ansatz (default: 10).
+                </li>
+              </ul>
+            </li>
+          </ul>
+          <h3>Download Optimized Molecule:</h3>
+          <p>
+            After optimization, you can download the optimized molecule data as a JSON file for further analysis or visualization.
+          </p>
+          <h3>Upcoming features:</h3>
+          <ul>
+            <li>Visualize the molecule geometry before and after optimization.</li>
+            <li>
+              <s>Customize optimization parameters (fmax, steps, maxiter, QAOA layers).</s>
+            </li>
+            <li>Support for additional optimization methods (e.g., VQE, Nelder-Mead).</li>
+            <li>Support for additional file formats (e.g., XYZ, PDB).</li>
+            <li>Compare classical and quantum optimization results.</li>
+            <li>Optimize multiple molecules simultaneously.</li>
+          </ul>
+        </div>
+      )}
+
       {optimizedMolecule && (
         <div
           style={{
@@ -260,74 +339,37 @@ const App = () => {
           <h2>Optimized Molecule</h2>
           <pre>{JSON.stringify(optimizedMolecule.atoms, null, 2)}</pre>
 
-          <h2>Optimization Details</h2>
-
-          {/* Display Minimum Energy */}
-          {optimizedMolecule.min_energy !== undefined && (
+          <>
+            <h2>Optimization Details</h2>
             <p>
-              <strong>Minimum Energy:</strong>{" "}
-              <span style={{ color: "#28a745" }}>
-                {optimizedMolecule.min_energy.toFixed(6)}
-              </span>
+              <strong>Minimum Energy:</strong> {optimizedMolecule.min_energy.toFixed(6)}
             </p>
-          )}
-
-          {/* Display Optimization Parameters */}
-          <h3>Optimization Parameters:</h3>
-          <ul>
-            {selectedMethod === "classical" && (
-              <>
-                <li>
-                  <strong>fmax:</strong> {fmax} (Classical)
+            <h3>Optimization Parameters:</h3>
+            <ul>
+              <li><strong>fmax:</strong> {fmax} (Classical)</li>
+              <li><strong>steps:</strong> {steps} (Classical)</li>
+              <li><strong>maxiter:</strong> {maxiter} (Quantum)</li>
+              <li><strong>p:</strong> {qaoaLayers} (Quantum)</li>
+            </ul>
+            <h3>Optimal QAOA Parameters:</h3>
+            <ul>
+              {optimizedMolecule.optimal_params.map((param, index) => (
+                <li key={index}>
+                  <strong>{index % 2 === 0 ? "γ" : "β"}:</strong> {param.toFixed(6)}
                 </li>
-                <li>
-                  <strong>steps:</strong> {steps} (Classical)
-                </li>
-              </>
-            )}
-            {selectedMethod === "quantum" && (
-              <>
-                <li>
-                  <strong>maxiter:</strong> {maxiter} (Quantum)
-                </li>
-                <li>
-                  <strong>p:</strong> {qaoaLayers} (Quantum)
-                </li>
-              </>
-            )}
-          </ul>
-
-          {/* Display Optimal QAOA Parameters */}
-          {selectedMethod === "quantum" && optimizedMolecule.optimal_params && (
-            <>
-              <h3>Optimal QAOA Parameters:</h3>
+              ))}
+            </ul>
+            <p>
+              The parameters represent the angles used in the QAOA ansatz:
               <ul>
-                {optimizedMolecule.optimal_params.map((param, index) => (
-                  <li key={index}>
-                    <strong>{index % 2 === 0 ? "γ" : "β"}:</strong>{" "}
-                    {param.toFixed(6)}
-                  </li>
-                ))}
+                <li><strong>γ (Cost Operator Angles):</strong> Guides energy minimization.</li>
+                <li><strong>β (Mixer Operator Angles):</strong> Guides exploration of feasible states.</li>
               </ul>
-              <div>
-                <p>The parameters represent the angles used in the QAOA ansatz:</p>
-                <ul>
-                  <li>
-                    <strong>γ (Cost Operator Angles):</strong> Guides energy
-                    minimization.
-                  </li>
-                  <li>
-                    <strong>β (Mixer Operator Angles):</strong> Guides exploration of
-                    feasible states.
-                  </li>
-                </ul>
-              </div>
-            </>
-          )}
+            </p>
+          </>
         </div>
       )}
     </div>
   );
-};
-
+}
 export default App;
