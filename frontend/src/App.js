@@ -152,7 +152,8 @@ const App = () => {
           z: atom.z,
         }));
         console.log("Atoms being added:", atoms); // Debugging
-  
+        
+        viewer.addModel();
         viewer.addAtoms(atoms);
         viewer.setStyle({}, { sphere: { radius: 0.5 }, stick: { radius: 0.2 } });
         viewer.zoomTo();
