@@ -274,6 +274,7 @@ const App = () => {
 }`}
             </pre>
             <li>Upload your JSON file using the file upload button.</li>
+            <li>Modify optimization parameters.</li>
             <li>Click on "Classical Optimize" or "Quantum Optimize" based on your preference.</li>
             <li>
               The results will be displayed below, including the optimized molecular geometry and, for quantum optimization, additional details like energy and parameters.
