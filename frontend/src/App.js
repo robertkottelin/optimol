@@ -133,14 +133,10 @@ const App = () => {
         return;
       }
   
-      console.log("Viewer Ref:", viewerRef.current); // Debugging
-      console.log("Molecule Atoms:", moleculeData.atoms); // Debugging
-  
       // Initialize the viewer
       const viewer = $3Dmol.createViewer(viewerRef.current, {
         backgroundColor: "white",
       });
-      console.log("Viewer initialized:", viewer); // Debugging
       viewer.clear();
   
       try {
@@ -151,13 +147,16 @@ const App = () => {
           y: atom.y,
           z: atom.z,
         }));
-        console.log("Atoms being added:", atoms); // Debugging
   
         const model = viewer.addModel(); // Add a new model to the viewer
         model.addAtoms(atoms); // Add atoms to the model
   
-        viewer.setStyle({}, { sphere: { radius: 0.5 }, stick: { radius: 0.2 } });
-        viewer.zoomTo();
+        // Set styles for atoms and bonds
+        viewer.setStyle({}, {
+          sphere: { radius: 0.4 }, // Smaller radius for atoms
+          stick: { radius: 0.2 }, // Add sticks (bonds) between atoms
+        });
+        viewer.zoomTo(); // Automatically adjust zoom to fit molecule
         viewer.render();
       } catch (error) {
         console.error("Error rendering molecule:", error);
@@ -169,14 +168,14 @@ const App = () => {
         ref={viewerRef}
         style={{
           width: "100%",
-          height: "400px",
+          height: "300px", // Adjusted height for smaller window
           border: "1px solid #ccc",
           marginBottom: "20px",
         }}
       ></div>
     );
-  };     
-
+  };
+  
   return (
     <div style={{ padding: "20px", textAlign: "center" }}>
       <h1>Optimize Molecule</h1>
