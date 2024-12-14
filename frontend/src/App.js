@@ -151,11 +151,9 @@ const App = () => {
         const model = viewer.addModel(); // Add a new model to the viewer
         model.addAtoms(atoms); // Add atoms to the model
   
-        // Set styles for atoms and bonds
-        viewer.setStyle({}, {
-          sphere: { radius: 0.4 }, // Smaller radius for atoms
-          stick: { radius: 0.2 }, // Add sticks (bonds) between atoms
-        });
+        // Generate bonds based on proximity (automatic in $3Dmol)
+        model.setStyle({}, { sphere: { radius: 0.4 }, stick: { radius: 0.2 } });
+  
         viewer.zoomTo(); // Automatically adjust zoom to fit molecule
         viewer.render();
       } catch (error) {
@@ -167,14 +165,15 @@ const App = () => {
       <div
         ref={viewerRef}
         style={{
-          width: "80%",
-          height: "100px", // Adjusted height for smaller window
+          width: "100%",
+          height: "400px", // Ensure sufficient height for the viewer
           border: "1px solid #ccc",
           marginBottom: "20px",
         }}
       ></div>
     );
   };
+  
   
   return (
     <div style={{ padding: "20px", textAlign: "center" }}>
