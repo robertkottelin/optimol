@@ -167,8 +167,8 @@ const App = () => {
       <div
         ref={viewerRef}
         style={{
-          width: "100%",
-          height: "300px", // Adjusted height for smaller window
+          width: "80%",
+          height: "100px", // Adjusted height for smaller window
           border: "1px solid #ccc",
           marginBottom: "20px",
         }}
