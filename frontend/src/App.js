@@ -133,13 +133,14 @@ const App = () => {
         return;
       }
   
+      // Initialize the viewer
       const viewer = $3Dmol.createViewer(viewerRef.current, {
         backgroundColor: "white",
       });
       viewer.clear();
   
       try {
-        // Map atoms
+        // Map molecule data to atoms for the viewer
         const atoms = moleculeData.atoms.map((atom) => ({
           elem: atom.element,
           x: atom.x,
@@ -147,25 +148,13 @@ const App = () => {
           z: atom.z,
         }));
   
-        // Map bonds (optional)
-        const bonds = moleculeData.bonds?.map((bond) => ({
-          atom1: bond.from - 1, // 1-based indexing to 0-based
-          atom2: bond.to - 1,
-          order: bond.order || 1,
-        }));
+        const model = viewer.addModel(); // Add a new model to the viewer
+        model.addAtoms(atoms); // Add atoms to the model
   
-        const model = viewer.addModel();
-        model.addAtoms(atoms);
+        // Generate bonds based on proximity (automatic in $3Dmol)
+        model.setStyle({}, { sphere: { radius: 0.1 }, stick: { radius: 0.1 } });
   
-        // Add bonds if present
-        if (bonds) {
-          bonds.forEach((bond) => {
-            model.connect(bond.atom1, bond.atom2, bond.order);
-          });
-        }
-  
-        viewer.setStyle({}, { sphere: { radius: 0.4 }, stick: { radius: 0.2 } });
-        viewer.zoomTo();
+        viewer.zoomTo(); // Automatically adjust zoom to fit molecule
         viewer.render();
       } catch (error) {
         console.error("Error rendering molecule:", error);
@@ -177,14 +166,14 @@ const App = () => {
         ref={viewerRef}
         style={{
           width: "100%",
-          height: "400px",
+          height: "400px", // Ensure sufficient height for the viewer
           border: "1px solid #ccc",
           marginBottom: "20px",
         }}
       ></div>
     );
   };
-    
+  
   
   return (
     <div style={{ padding: "20px", textAlign: "center" }}>
