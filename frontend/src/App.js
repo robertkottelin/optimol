@@ -151,10 +151,11 @@ const App = () => {
         const model = viewer.addModel(); // Add a new model to the viewer
         model.addAtoms(atoms); // Add atoms to the model
 
-        // Set styles for atoms and bonds
+        // Set styles for atoms and sticks (bonds)
         viewer.setStyle({}, {
-          sphere: { radius: 0.4 }, // Smaller radius for atoms
-          stick: { radius: 0.2 }, // Add sticks (bonds) between atoms
+          sphere: { radius: 0.2 }, // Smaller radius for atoms
+          stick: { radius: 0.2 }, // Add sticks (bonds) between atoms with thinner lines
+          line: { linewidth: 2.0 }, // Optional: add thin lines for bonds
         });
         viewer.zoomTo(); // Automatically adjust zoom to fit molecule
         viewer.render();
