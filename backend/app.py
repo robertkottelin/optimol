@@ -180,7 +180,7 @@ def optimize_test():
 
 @app.route('/')
 def index():
-    return "Optimol API is running!"
+    return "Optimol API is running! Available endpoints: /test, /optimize, /quantum-optimize"
 
 
 if __name__ == '__main__':
