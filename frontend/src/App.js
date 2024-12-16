@@ -150,8 +150,12 @@ const App = () => {
   
         const model = viewer.addModel(); // Add a new model to the viewer
         model.addAtoms(atoms); // Add atoms to the model
-        model.setStyle({}, { stick: {} }); // Add sticks (bonds) between atoms
   
+        // Set styles for atoms and bonds
+        viewer.setStyle({}, {
+          sphere: { radius: 0.4 }, // Smaller radius for atoms
+          stick: { radius: 0.2 }, // Add sticks (bonds) between atoms
+        });
         viewer.zoomTo(); // Automatically adjust zoom to fit molecule
         viewer.render();
       } catch (error) {
@@ -172,9 +176,10 @@ const App = () => {
     );
   };
   
+  
   return (
     <div style={{ padding: "20px", textAlign: "center" }}>
-      <h1>Optimize Molecule !!!!!!!!!!!</h1>
+      <h1>Optimize Molecule</h1>
       <h2>Based on Classical and Quantum Energy Calculations</h2>
       <input
         type="file"

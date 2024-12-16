@@ -13,8 +13,7 @@ sudo docker login
 
 push:
 sudo docker push robertkottelin/optimize-molecule:backend-latest
-
-
+_____________________________________________________________________________________
 FRONTEND:
 npm run build
 

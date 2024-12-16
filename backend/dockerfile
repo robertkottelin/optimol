@@ -6,6 +6,8 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
     libstdc++6 \
+    libopenblas-dev \
+    liblapack-dev \
     && apt-get clean
 
 # Set working directory
@@ -19,8 +21,7 @@ RUN conda env create -f environment.yml && \
     conda clean -afy && \
     echo "source activate optimize-molecule" > ~/.bashrc
 
-# Make the Conda environment the default
-ENV PATH /opt/conda/envs/molecule_env/bin:$PATH
+ENV PATH /opt/conda/envs/optimize-molecule/bin:$PATH
 
 # Copy the application code
 COPY . .
@@ -28,5 +29,5 @@ COPY . .
 # Expose the Flask port
 EXPOSE 5000
 
-# Use Gunicorn to run the Flask app in production
-CMD ["bash", "-c", "source activate optimize-molecule && gunicorn -w 4 -b 0.0.0.0:5000 app:app"]
+# Start the Flask application
+CMD ["python", "app.py"]

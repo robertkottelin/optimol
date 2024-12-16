@@ -10,32 +10,45 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    # Step 1: Checkout code
     - name: Checkout code
       uses: actions/checkout@v3
 
+    # Step 2: Set up Node.js
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
         node-version: 18
 
+    # Step 3: Install dependencies and build
     - name: Install dependencies and build
       run: |
         cd frontend
         npm install
         npm run build
 
+    # Step 4: Log in to DockerHub
     - name: Log in to DockerHub
       uses: docker/login-action@v2
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
+    # Step 5: Delete existing Docker image tag (if it exists)
+    - name: Delete existing Docker image tag
+      run: |
+        IMAGE_NAME=robertkottelin/optimize-molecule:frontend-latest
+        curl -s -u "${{ secrets.DOCKER_USERNAME }}:${{ secrets.DOCKER_PASSWORD }}" \
+          -X DELETE "https://hub.docker.com/v2/repositories/${IMAGE_NAME}"
+
+    # Step 6: Build and tag Docker image
     - name: Build and tag Docker image
       run: |
         cd frontend
         docker build --no-cache -t optimize-molecule .
         docker tag optimize-molecule robertkottelin/optimize-molecule:frontend-latest
 
+    # Step 7: Push Docker image
     - name: Push Docker image
       run: |
         docker push robertkottelin/optimize-molecule:frontend-latest

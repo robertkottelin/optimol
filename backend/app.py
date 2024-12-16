@@ -11,19 +11,13 @@ from qiskit.primitives import Estimator, StatevectorSampler
 import numpy as np
 import os
 
-# Import your configuration file
-from config import DevelopmentConfig, ProductionConfig, AllowAllConfig
-
 app = Flask(__name__)
 
-# Load the configuration based on the environment
-if os.environ.get("DEVELOPMENT"):
-    app.config.from_object(AllowAllConfig)
-else:
-    app.config.from_object(ProductionConfig)
+# CORS(app, origins=["https://orca-app-pmrz6.ondigitalocean.app"], methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type"])
+# same but for localhost
+# CORS(app, origins=["*"], methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type"])
+CORS(app, origins=["http://localhost:3000"], methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type"])
 
-# Apply CORS using the loaded configuration
-CORS(app, origins=["https://orca-app-pmrz6.ondigitalocean.app"], methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type"])
 
 def optimize_molecule(data):
     """
