@@ -1,4 +1,4 @@
-BACKEND:
+# BACKEND:
 build:
 sudo docker build -t optimize-molecule .
 
@@ -13,12 +13,10 @@ sudo docker login
 
 push:
 sudo docker push robertkottelin/optimize-molecule:backend-latest
-_____________________________________________________________________________________
-FRONTEND:
+---
 
+# FRONTEND:
 build:
-npm run build
-
 sudo docker build --no-cache -t optimize-molecule .
 
 run:
@@ -32,7 +30,7 @@ sudo docker login
 
 push:
 sudo docker push robertkottelin/optimize-molecule:frontend-latest
-
+---
 
 Stop all containers:
 sudo docker stop $(sudo docker ps -q)

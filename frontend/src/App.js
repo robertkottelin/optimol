@@ -1,19 +1,54 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import * as $3Dmol from '3dmol';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements } from '@stripe/react-stripe-js';
+import SubscriptionForm from './SubscriptionForm';
 console.log("$3Dmol loaded:", $3Dmol);
+
+const stripePromise = loadStripe('pk_test_kbl0ETzPsoiTwU4ZJMvhsYJw006XVnV4Aq');
 
 const App = () => {
   const [optimizedMolecule, setOptimizedMolecule] = useState(null); // State to store optimized molecule
   const [moleculeData, setMoleculeData] = useState(null); // State to store uploaded molecule data
   const [showInstructions, setShowInstructions] = useState(false); // State to toggle instructions
+  const [isSubscribed, setIsSubscribed] = useState(false); // Track subscription status
+  const [userEmail, setUserEmail] = useState(""); // Track user email
 
   const [fmax, setFmax] = useState(0.005);
   const [steps, setSteps] = useState(500);
   const [maxiter, setMaxiter] = useState(1000);
   const [qaoaLayers, setQaoaLayers] = useState(2);
 
+  const handleSubscriptionSuccess = (email) => {
+    setIsSubscribed(true);
+    setUserEmail(email);
+    localStorage.setItem("userEmail", email); // Save email in localStorage
+  };
+
   const apiBaseUrl = "http://localhost:5000/";
+
+  // Check subscription status on page load
+  useEffect(() => {
+    const email = localStorage.getItem("userEmail");
+    if (email) {
+      checkSubscriptionStatus(email);
+    }
+  }, []);
+
+  const checkSubscriptionStatus = async (email) => {
+    try {
+      const response = await axios.post(`${apiBaseUrl}/check-subscription`, { email });
+      if (response.data.isSubscribed) {
+        setIsSubscribed(true);
+        setUserEmail(email);
+      } else {
+        setIsSubscribed(false);
+      }
+    } catch (error) {
+      console.error("Error checking subscription status:", error);
+    }
+  };
 
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
@@ -182,6 +217,16 @@ const App = () => {
     <div style={{ padding: "20px", textAlign: "center" }}>
       <h1>Optimize Molecule</h1>
       <h2>Based on Classical and Quantum Energy Calculations</h2>
+      {!isSubscribed ? (
+        <Elements stripe={stripePromise}>
+          <SubscriptionForm onSuccess={handleSubscriptionSuccess} />
+        </Elements>
+      ) : (
+        <div>
+          <p>Welcome, {userEmail}! You are subscribed.</p>
+          {/* Render the main app features here */}
+        </div>
+      )}
       <input
         type="file"
         onChange={handleFileUpload}
