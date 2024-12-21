@@ -170,7 +170,7 @@ const App = () => {
 
       // Initialize the viewer
       const viewer = $3Dmol.createViewer(viewerRef.current, {
-        backgroundColor: "white",
+        backgroundColor: "grey",
       });
       viewer.clear();
 
@@ -185,6 +185,19 @@ const App = () => {
 
         const model = viewer.addModel(); // Add a new model to the viewer
         model.addAtoms(atoms); // Add atoms to the model
+
+        // Add labels for each atom
+        moleculeData.atoms.forEach((atom) => {
+          viewer.addLabel(atom.element, {
+            position: { x: atom.x, y: atom.y, z: atom.z },
+            fontSize: 12,
+            fontColor: "white",
+            backgroundColor: "black",
+            borderRadius: 2,
+            padding: 2,
+            inFront: true, // Ensure labels are always visible in front
+          });
+        });
 
         // Set styles for atoms and sticks (bonds)
         viewer.setStyle({}, {

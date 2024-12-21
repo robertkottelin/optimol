@@ -60,8 +60,7 @@ const SubscriptionForm = ({ onSuccess }) => {
 
   return (
     <div className="subscription-form">
-      <h3>Subscribe for $10/month</h3>
-      <p>Subscribe to get access to full compute power.</p>
+      <h3>Subscribe for $10/month to get access to full compute power.</h3>
       <form onSubmit={handleSubmit}>
         <input
           type="email"
