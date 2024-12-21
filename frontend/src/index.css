@@ -126,3 +126,23 @@ input[type="file"]::file-selector-button:hover {
 .box li {
   margin-bottom: 5px; /* Add spacing between list items */
 }
+
+.stripe-card-element {
+  display: flex;
+  gap: 10px; /* Adjust the gap between fields */
+  justify-content: center; /* Align elements in the center */
+}
+
+.StripeElement {
+  padding: 8px;
+  border: 1px solid #888;
+  border-radius: 5px;
+  background-color: #444;
+  color: #f0f0f0;
+  flex: 1; /* Allow equal spacing */
+}
+
+input:focus, .StripeElement--focus {
+  outline: none;
+  box-shadow: 0 0 5px #aaa;
+}

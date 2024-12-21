@@ -36,3 +36,8 @@ sudo docker push robertkottelin/optimize-molecule:frontend-latest
 Stop all containers:
 sudo docker stop $(sudo docker ps -q)
 sudo docker rm $(sudo docker ps -aq)
+
+# SQLITE DELETE
+sudo rm /home/compute/optimol/backend/instance/users.db
+
+4242424242424242
