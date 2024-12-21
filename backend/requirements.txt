@@ -5,3 +5,4 @@ qiskit-aer
 ase
 scipy
 numpy
+python-dotenv

@@ -10,8 +10,44 @@ from qiskit_algorithms.minimum_eigensolvers import QAOA
 from qiskit.primitives import Estimator, StatevectorSampler
 import numpy as np
 import os
+import stripe
+from dotenv import load_dotenv
+from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
+
+# Configure SQLite database
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'  # SQLite file will be `users.db`
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # Suppress warnings
+
+# Initialize SQLAlchemy
+db = SQLAlchemy(app)
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    customer_id = db.Column(db.String(120), nullable=False)
+    subscription_id = db.Column(db.String(120), nullable=False)
+    subscription_status = db.Column(db.String(50), nullable=False)
+
+    def __repr__(self):
+        return f'<User {self.email}>'
+
+class Optimization(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    optimization_type = db.Column(db.String(50), nullable=False)  # 'classical' or 'quantum'
+    parameters = db.Column(db.Text, nullable=False)  # JSON string of parameters
+    result = db.Column(db.Text, nullable=True)  # JSON string of the result
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+
+    def __repr__(self):
+        return f'<Optimization {self.id} for User {self.user_id}>'
+
+load_dotenv()
+STRIPE_SECRET = os.getenv("STRIPE_SECRET")
+
+stripe.api_key = STRIPE_SECRET
 
 # CORS(app, origins=["https://orca-app-pmrz6.ondigitalocean.app"], methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type"])
 # same but for localhost
@@ -178,10 +214,121 @@ def quantum_optimize():
 def optimize_test():
     return "POST test request received successfully!"
 
+@app.route('/subscribe', methods=['POST'])
+def subscribe_user():
+    """
+    Create a subscription for a user using Stripe.
+    """
+    try:
+        data = request.get_json()
+        if not data or "email" not in data or "paymentMethodId" not in data:
+            return jsonify({"error": "Invalid input: Missing 'email' or 'paymentMethodId'"}), 400
+
+        email = data["email"]
+        payment_method_id = data["paymentMethodId"]
+        price_id = "price_1QYNn9JQZaUHxA2Ld9rV2MPd"  # Replace with your Stripe Price ID
+
+        # Create or retrieve customer in Stripe
+        customers = stripe.Customer.list(email=email).data
+        if customers:
+            customer = customers[0]  # Use the existing customer
+        else:
+            customer = stripe.Customer.create(email=email)
+
+        # Attach the payment method to the customer
+        stripe.PaymentMethod.attach(
+            payment_method_id,
+            customer=customer.id
+        )
+
+        # Set the payment method as the default for the customer
+        stripe.Customer.modify(
+            customer.id,
+            invoice_settings={"default_payment_method": payment_method_id}
+        )
+
+        # Create the subscription
+        subscription = stripe.Subscription.create(
+            customer=customer.id,
+            items=[{"price": price_id}],
+            expand=["latest_invoice.payment_intent"],
+        )
+
+        # Save user and subscription data in the database
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user:
+            existing_user.customer_id = customer.id
+            existing_user.subscription_id = subscription.id
+            existing_user.subscription_status = "active"
+        else:
+            new_user = User(
+                email=email,
+                customer_id=customer.id,
+                subscription_id=subscription.id,
+                subscription_status="active"
+            )
+            db.session.add(new_user)
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "subscriptionId": subscription.id,
+            "clientSecret": subscription.latest_invoice.payment_intent.client_secret,
+        })
+    except stripe.error.StripeError as e:
+        return jsonify({"error": str(e)}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/check-subscription', methods=['POST'])
+def check_subscription():
+    data = request.get_json()
+    email = data.get("email")
+
+    if not email:
+        return jsonify({"error": "Email is required"}), 400
+
+    user = User.query.filter_by(email=email).first()
+    if user and user.subscription_status == "active":
+        return jsonify({"isSubscribed": True}), 200
+    return jsonify({"isSubscribed": False}), 200
+
+
+@app.route('/webhook', methods=['POST'])
+def stripe_webhook():
+    payload = request.get_data(as_text=True)
+    sig_header = request.headers.get('Stripe-Signature')
+
+    endpoint_secret = "your-webhook-signing-secret"  # Replace with your webhook secret
+    event = None
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, endpoint_secret
+        )
+    except ValueError as e:
+        # Invalid payload
+        return jsonify({"error": "Invalid payload"}), 400
+    except stripe.error.SignatureVerificationError as e:
+        # Invalid signature
+        return jsonify({"error": "Invalid signature"}), 400
+
+    # Handle the event
+    if event['type'] == 'invoice.payment_succeeded':
+        print("Payment succeeded:", event['data']['object'])
+    elif event['type'] == 'customer.subscription.deleted':
+        print("Subscription cancelled:", event['data']['object'])
+    elif event['type'] == 'invoice.payment_failed':
+        print("Payment failed:", event['data']['object'])
+
+    return jsonify({"status": "success"}), 200
+
 @app.route('/')
 def index():
-    return "Optimol API is running! Available endpoints: /test, /optimize, /quantum-optimize"
-
+    return "Optimol API is running! Available endpoints: /test, /optimize, /quantum-optimize, /subscribe"
 
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()  # Create tables within the app context
     app.run(host="0.0.0.0", port=5000)
