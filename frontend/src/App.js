@@ -292,8 +292,93 @@ const App = () => {
         <button onClick={() => setShowInstructions(!showInstructions)}>How To Use</button>
         <button onClick={handleDownload}>Download Optimized Molecule</button>
       </div>
+
+      {showInstructions && (
+        <div className="box">
+          <h2>How To Use:</h2>
+          <p>
+            This app optimizes molecular geometry using either classical or quantum energy optimization techniques.
+          </p>
+          <h3>Steps to Use:</h3>
+          <ol>
+            <li>Prepare a JSON file containing your molecule data in the following format:</li>
+            <pre>
+              {`{
+  "file1": {
+    "atoms": [
+      { "id": 1, "element": "H", "x": 0.0, "y": 0.0, "z": 0.0 },
+      { "id": 2, "element": "H", "x": 0.0, "y": 0.0, "z": 0.74 },
+      { "id": 3, "element": "O", "x": 0.0, "y": 0.74, "z": 0.0 }
+    ]
+  }
+}`}
+            </pre>
+            <li>Upload your JSON file using the file upload button.</li>
+            <li>Modify optimization parameters (see description below).</li>
+            <li>Click "Classical Optimize" or "Quantum Optimize".</li>
+            <li>Download the optimized molecule data if needed.</li>
+          </ol>
+          <h3>Optimization Methods:</h3>
+          <ul>
+            <li>
+              <strong>Classical Optimize:</strong> Uses classical computational chemistry methods to minimize the energy of the molecular geometry.
+              <ul>
+                <li>
+                  <strong>fmax:</strong> The force convergence criterion. Lower values require finer adjustments (default: 0.005).
+                </li>
+                <li>
+                  <strong>steps:</strong> The maximum number of iterations for the optimizer (default: 500).
+                </li>
+              </ul>
+            </li>
+            <li>
+              <strong>Quantum Optimize:</strong> Employs a quantum optimization algorithm (QAOA) to explore energy minimization with quantum methods.
+              <ul>
+                <li>
+                  <strong>maxiter:</strong> The maximum number of iterations for the optimizer during parameter tuning (default: 1000).
+                </li>
+                <li>
+                  <strong>p:</strong> The number of QAOA layers, determining the complexity of the quantum ansatz (default: 10).
+                </li>
+              </ul>
+            </li>
+          </ul>
+          <h3>Download Optimized Molecule:</h3>
+          <p>
+            After optimization, you can download the optimized molecule data as a JSON file for further analysis or visualization.
+          </p>
+        </div>
+      )}
+
+      {optimizedMolecule && (
+        <div className="box">
+          <h2>Optimized Molecule</h2>
+          <pre>{JSON.stringify(optimizedMolecule.atoms, null, 2)}</pre>
+          <h3>Optimization Details</h3>
+          <p>
+            <strong>Minimum Energy:</strong> {optimizedMolecule.min_energy?.toFixed(6)}
+          </p>
+          <h3>Optimization Parameters:</h3>
+          <ul>
+            <li>
+              <strong>fmax:</strong> {fmax} (Classical)
+            </li>
+            <li>
+              <strong>steps:</strong> {steps} (Classical)
+            </li>
+            <li>
+              <strong>maxiter:</strong> {maxiter} (Quantum)
+            </li>
+            <li>
+              <strong>QAOA Layers (p):</strong> {qaoaLayers} (Quantum)
+            </li>
+          </ul>
+        </div>
+      )}
+
     </div>
   );
 };
+
 
 export default App;

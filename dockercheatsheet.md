@@ -4,6 +4,7 @@ sudo docker build -t optimize-molecule .
 
 run:
 sudo docker run -p 5000:5000 optimize-molecule
+docker run -p 5000:5000 -v $(pwd):/app optimize-molecule
 
 tag:
 sudo docker tag optimize-molecule robertkottelin/optimize-molecule:backend-latest

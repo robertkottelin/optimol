@@ -51,12 +51,27 @@ div {
 }
 
 pre {
-  background-color: #444;
+  background-color: #666; /* Grey background */
+  color: #fff; /* White text */
   padding: 10px;
   border-radius: 5px;
   max-height: 300px;
   overflow-y: auto;
-  color: #f0f0f0;
+  border: 1px solid #555;
+  text-align: left; /* Align text to the left */
+  font-family: "Courier New", Courier, monospace; /* Use a monospaced font for JSON */
+  white-space: pre-wrap; /* Wrap long lines */
+  word-wrap: break-word; /* Break long words */
+}
+
+
+.optimized-molecule {
+  background-color: #666; /* Grey background */
+  color: #fff; /* White text */
+  padding: 10px;
+  border-radius: 5px;
+  max-height: 300px;
+  overflow-y: auto;
   border: 1px solid #555;
 }
 
@@ -88,4 +103,26 @@ input[type="file"]::file-selector-button {
 
 input[type="file"]::file-selector-button:hover {
   background: #777;
+}
+
+.box {
+  background-color: #666; /* Grey background for all boxes */
+  color: #fff; /* White text */
+  padding: 15px;
+  border-radius: 5px;
+  border: 1px solid #555;
+  margin: 10px auto;
+  max-width: 600px;
+}
+
+.box h2, .box h3, .box p, .box ul, .box li, .box strong {
+  color: #fff; /* Ensure all text elements are white */
+}
+
+.box ul {
+  padding-left: 20px; /* Indent for list items */
+}
+
+.box li {
+  margin-bottom: 5px; /* Add spacing between list items */
 }
