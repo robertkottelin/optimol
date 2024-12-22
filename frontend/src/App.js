@@ -8,22 +8,52 @@ console.log("$3Dmol loaded:", $3Dmol);
 
 const stripePromise = loadStripe('pk_test_kbl0ETzPsoiTwU4ZJMvhsYJw006XVnV4Aq');
 
+const DEFAULT_COMPUTE_LIMITS = {
+  fmax: { min: 0.05, max: 0.05 }, // Fixed for non-subscribers
+  steps: { min: 10, max: 100 },
+  maxiter: { min: 10, max: 100 },
+  qaoaLayers: { min: 1, max: 1 },
+};
+
+const SUBSCRIBED_COMPUTE_LIMITS = {
+  fmax: { min: 0.001, max: 0.1 },
+  steps: { min: 10, max: 1000000 },
+  maxiter: { min: 10, max: 1000000 },
+  qaoaLayers: { min: 1, max: 10000 },
+};
+
 const App = () => {
   const [optimizedMolecule, setOptimizedMolecule] = useState(null); // State to store optimized molecule
   const [moleculeData, setMoleculeData] = useState(null); // State to store uploaded molecule data
   const [showInstructions, setShowInstructions] = useState(false); // State to toggle instructions
   const [isSubscribed, setIsSubscribed] = useState(false); // Track subscription status
   const [userEmail, setUserEmail] = useState(""); // Track user email
+  const [limits, setLimits] = useState(DEFAULT_COMPUTE_LIMITS);
 
-  const [fmax, setFmax] = useState(0.005);
-  const [steps, setSteps] = useState(500);
-  const [maxiter, setMaxiter] = useState(1000);
-  const [qaoaLayers, setQaoaLayers] = useState(2);
+  // Loading states for each button
+  const [isSubscribeLoading, setIsSubscribeLoading] = useState(false);
+  const [isCancelLoading, setIsCancelLoading] = useState(false);
+  const [isOptimizeLoading, setIsOptimizeLoading] = useState(false);
+  const [isQuantumOptimizeLoading, setIsQuantumOptimizeLoading] = useState(false);
+
+  // Define the state variables for compute limits
+  const [fmax, setFmax] = useState(limits.fmax.min);
+  const [steps, setSteps] = useState(limits.steps.min);
+  const [maxiter, setMaxiter] = useState(limits.maxiter.min);
+  const [qaoaLayers, setQaoaLayers] = useState(limits.qaoaLayers.min);
+
+  const handleParameterChange = (setter, value, min, max) => {
+    const parsedValue = parseFloat(value);
+    if (parsedValue >= min && parsedValue <= max) {
+      setter(parsedValue);
+    }
+  };
 
   const handleSubscriptionSuccess = (email) => {
     setIsSubscribed(true);
     setUserEmail(email);
-    localStorage.setItem("userEmail", email); // Save email in localStorage
+    localStorage.setItem("userEmail", email);
+    setLimits(SUBSCRIBED_COMPUTE_LIMITS);
   };
 
   const apiBaseUrl = "http://localhost:5000/";
@@ -42,12 +72,28 @@ const App = () => {
       if (response.data.isSubscribed) {
         setIsSubscribed(true);
         setUserEmail(email);
+        setLimits(SUBSCRIBED_COMPUTE_LIMITS);
       } else {
         setIsSubscribed(false);
+        setLimits(DEFAULT_COMPUTE_LIMITS);
       }
     } catch (error) {
       console.error("Error checking subscription status:", error);
     }
+  };
+
+  const applyDefaultComputeLimits = () => {
+    setFmax(DEFAULT_COMPUTE_LIMITS.fmax);
+    setSteps(DEFAULT_COMPUTE_LIMITS.steps);
+    setMaxiter(DEFAULT_COMPUTE_LIMITS.maxiter);
+    setQaoaLayers(DEFAULT_COMPUTE_LIMITS.qaoaLayers);
+  };
+
+  const applyFullComputeLimits = () => {
+    setFmax(0.005); // Higher precision
+    setSteps(500);  // More steps
+    setMaxiter(1000); // Higher iterations
+    setQaoaLayers(2); // More QAOA layers
   };
 
   const handleFileUpload = (event) => {
@@ -86,19 +132,20 @@ const App = () => {
       alert("Please upload a file first.");
       return;
     }
-
+    setIsOptimizeLoading(true); // Start loading
     try {
       const payload = {
         file1: moleculeData,
         fmax: fmax,
         steps: steps,
       };
-
       const response = await axios.post(`${apiBaseUrl}/optimize`, payload);
       setOptimizedMolecule(response.data.optimized_file1);
     } catch (error) {
       console.error("Error optimizing molecule:", error);
       alert("Error optimizing molecule. Check the console for details.");
+    } finally {
+      setIsOptimizeLoading(false); // Stop loading
     }
   };
 
@@ -107,7 +154,7 @@ const App = () => {
       alert("Please upload a file first.");
       return;
     }
-
+    setIsQuantumOptimizeLoading(true); // Start loading
     try {
       const payload = {
         file1: moleculeData,
@@ -115,12 +162,13 @@ const App = () => {
         p: qaoaLayers,
         maxiter: maxiter,
       };
-
       const response = await axios.post(`${apiBaseUrl}/quantum-optimize`, payload);
       setOptimizedMolecule(response.data.optimized_file1);
     } catch (error) {
       console.error("Error optimizing molecule with quantum method:", error);
       alert("Error optimizing molecule with quantum method. Check the console for details.");
+    } finally {
+      setIsQuantumOptimizeLoading(false); // Stop loading
     }
   };
 
@@ -159,6 +207,37 @@ const App = () => {
     );
   };
 
+  const handleCancelSubscription = async () => {
+    const confirmCancel = window.confirm(
+      "Are you sure you want to cancel your subscription? This action cannot be undone."
+    );
+
+    if (!confirmCancel) return;
+
+    setIsCancelLoading(true); // Start loading
+
+    try {
+      const response = await axios.post(`${apiBaseUrl}/cancel-subscription`, {
+        email: userEmail,
+      });
+
+      if (response.data.success) {
+        alert("Your subscription has been canceled.");
+        setIsSubscribed(false);
+        setUserEmail(""); // Clear user email
+        localStorage.removeItem("userEmail"); // Remove email from local storage
+        setLimits(DEFAULT_COMPUTE_LIMITS);
+      } else {
+        alert("Failed to cancel subscription. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error canceling subscription:", error);
+      alert("Error canceling subscription. Check the console for details.");
+    } finally {
+      setIsCancelLoading(false); // Stop loading
+    }
+  };
+
   const MoleculeViewer = ({ moleculeData }) => {
     const viewerRef = useRef();
 
@@ -168,14 +247,12 @@ const App = () => {
         return;
       }
 
-      // Initialize the viewer
       const viewer = $3Dmol.createViewer(viewerRef.current, {
         backgroundColor: "grey",
       });
       viewer.clear();
 
       try {
-        // Map molecule data to atoms for the viewer
         const atoms = moleculeData.atoms.map((atom) => ({
           elem: atom.element,
           x: atom.x,
@@ -183,10 +260,9 @@ const App = () => {
           z: atom.z,
         }));
 
-        const model = viewer.addModel(); // Add a new model to the viewer
-        model.addAtoms(atoms); // Add atoms to the model
+        const model = viewer.addModel();
+        model.addAtoms(atoms);
 
-        // Add labels for each atom
         moleculeData.atoms.forEach((atom) => {
           viewer.addLabel(atom.element, {
             position: { x: atom.x, y: atom.y, z: atom.z },
@@ -195,17 +271,15 @@ const App = () => {
             backgroundColor: "black",
             borderRadius: 2,
             padding: 2,
-            inFront: true, // Ensure labels are always visible in front
+            inFront: true,
           });
         });
 
-        // Set styles for atoms and sticks (bonds)
         viewer.setStyle({}, {
-          sphere: { radius: 0.2 }, // Smaller radius for atoms
-          stick: { radius: 0.2 }, // Add sticks (bonds) between atoms with thinner lines
-          line: { linewidth: 2.0 }, // Optional: add thin lines for bonds
+          sphere: { radius: 0.2 },
+          stick: { radius: 0.2 },
         });
-        viewer.zoomTo(); // Automatically adjust zoom to fit molecule
+        viewer.zoomTo();
         viewer.render();
       } catch (error) {
         console.error("Error rendering molecule:", error);
@@ -218,9 +292,9 @@ const App = () => {
         style={{
           width: "100%",
           height: "300px",
-          position: "relative", // Ensure correct alignment
+          position: "relative",
           border: "1px solid #ccc",
-          margin: "10px auto", // Add margin for positioning
+          margin: "10px auto",
         }}
       ></div>
     );
@@ -230,14 +304,41 @@ const App = () => {
     <div style={{ padding: "20px", textAlign: "center" }}>
       <h1>Optimize Molecule</h1>
       <h2>Based on Classical and Quantum Energy Calculations</h2>
+      {isSubscribed && (
+        <button
+          onClick={handleCancelSubscription}
+          disabled={isCancelLoading}
+          style={{
+            position: "absolute", // Position it in the corner
+            top: "10px", // Distance from the top
+            right: "10px", // Distance from the right
+            backgroundColor: isCancelLoading ? "#ccc" : "grey",
+            color: "white",
+            border: "none",
+            borderRadius: "5px",
+            padding: "10px 10px",
+            fontSize: "10px",
+            cursor: isCancelLoading ? "not-allowed" : "pointer",
+            zIndex: 1000, // Ensure it's above other elements
+          }}
+        >
+          {isCancelLoading ? "Cancelling..." : "Cancel Subscription"}
+        </button>
+      )}
       {!isSubscribed ? (
         <Elements stripe={stripePromise}>
-          <SubscriptionForm onSuccess={handleSubscriptionSuccess} />
+          <SubscriptionForm
+            onSuccess={(email) => {
+              setIsSubscribeLoading(true); // Start loading
+              handleSubscriptionSuccess(email);
+              setIsSubscribeLoading(false); // Stop loading
+
+            }}
+          />
         </Elements>
       ) : (
         <div>
-          <p>Welcome, {userEmail}! You are subscribed.</p>
-          {/* Render the main app features here */}
+          <p>Welcome, {userEmail}! You are subscribed and have full compute power.</p>
         </div>
       )}
       <input
@@ -266,8 +367,9 @@ const App = () => {
             type="number"
             step="0.001"
             value={fmax}
-            onChange={(e) => setFmax(Number(e.target.value))}
-            placeholder="fmax"
+            onChange={(e) =>
+              handleParameterChange(setFmax, e.target.value, limits.fmax.min, limits.fmax.max)
+            }
           />
         </div>
         <div>
@@ -275,8 +377,9 @@ const App = () => {
           <input
             type="number"
             value={steps}
-            onChange={(e) => setSteps(Number(e.target.value))}
-            placeholder="steps"
+            onChange={(e) =>
+              handleParameterChange(setSteps, e.target.value, limits.steps.min, limits.steps.max)
+            }
           />
         </div>
         <p>Quantum parameters:</p>
@@ -285,8 +388,9 @@ const App = () => {
           <input
             type="number"
             value={maxiter}
-            onChange={(e) => setMaxiter(Number(e.target.value))}
-            placeholder="maxiter"
+            onChange={(e) =>
+              handleParameterChange(setMaxiter, e.target.value, limits.maxiter.min, limits.maxiter.max)
+            }
           />
         </div>
         <div>
@@ -294,14 +398,41 @@ const App = () => {
           <input
             type="number"
             value={qaoaLayers}
-            onChange={(e) => setQaoaLayers(Number(e.target.value))}
-            placeholder="p"
+            onChange={(e) =>
+              handleParameterChange(setQaoaLayers, e.target.value, limits.qaoaLayers.min, limits.qaoaLayers.max)
+            }
           />
         </div>
       </div>
       <div style={{ marginTop: "20px", display: "flex", justifyContent: "center", gap: "10px" }}>
-        <button onClick={handleOptimize}>Classical Optimize</button>
-        <button onClick={handleQuantumOptimize}>Quantum Optimize</button>
+        <button
+          onClick={handleOptimize}
+          disabled={isOptimizeLoading} // Disable button during loading
+          style={{
+            backgroundColor: isOptimizeLoading ? "#ccc" : "#007bff", // Grey out when loading
+            color: "white",
+            border: "none",
+            borderRadius: "5px",
+            padding: "10px 20px",
+            cursor: isOptimizeLoading ? "not-allowed" : "pointer",
+          }}
+        >
+          {isOptimizeLoading ? "Optimizing..." : "Classical Optimize"} {/* Dynamic text */}
+        </button>
+        <button
+          onClick={handleQuantumOptimize}
+          disabled={isQuantumOptimizeLoading} // Disable button during loading
+          style={{
+            backgroundColor: isQuantumOptimizeLoading ? "#ccc" : "#007bff", // Grey out when loading
+            color: "white",
+            border: "none",
+            borderRadius: "5px",
+            padding: "10px 20px",
+            cursor: isQuantumOptimizeLoading ? "not-allowed" : "pointer",
+          }}
+        >
+          {isQuantumOptimizeLoading ? "Quantum Optimizing..." : "Quantum Optimize"} {/* Dynamic text */}
+        </button>
         <button onClick={() => setShowInstructions(!showInstructions)}>How To Use</button>
         <button onClick={handleDownload}>Download Optimized Molecule</button>
       </div>
@@ -337,10 +468,10 @@ const App = () => {
               <strong>Classical Optimize:</strong> Uses classical computational chemistry methods to minimize the energy of the molecular geometry.
               <ul>
                 <li>
-                  <strong>fmax:</strong> The force convergence criterion. Lower values require finer adjustments (default: 0.005).
+                  <strong>fmax:</strong> The force convergence criterion. Lower values require finer adjustments (unsubscribed limit: 0.05, sunscribed limit: 0.0001).
                 </li>
                 <li>
-                  <strong>steps:</strong> The maximum number of iterations for the optimizer (default: 500).
+                  <strong>steps:</strong> The maximum number of iterations for the optimizer (unsubscribed limit: 100, sunscribed limit: 1 000 000).
                 </li>
               </ul>
             </li>
@@ -348,10 +479,10 @@ const App = () => {
               <strong>Quantum Optimize:</strong> Employs a quantum optimization algorithm (QAOA) to explore energy minimization with quantum methods.
               <ul>
                 <li>
-                  <strong>maxiter:</strong> The maximum number of iterations for the optimizer during parameter tuning (default: 1000).
+                  <strong>maxiter:</strong> The maximum number of iterations for the optimizer during parameter tuning (unsubscribed limit: 100, sunscribed limit: 1 000 000).
                 </li>
                 <li>
-                  <strong>p:</strong> The number of QAOA layers, determining the complexity of the quantum ansatz (default: 10).
+                  <strong>p:</strong> The number of QAOA layers, determining the complexity of the quantum ansatz (unsubscribed limit: 1, sunscribed limit: 1 000).
                 </li>
               </ul>
             </li>
@@ -388,10 +519,8 @@ const App = () => {
           </ul>
         </div>
       )}
-
     </div>
   );
 };
-
 
 export default App;

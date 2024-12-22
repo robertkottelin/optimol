@@ -280,7 +280,6 @@ def subscribe_user():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
 @app.route('/check-subscription', methods=['POST'])
 def check_subscription():
     data = request.get_json()
@@ -293,7 +292,6 @@ def check_subscription():
     if user and user.subscription_status == "active":
         return jsonify({"isSubscribed": True}), 200
     return jsonify({"isSubscribed": False}), 200
-
 
 @app.route('/webhook', methods=['POST'])
 def stripe_webhook():
@@ -323,6 +321,35 @@ def stripe_webhook():
         print("Payment failed:", event['data']['object'])
 
     return jsonify({"status": "success"}), 200
+
+@app.route('/cancel-subscription', methods=['POST'])
+def cancel_subscription():
+    """
+    Cancel a user's subscription using Stripe.
+    """
+    try:
+        data = request.get_json()
+        email = data.get("email")
+
+        if not email:
+            return jsonify({"error": "Email is required"}), 400
+
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        # Cancel the subscription in Stripe
+        stripe.Subscription.delete(user.subscription_id)
+
+        # Update the user's subscription status in the database
+        user.subscription_status = "canceled"
+        db.session.commit()
+
+        return jsonify({"success": True, "message": "Subscription canceled successfully."}), 200
+    except stripe.error.StripeError as e:
+        return jsonify({"error": str(e)}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/')
 def index():

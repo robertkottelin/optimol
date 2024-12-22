@@ -6,6 +6,8 @@ const SubscriptionForm = ({ onSuccess }) => {
   const stripe = useStripe();
   const elements = useElements();
   const [email, setEmail] = useState(""); // State to store email input
+  const [isSubscribeLoading, setIsSubscribeLoading] = useState(false);
+
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -16,6 +18,8 @@ const SubscriptionForm = ({ onSuccess }) => {
       alert("Please enter your email.");
       return;
     }
+
+    setIsSubscribeLoading(true); // Start loading
 
     try {
       // Create a payment method
@@ -55,6 +59,8 @@ const SubscriptionForm = ({ onSuccess }) => {
       }
     } catch (err) {
       console.error("Error in subscription process:", err);
+    } finally {
+      setIsSubscribeLoading(false); // Stop loading
     }
   };
 
@@ -83,8 +89,19 @@ const SubscriptionForm = ({ onSuccess }) => {
             }}
           />
         </div>
-        <button type="submit" disabled={!stripe}>
-          Subscribe
+        <button
+          type="submit"
+          disabled={!stripe || isSubscribeLoading} // Disable button while loading
+          style={{
+            backgroundColor: isSubscribeLoading ? "#ccc" : "#007bff", // Grey out while loading
+            color: "white",
+            border: "none",
+            borderRadius: "5px",
+            padding: "10px 20px",
+            cursor: isSubscribeLoading ? "not-allowed" : "pointer",
+          }}
+        >
+          {isSubscribeLoading ? "Subscribing..." : "Subscribe"} {/* Dynamic text */}
         </button>
       </form>
     </div>
