@@ -3,6 +3,7 @@ import axios from "axios";
 import * as $3Dmol from '3dmol';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
+import ReactMarkdown from "react-markdown";
 import SubscriptionForm from './SubscriptionForm';
 console.log("$3Dmol loaded:", $3Dmol);
 
@@ -25,10 +26,12 @@ const SUBSCRIBED_COMPUTE_LIMITS = {
 const App = () => {
   const [optimizedMolecule, setOptimizedMolecule] = useState(null); // State to store optimized molecule
   const [moleculeData, setMoleculeData] = useState(null); // State to store uploaded molecule data
-  const [showInstructions, setShowInstructions] = useState(false); // State to toggle instructions
   const [isSubscribed, setIsSubscribed] = useState(false); // Track subscription status
   const [userEmail, setUserEmail] = useState(""); // Track user email
   const [limits, setLimits] = useState(DEFAULT_COMPUTE_LIMITS);
+  const [isHowToUseVisible, setIsHowToUseVisible] = useState(false); // State to toggle the popup
+  const [howToUseContent, setHowToUseContent] = useState(""); // Store the content of the readme
+
 
   // Loading states for each button
   const [isSubscribeLoading, setIsSubscribeLoading] = useState(false);
@@ -41,6 +44,22 @@ const App = () => {
   const [steps, setSteps] = useState(limits.steps.min);
   const [maxiter, setMaxiter] = useState(limits.maxiter.min);
   const [qaoaLayers, setQaoaLayers] = useState(limits.qaoaLayers.min);
+
+  // Fetch "how-to-use.md" content on demand
+  const fetchHowToUse = async () => {
+    try {
+      const response = await axios.get('/how-to-use.md');
+      setHowToUseContent(response.data);
+      setIsHowToUseVisible(true); // Show the popup
+    } catch (error) {
+      console.error("Error fetching 'how-to-use.md':", error);
+      alert("Failed to load instructions. Check console for details.");
+    }
+  };
+
+  const handleClosePopup = () => {
+    setIsHowToUseVisible(false);
+  };
 
   const handleParameterChange = (setter, value, min, max) => {
     const parsedValue = parseFloat(value);
@@ -433,66 +452,67 @@ const App = () => {
         >
           {isQuantumOptimizeLoading ? "Quantum Optimizing..." : "Quantum Optimize"} {/* Dynamic text */}
         </button>
-        <button onClick={() => setShowInstructions(!showInstructions)}>How To Use</button>
+        <button
+          onClick={fetchHowToUse}
+          style={{
+            position: "absolute",
+            top: "10px",
+            left: "10px",
+            backgroundColor: "darkgreen",
+            color: "white",
+            border: "none",
+            borderRadius: "5px",
+            padding: "10px",
+            fontSize: "12px",
+            cursor: "pointer",
+            zIndex: 1000,
+          }}
+        >
+          How To Use & Theory
+        </button>
+
+        {isHowToUseVisible && (
+          <div
+            style={{
+              position: "fixed",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              backgroundColor: "#333", // Dark grey background
+              color: "white",
+              border: "1px solid #444",
+              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.5)",
+              zIndex: 1000,
+              padding: "20px",
+              width: "80%",
+              height: "80%",
+              overflowY: "auto",
+              textAlign: "left", // Align text to the left
+            }}
+          >
+            <button
+              onClick={handleClosePopup}
+              style={{
+                position: "absolute",
+                top: "10px",
+                right: "10px",
+                background: "red",
+                color: "white",
+                border: "none",
+                borderRadius: "5px",
+                padding: "5px 10px",
+                cursor: "pointer",
+              }}
+            >
+              Close
+            </button>
+            <ReactMarkdown style={{ textAlign: "left", color: "white" }}>
+              {howToUseContent}
+            </ReactMarkdown>
+          </div>
+        )}
         <button onClick={handleDownload}>Download Optimized Molecule</button>
       </div>
-
-      {showInstructions && (
-        <div className="box">
-          <h2>How To Use:</h2>
-          <p>
-            This app optimizes molecular geometry using either classical or quantum energy optimization techniques.
-          </p>
-          <h3>Steps to Use:</h3>
-          <ol>
-            <li>Prepare a JSON file containing your molecule data in the following format:</li>
-            <pre>
-              {`{
-  "file1": {
-    "atoms": [
-      { "id": 1, "element": "H", "x": 0.0, "y": 0.0, "z": 0.0 },
-      { "id": 2, "element": "H", "x": 0.0, "y": 0.0, "z": 0.74 },
-      { "id": 3, "element": "O", "x": 0.0, "y": 0.74, "z": 0.0 }
-    ]
-  }
-}`}
-            </pre>
-            <li>Upload your JSON file using the file upload button.</li>
-            <li>Modify optimization parameters (see description below).</li>
-            <li>Click "Classical Optimize" or "Quantum Optimize".</li>
-            <li>Download the optimized molecule data if needed.</li>
-          </ol>
-          <h3>Optimization Methods:</h3>
-          <ul>
-            <li>
-              <strong>Classical Optimize:</strong> Uses classical computational chemistry methods to minimize the energy of the molecular geometry.
-              <ul>
-                <li>
-                  <strong>fmax:</strong> The force convergence criterion. Lower values require finer adjustments (unsubscribed limit: 0.05, sunscribed limit: 0.0001).
-                </li>
-                <li>
-                  <strong>steps:</strong> The maximum number of iterations for the optimizer (unsubscribed limit: 100, sunscribed limit: 1 000 000).
-                </li>
-              </ul>
-            </li>
-            <li>
-              <strong>Quantum Optimize:</strong> Employs a quantum optimization algorithm (QAOA) to explore energy minimization with quantum methods.
-              <ul>
-                <li>
-                  <strong>maxiter:</strong> The maximum number of iterations for the optimizer during parameter tuning (unsubscribed limit: 100, sunscribed limit: 1 000 000).
-                </li>
-                <li>
-                  <strong>p:</strong> The number of QAOA layers, determining the complexity of the quantum ansatz (unsubscribed limit: 1, sunscribed limit: 1 000).
-                </li>
-              </ul>
-            </li>
-          </ul>
-          <h3>Download Optimized Molecule:</h3>
-          <p>
-            After optimization, you can download the optimized molecule data as a JSON file for further analysis or visualization.
-          </p>
-        </div>
-      )}
 
       {optimizedMolecule && (
         <div className="box">
@@ -500,7 +520,7 @@ const App = () => {
           <pre>{JSON.stringify(optimizedMolecule.atoms, null, 2)}</pre>
           <h3>Optimization Details</h3>
           <p>
-            <strong>Minimum Energy:</strong> {optimizedMolecule.min_energy?.toFixed(6)}
+            <strong>Minimum Energy:</strong> {optimizedMolecule.min_energy?.toFixed(6)} eV
           </p>
           <h3>Optimization Parameters:</h3>
           <ul>

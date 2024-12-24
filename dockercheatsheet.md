@@ -1,6 +1,6 @@
 # BACKEND:
 build:
-sudo docker build -t optimize-molecule .
+sudo docker build --no-cache -t optimize-molecule .
 
 run:
 sudo docker run -p 5000:5000 optimize-molecule

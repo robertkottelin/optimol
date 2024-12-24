@@ -13,6 +13,11 @@ import os
 import stripe
 from dotenv import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
+from qiskit.primitives import Sampler
+from qiskit.circuit.library import QAOAAnsatz
+from qiskit.circuit import Parameter
+
+from scipy.optimize import minimize
 
 app = Flask(__name__)
 
@@ -54,7 +59,6 @@ stripe.api_key = STRIPE_SECRET
 # CORS(app, origins=["*"], methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type"])
 CORS(app, origins=["http://localhost:3000"], methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type"])
 
-
 def optimize_molecule(data):
     """
     Optimize the molecular geometry based on classical energy calculations.
@@ -92,12 +96,55 @@ def optimize_molecule(data):
 
     return {"atoms": optimized_atoms}
 
-from qiskit.primitives import Sampler
-from qiskit.circuit.library import QAOAAnsatz
-from qiskit.circuit import Parameter
+from qiskit.quantum_info import SparsePauliOp, PauliList
 
-from scipy.optimize import minimize
-from scipy.optimize import minimize
+from qiskit.quantum_info import SparsePauliOp, PauliList
+
+def generate_hamiltonian(data):
+    """
+    Generate a Hamiltonian based on molecular coordinates.
+
+    Args:
+        data (dict): Input data containing molecular atomic coordinates.
+
+    Returns:
+        SparsePauliOp: A Hamiltonian representing the system.
+    """
+    atoms = data["atoms"]
+
+    # Validate input structure
+    if not isinstance(atoms, list) or len(atoms) < 2:
+        raise ValueError("Invalid input: atoms must be a list with at least two elements.")
+
+    n_atoms = len(atoms)
+    pauli_terms = []
+    coefficients = []
+
+    for i in range(n_atoms):
+        for j in range(i + 1, n_atoms):
+            atom_i = atoms[i]
+            atom_j = atoms[j]
+
+            # Compute the distance between atom i and atom j
+            distance = np.linalg.norm(
+                np.array([atom_i["x"], atom_i["y"], atom_i["z"]]) -
+                np.array([atom_j["x"], atom_j["y"], atom_j["z"]])
+            )
+
+            # Generate a Z_i * Z_j term for the Hamiltonian
+            pauli_string = ["I"] * n_atoms  # Identity operators for all qubits
+            pauli_string[i] = "Z"  # Apply Z operator on the i-th qubit
+            pauli_string[j] = "Z"  # Apply Z operator on the j-th qubit
+
+            pauli_terms.append("".join(pauli_string))
+            coefficients.append(1.0 / distance)
+
+    # Create SparsePauliOp from the terms
+    pauli_list = PauliList(pauli_terms)
+    hamiltonian = SparsePauliOp(pauli_list, np.array(coefficients))
+
+    return hamiltonian
+
 def optimize_molecule_qaoa(data, optimizer='COBYLA', p=10):
     """
     Optimize a molecular geometry using QAOA and return adjusted positions.
@@ -108,18 +155,18 @@ def optimize_molecule_qaoa(data, optimizer='COBYLA', p=10):
         # Validate incoming data structure
         if "atoms" not in data:
             raise ValueError("Missing 'atoms' in input data.")
-        
-        # Debug incoming data
-        print("Data received for quantum optimization:", data)
 
-        # Define a diagonal problem Hamiltonian (example: Z + Z)
-        problem = SparsePauliOp(Pauli('Z')) + SparsePauliOp(Pauli('Z'))
-        print("Diagonal Problem Hamiltonian defined:", problem)
+        print("Received data for QAOA optimization:", data)
+
+        # Generate the Hamiltonian based on molecular coordinates
+        problem = generate_hamiltonian(data)
+        print("Generated Problem Hamiltonian:", problem)
 
         # Initialize QAOA ansatz
-        mixer = SparsePauliOp(Pauli('X'))  # Default mixer is a single Pauli-X term
+        n_atoms = len(data['atoms'])
+        mixer = SparsePauliOp(Pauli('X' * n_atoms))  # Default mixer
         ansatz = QAOAAnsatz(cost_operator=problem, reps=p, mixer_operator=mixer)
-        print("QAOA ansatz initialized.")
+        print("QAOA ansatz initialized with parameters:", ansatz.parameters)
 
         # Initialize Estimator to compute expectation values
         estimator = Estimator()
@@ -129,6 +176,8 @@ def optimize_molecule_qaoa(data, optimizer='COBYLA', p=10):
         parameters = ansatz.parameters
         initial_point = np.random.uniform(-np.pi, np.pi, len(parameters))
 
+        print("Initial parameters for optimization:", initial_point)
+
         def objective_function(params):
             """Objective function for optimization."""
             # Assign parameters to the ansatz
@@ -137,6 +186,7 @@ def optimize_molecule_qaoa(data, optimizer='COBYLA', p=10):
             # Compute the expectation value of the problem Hamiltonian
             job = estimator.run([ansatz_with_params], [problem])
             result = job.result()
+            print(f"Objective function called with params {params}, value: {result.values[0]}")
             return result.values[0]
 
         # Optimize parameters using scipy.optimize.minimize
@@ -164,9 +214,6 @@ def optimize_molecule_qaoa(data, optimizer='COBYLA', p=10):
         ]
 
         return {"atoms": adjusted_atoms, "optimal_params": optimal_params.tolist(), "min_energy": min_energy}
-    except KeyError as ke:
-        print("KeyError in optimize_molecule_qaoa:", str(ke))
-        raise ValueError(f"Invalid input: Missing key {str(ke)}.")
     except Exception as e:
         print("Error in optimize_molecule_qaoa:", str(e))
         raise
@@ -196,18 +243,21 @@ def quantum_optimize():
     """
     Optimize molecular energy using QAOA.
     """
-    data = request.get_json()
-    if not data or "file1" not in data:
-        return jsonify({"error": "Invalid input: Missing 'file1' in request body"}), 400
-
     try:
+        data = request.get_json()
+        print("Received data for quantum optimization:", data)
+
+        if not data or "file1" not in data:
+            return jsonify({"error": "Invalid input: Missing 'file1' in request body"}), 400
+
         optimizer = data.get("optimizer", "COBYLA")
         p = data.get("p", 2)
+
         quantum_result = optimize_molecule_qaoa(data["file1"], optimizer, p)
         return jsonify({"optimized_file1": quantum_result})
     except Exception as e:
-        # Log detailed error for debugging
-        print("Error in quantum_optimize:", str(e))
+        # Log the error for debugging
+        print("Error in quantum-optimize endpoint:", str(e))
         return jsonify({"error": str(e)}), 500
 
 @app.route('/test', methods=['POST'])
@@ -216,43 +266,49 @@ def optimize_test():
 
 @app.route('/subscribe', methods=['POST'])
 def subscribe_user():
-    """
-    Create a subscription for a user using Stripe.
-    """
     try:
         data = request.get_json()
+        print("Received data:", data)
+
         if not data or "email" not in data or "paymentMethodId" not in data:
+            print("Invalid input")
             return jsonify({"error": "Invalid input: Missing 'email' or 'paymentMethodId'"}), 400
 
         email = data["email"]
         payment_method_id = data["paymentMethodId"]
         price_id = "price_1QYNn9JQZaUHxA2Ld9rV2MPd"  # Replace with your Stripe Price ID
 
-        # Create or retrieve customer in Stripe
+        # Debug Stripe API key
+        print("Stripe API Key:", stripe.api_key)
+
+        # Debug existing customers
         customers = stripe.Customer.list(email=email).data
+        print("Stripe customers found:", customers)
+
         if customers:
             customer = customers[0]  # Use the existing customer
         else:
             customer = stripe.Customer.create(email=email)
 
-        # Attach the payment method to the customer
-        stripe.PaymentMethod.attach(
-            payment_method_id,
-            customer=customer.id
-        )
+        # Debug payment method attachment
+        print("Attaching payment method...")
+        stripe.PaymentMethod.attach(payment_method_id, customer=customer.id)
 
-        # Set the payment method as the default for the customer
         stripe.Customer.modify(
             customer.id,
             invoice_settings={"default_payment_method": payment_method_id}
         )
 
-        # Create the subscription
+        # Debug subscription creation
+        print("Creating subscription...")
         subscription = stripe.Subscription.create(
             customer=customer.id,
             items=[{"price": price_id}],
             expand=["latest_invoice.payment_intent"],
         )
+
+        # Debug subscription object
+        print("Subscription created:", subscription)
 
         # Save user and subscription data in the database
         existing_user = User.query.filter_by(email=email).first()
@@ -276,8 +332,10 @@ def subscribe_user():
             "clientSecret": subscription.latest_invoice.payment_intent.client_secret,
         })
     except stripe.error.StripeError as e:
+        print("Stripe error:", str(e))
         return jsonify({"error": str(e)}), 500
     except Exception as e:
+        print("General error:", str(e))
         return jsonify({"error": str(e)}), 500
 
 @app.route('/check-subscription', methods=['POST'])
