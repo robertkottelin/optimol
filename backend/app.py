@@ -98,18 +98,7 @@ def optimize_molecule(data):
 
 from qiskit.quantum_info import SparsePauliOp, PauliList
 
-from qiskit.quantum_info import SparsePauliOp, PauliList
-
 def generate_hamiltonian(data):
-    """
-    Generate a Hamiltonian based on molecular coordinates.
-
-    Args:
-        data (dict): Input data containing molecular atomic coordinates.
-
-    Returns:
-        SparsePauliOp: A Hamiltonian representing the system.
-    """
     atoms = data["atoms"]
 
     # Validate input structure
@@ -356,7 +345,7 @@ def stripe_webhook():
     payload = request.get_data(as_text=True)
     sig_header = request.headers.get('Stripe-Signature')
 
-    endpoint_secret = "your-webhook-signing-secret"  # Replace with your webhook secret
+    endpoint_secret = os.getenv("STRIPE_WEBHOOK_SECRET")  # Replace with your webhook secret
     event = None
 
     try:
@@ -371,14 +360,71 @@ def stripe_webhook():
         return jsonify({"error": "Invalid signature"}), 400
 
     # Handle the event
-    if event['type'] == 'invoice.payment_succeeded':
-        print("Payment succeeded:", event['data']['object'])
-    elif event['type'] == 'customer.subscription.deleted':
-        print("Subscription cancelled:", event['data']['object'])
-    elif event['type'] == 'invoice.payment_failed':
-        print("Payment failed:", event['data']['object'])
+    try:
+        if event['type'] == 'invoice.payment_succeeded':
+            invoice = event['data']['object']
+            customer_id = invoice['customer']
 
-    return jsonify({"status": "success"}), 200
+            # Update subscription status to active
+            user = User.query.filter_by(customer_id=customer_id).first()
+            if user:
+                user.subscription_status = "active"
+                db.session.commit()
+
+        elif event['type'] == 'customer.subscription.deleted':
+            subscription = event['data']['object']
+            customer_id = subscription['customer']
+
+            # Update subscription status to canceled
+            user = User.query.filter_by(customer_id=customer_id).first()
+            if user:
+                user.subscription_status = "canceled"
+                db.session.commit()
+
+        elif event['type'] == 'invoice.payment_failed':
+            invoice = event['data']['object']
+            customer_id = invoice['customer']
+
+            # Update subscription status to payment_failed
+            user = User.query.filter_by(customer_id=customer_id).first()
+            if user:
+                user.subscription_status = "payment_failed"
+                db.session.commit()
+                # Optionally send a notification to the user
+
+        elif event['type'] == 'customer.subscription.updated':
+            subscription = event['data']['object']
+            customer_id = subscription['customer']
+
+            # Update subscription status based on the new status
+            user = User.query.filter_by(customer_id=customer_id).first()
+            if user:
+                user.subscription_status = subscription['status']
+                db.session.commit()
+
+        elif event['type'] == 'customer.updated':
+            customer = event['data']['object']
+            customer_id = customer['id']
+
+            # Handle customer updates if needed
+            # For example, update email or other details in the database
+
+        elif event['type'] == 'payment_method.attached':
+            payment_method = event['data']['object']
+            customer_id = payment_method['customer']
+
+            # Handle payment method attachment if needed
+
+        # Add handling for other relevant events as required
+
+        else:
+            print(f"Unhandled event type: {event['type']}")
+
+        return jsonify({"status": "success"}), 200
+
+    except Exception as e:
+        print(f"Error handling webhook event: {str(e)}")
+        return jsonify({"error": "Webhook handling error"}), 500
 
 @app.route('/cancel-subscription', methods=['POST'])
 def cancel_subscription():
