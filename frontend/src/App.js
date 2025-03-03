@@ -5,75 +5,56 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import ReactMarkdown from "react-markdown";
 import SubscriptionForm from './SubscriptionForm';
-console.log("$3Dmol loaded:", $3Dmol);
 
 const stripePromise = loadStripe('pk_test_kbl0ETzPsoiTwU4ZJMvhsYJw006XVnV4Aq');
 
+// Computation limits based on subscription status
 const DEFAULT_COMPUTE_LIMITS = {
-  fmax: { min: 0.05, max: 0.05 }, // Fixed for non-subscribers
+  fmax: { min: 0.05, max: 0.05 },
   steps: { min: 10, max: 100 },
-  maxiter: { min: 10, max: 100 },
-  qaoaLayers: { min: 1, max: 1 },
+  basis_set: ["SZV-MOLOPT-GTH"],
+  functional: ["PBE"],
 };
 
 const SUBSCRIBED_COMPUTE_LIMITS = {
   fmax: { min: 0.001, max: 0.1 },
-  steps: { min: 10, max: 1000000 },
-  maxiter: { min: 10, max: 1000000 },
-  qaoaLayers: { min: 1, max: 10000 },
+  steps: { min: 10, max: 1000 },
+  basis_set: ["SZV-MOLOPT-GTH", "DZVP-MOLOPT-GTH", "TZVP-MOLOPT-GTH", "TZV2P-MOLOPT-GTH"],
+  functional: ["PBE", "BLYP", "B3LYP", "PBE0"],
 };
 
 const App = () => {
-  const [optimizedMolecule, setOptimizedMolecule] = useState(null); // State to store optimized molecule
-  const [moleculeData, setMoleculeData] = useState(null); // State to store uploaded molecule data
-  const [isSubscribed, setIsSubscribed] = useState(false); // Track subscription status
-  const [userEmail, setUserEmail] = useState(""); // Track user email
+  // State for molecule data
+  const [moleculeData, setMoleculeData] = useState(null);
+  const [optimizedMolecule, setOptimizedMolecule] = useState(null);
+  const [proteinData, setProteinData] = useState(null);
+  const [ligandData, setLigandData] = useState(null);
+  const [bindingResult, setBindingResult] = useState(null);
+  
+  // User and subscription state
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
   const [limits, setLimits] = useState(DEFAULT_COMPUTE_LIMITS);
-  const [isHowToUseVisible, setIsHowToUseVisible] = useState(false); // State to toggle the popup
-  const [howToUseContent, setHowToUseContent] = useState(""); // Store the content of the readme
-
-
-  // Loading states for each button
+  
+  // UI state
+  const [isHowToUseVisible, setIsHowToUseVisible] = useState(false);
+  const [howToUseContent, setHowToUseContent] = useState("");
+  const [activeTab, setActiveTab] = useState("molecule");
+  
+  // Loading states
   const [isSubscribeLoading, setIsSubscribeLoading] = useState(false);
   const [isCancelLoading, setIsCancelLoading] = useState(false);
   const [isOptimizeLoading, setIsOptimizeLoading] = useState(false);
   const [isQuantumOptimizeLoading, setIsQuantumOptimizeLoading] = useState(false);
-
-  // Define the state variables for compute limits
+  const [isBindingOptimizeLoading, setIsBindingOptimizeLoading] = useState(false);
+  
+  // Parameters for CP2K calculations
   const [fmax, setFmax] = useState(limits.fmax.min);
   const [steps, setSteps] = useState(limits.steps.min);
-  const [maxiter, setMaxiter] = useState(limits.maxiter.min);
-  const [qaoaLayers, setQaoaLayers] = useState(limits.qaoaLayers.min);
-
-  // Fetch "how-to-use.md" content on demand
-  const fetchHowToUse = async () => {
-    try {
-      const response = await axios.get('/how-to-use.md');
-      setHowToUseContent(response.data);
-      setIsHowToUseVisible(true); // Show the popup
-    } catch (error) {
-      console.error("Error fetching 'how-to-use.md':", error);
-      alert("Failed to load instructions. Check console for details.");
-    }
-  };
-
-  const handleClosePopup = () => {
-    setIsHowToUseVisible(false);
-  };
-
-  const handleParameterChange = (setter, value, min, max) => {
-    const parsedValue = parseFloat(value);
-    if (parsedValue >= min && parsedValue <= max) {
-      setter(parsedValue);
-    }
-  };
-
-  const handleSubscriptionSuccess = (email) => {
-    setIsSubscribed(true);
-    setUserEmail(email);
-    localStorage.setItem("userEmail", email);
-    setLimits(SUBSCRIBED_COMPUTE_LIMITS);
-  };
+  const [basis_set, setBasisSet] = useState(limits.basis_set[0]);
+  const [functional, setFunctional] = useState(limits.functional[0]);
+  const [charge, setCharge] = useState(0);
+  const [spin_polarized, setSpinPolarized] = useState(false);
 
   const apiBaseUrl = "http://localhost:5000/";
 
@@ -85,6 +66,22 @@ const App = () => {
     }
   }, []);
 
+  // Fetch "how-to-use.md" content on demand
+  const fetchHowToUse = async () => {
+    try {
+      const response = await axios.get('/how-to-use.md');
+      setHowToUseContent(response.data);
+      setIsHowToUseVisible(true);
+    } catch (error) {
+      console.error("Error fetching 'how-to-use.md':", error);
+      alert("Failed to load instructions. Check console for details.");
+    }
+  };
+
+  const handleClosePopup = () => {
+    setIsHowToUseVisible(false);
+  };
+
   const checkSubscriptionStatus = async (email) => {
     try {
       const response = await axios.post(`${apiBaseUrl}/check-subscription`, { email });
@@ -92,30 +89,70 @@ const App = () => {
         setIsSubscribed(true);
         setUserEmail(email);
         setLimits(SUBSCRIBED_COMPUTE_LIMITS);
+        
+        // Update parameters to use full capabilities
+        setFmax(0.005); // Higher precision default
+        setBasisSet("DZVP-MOLOPT-GTH"); // Better basis set
       } else {
         setIsSubscribed(false);
         setLimits(DEFAULT_COMPUTE_LIMITS);
+        
+        // Reset to basic parameters
+        setFmax(DEFAULT_COMPUTE_LIMITS.fmax.min);
+        setBasisSet(DEFAULT_COMPUTE_LIMITS.basis_set[0]);
+        setFunctional(DEFAULT_COMPUTE_LIMITS.functional[0]);
       }
     } catch (error) {
       console.error("Error checking subscription status:", error);
     }
   };
 
-  const applyDefaultComputeLimits = () => {
-    setFmax(DEFAULT_COMPUTE_LIMITS.fmax);
-    setSteps(DEFAULT_COMPUTE_LIMITS.steps);
-    setMaxiter(DEFAULT_COMPUTE_LIMITS.maxiter);
-    setQaoaLayers(DEFAULT_COMPUTE_LIMITS.qaoaLayers);
+  const handleSubscriptionSuccess = (email) => {
+    setIsSubscribed(true);
+    setUserEmail(email);
+    localStorage.setItem("userEmail", email);
+    setLimits(SUBSCRIBED_COMPUTE_LIMITS);
   };
 
-  const applyFullComputeLimits = () => {
-    setFmax(0.005); // Higher precision
-    setSteps(500);  // More steps
-    setMaxiter(1000); // Higher iterations
-    setQaoaLayers(2); // More QAOA layers
+  const handleCancelSubscription = async () => {
+    const confirmCancel = window.confirm(
+      "Are you sure you want to cancel your subscription? This action cannot be undone."
+    );
+
+    if (!confirmCancel) return;
+
+    setIsCancelLoading(true);
+
+    try {
+      const response = await axios.post(`${apiBaseUrl}/cancel-subscription`, {
+        email: userEmail,
+      });
+
+      if (response.data.success) {
+        alert("Your subscription has been canceled.");
+        setIsSubscribed(false);
+        setUserEmail("");
+        localStorage.removeItem("userEmail");
+        setLimits(DEFAULT_COMPUTE_LIMITS);
+      } else {
+        alert("Failed to cancel subscription. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error canceling subscription:", error);
+      alert("Error canceling subscription. Check the console for details.");
+    } finally {
+      setIsCancelLoading(false);
+    }
   };
 
-  const handleFileUpload = (event) => {
+  const handleParameterChange = (setter, value, min, max) => {
+    const parsedValue = parseFloat(value);
+    if (parsedValue >= min && parsedValue <= max) {
+      setter(parsedValue);
+    }
+  };
+
+  const handleFileUpload = (event, fileType) => {
     const file = event.target.files[0];
 
     if (!file) {
@@ -130,13 +167,28 @@ const App = () => {
         const fileContent = e.target.result;
         const parsedData = JSON.parse(fileContent);
 
-        if (!validateMoleculeJSON(parsedData)) {
-          alert("Invalid molecule JSON format.");
-          return;
+        if (fileType === "molecule") {
+          if (!validateMoleculeJSON(parsedData)) {
+            alert("Invalid molecule JSON format.");
+            return;
+          }
+          setMoleculeData(parsedData.file1);
+          setOptimizedMolecule(null);
+        } else if (fileType === "protein") {
+          if (!validateMoleculeJSON(parsedData)) {
+            alert("Invalid protein JSON format.");
+            return;
+          }
+          setProteinData(parsedData.file1);
+          setBindingResult(null);
+        } else if (fileType === "ligand") {
+          if (!validateMoleculeJSON(parsedData)) {
+            alert("Invalid ligand JSON format.");
+            return;
+          }
+          setLigandData(parsedData.file1);
+          setBindingResult(null);
         }
-
-        setMoleculeData(parsedData.file1);
-        setOptimizedMolecule(null); // Reset optimized molecule when a new file is uploaded
       } catch (error) {
         console.error("Error processing the file:", error);
         alert("Error processing the file. Check the console for details.");
@@ -144,70 +196,6 @@ const App = () => {
     };
 
     reader.readAsText(file);
-  };
-
-  const handleOptimize = async () => {
-    if (!moleculeData) {
-      alert("Please upload a file first.");
-      return;
-    }
-    setIsOptimizeLoading(true); // Start loading
-    try {
-      const payload = {
-        file1: moleculeData,
-        fmax: fmax,
-        steps: steps,
-      };
-      const response = await axios.post(`${apiBaseUrl}/optimize`, payload);
-      setOptimizedMolecule(response.data.optimized_file1);
-    } catch (error) {
-      console.error("Error optimizing molecule:", error);
-      alert("Error optimizing molecule. Check the console for details.");
-    } finally {
-      setIsOptimizeLoading(false); // Stop loading
-    }
-  };
-
-  const handleQuantumOptimize = async () => {
-    if (!moleculeData) {
-      alert("Please upload a file first.");
-      return;
-    }
-    setIsQuantumOptimizeLoading(true); // Start loading
-    try {
-      const payload = {
-        file1: moleculeData,
-        optimizer: "COBYLA",
-        p: qaoaLayers,
-        maxiter: maxiter,
-      };
-      const response = await axios.post(`${apiBaseUrl}/quantum-optimize`, payload);
-      setOptimizedMolecule(response.data.optimized_file1);
-    } catch (error) {
-      console.error("Error optimizing molecule with quantum method:", error);
-      alert("Error optimizing molecule with quantum method. Check the console for details.");
-    } finally {
-      setIsQuantumOptimizeLoading(false); // Stop loading
-    }
-  };
-
-  const handleDownload = () => {
-    if (!optimizedMolecule) {
-      alert("No optimized molecule available to download.");
-      return;
-    }
-
-    const jsonData = {
-      file1: optimizedMolecule,
-    };
-    const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "optimized_molecule.json";
-    link.click();
-    URL.revokeObjectURL(url);
   };
 
   const validateMoleculeJSON = (data) => {
@@ -226,37 +214,127 @@ const App = () => {
     );
   };
 
-  const handleCancelSubscription = async () => {
-    const confirmCancel = window.confirm(
-      "Are you sure you want to cancel your subscription? This action cannot be undone."
-    );
-
-    if (!confirmCancel) return;
-
-    setIsCancelLoading(true); // Start loading
-
+  const handleOptimize = async () => {
+    if (!moleculeData) {
+      alert("Please upload a molecule file first.");
+      return;
+    }
+    
+    setIsOptimizeLoading(true);
+    
     try {
-      const response = await axios.post(`${apiBaseUrl}/cancel-subscription`, {
-        email: userEmail,
-      });
-
-      if (response.data.success) {
-        alert("Your subscription has been canceled.");
-        setIsSubscribed(false);
-        setUserEmail(""); // Clear user email
-        localStorage.removeItem("userEmail"); // Remove email from local storage
-        setLimits(DEFAULT_COMPUTE_LIMITS);
-      } else {
-        alert("Failed to cancel subscription. Please try again.");
+      const payload = {
+        file1: moleculeData,
+        fmax: fmax,
+        steps: steps,
+        basis_set: basis_set,
+        functional: functional,
+        charge: charge,
+        spin_polarized: spin_polarized,
+      };
+      
+      // Add authentication for subscribed users
+      if (isSubscribed) {
+        payload.email = userEmail;
       }
+      
+      const response = await axios.post(`${apiBaseUrl}/optimize`, payload);
+      setOptimizedMolecule(response.data.optimized_file1);
     } catch (error) {
-      console.error("Error canceling subscription:", error);
-      alert("Error canceling subscription. Check the console for details.");
+      console.error("Error optimizing molecule:", error);
+      alert("Error optimizing molecule. Check the console for details.");
     } finally {
-      setIsCancelLoading(false); // Stop loading
+      setIsOptimizeLoading(false);
     }
   };
 
+  const handleQuantumOptimize = async () => {
+    if (!moleculeData) {
+      alert("Please upload a molecule file first.");
+      return;
+    }
+    
+    if (!isSubscribed) {
+      alert("Quantum optimization requires a subscription.");
+      return;
+    }
+    
+    setIsQuantumOptimizeLoading(true);
+    
+    try {
+      const payload = {
+        file1: moleculeData,
+        email: userEmail,
+        basis_set: basis_set,
+        functional: functional,
+        charge: charge,
+        spin_polarized: spin_polarized,
+      };
+      
+      const response = await axios.post(`${apiBaseUrl}/quantum-optimize`, payload);
+      setOptimizedMolecule(response.data.optimized_file1);
+    } catch (error) {
+      console.error("Error quantum optimizing molecule:", error);
+      alert("Error quantum optimizing molecule. Check the console for details.");
+    } finally {
+      setIsQuantumOptimizeLoading(false);
+    }
+  };
+
+  const handleBindingOptimize = async () => {
+    if (!proteinData || !ligandData) {
+      alert("Please upload both protein and ligand files first.");
+      return;
+    }
+    
+    if (!isSubscribed) {
+      alert("Binding optimization requires a subscription.");
+      return;
+    }
+    
+    setIsBindingOptimizeLoading(true);
+    
+    try {
+      const payload = {
+        protein: proteinData,
+        ligand: ligandData,
+        email: userEmail,
+        fmax: fmax,
+        steps: steps,
+      };
+      
+      const response = await axios.post(`${apiBaseUrl}/binding-optimize`, payload);
+      setBindingResult(response.data.binding_result);
+    } catch (error) {
+      console.error("Error optimizing binding:", error);
+      alert("Error optimizing binding. Check the console for details.");
+    } finally {
+      setIsBindingOptimizeLoading(false);
+    }
+  };
+
+  const handleDownload = (data, filename) => {
+    if (!data) {
+      alert("No data available to download.");
+      return;
+    }
+
+    const jsonData = {
+      file1: data,
+    };
+    
+    const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    
+    URL.revokeObjectURL(url);
+  };
+
+  // Molecule visualization component
   const MoleculeViewer = ({ moleculeData }) => {
     const viewerRef = useRef();
 
@@ -282,6 +360,7 @@ const App = () => {
         const model = viewer.addModel();
         model.addAtoms(atoms);
 
+        // Add element labels
         moleculeData.atoms.forEach((atom) => {
           viewer.addLabel(atom.element, {
             position: { x: atom.x, y: atom.y, z: atom.z },
@@ -294,10 +373,12 @@ const App = () => {
           });
         });
 
+        // Style atoms and bonds
         viewer.setStyle({}, {
           sphere: { radius: 0.2 },
           stick: { radius: 0.2 },
         });
+        
         viewer.zoomTo();
         viewer.render();
       } catch (error) {
@@ -319,18 +400,91 @@ const App = () => {
     );
   };
 
+  // Binding system visualization component
+  const BindingViewer = ({ proteinData, ligandData }) => {
+    const viewerRef = useRef();
+
+    useEffect(() => {
+      if (!proteinData || !proteinData.atoms || !ligandData || !ligandData.atoms) {
+        console.warn("Missing protein or ligand data for visualization.");
+        return;
+      }
+
+      const viewer = $3Dmol.createViewer(viewerRef.current, {
+        backgroundColor: "grey",
+      });
+      viewer.clear();
+
+      try {
+        // Add protein model
+        const proteinModel = viewer.addModel();
+        const proteinAtoms = proteinData.atoms.map((atom) => ({
+          elem: atom.element,
+          x: atom.x,
+          y: atom.y,
+          z: atom.z,
+          properties: { protein: true }
+        }));
+        proteinModel.addAtoms(proteinAtoms);
+        
+        // Add ligand model
+        const ligandModel = viewer.addModel();
+        const ligandAtoms = ligandData.atoms.map((atom) => ({
+          elem: atom.element,
+          x: atom.x,
+          y: atom.y,
+          z: atom.z,
+          properties: { ligand: true }
+        }));
+        ligandModel.addAtoms(ligandAtoms);
+
+        // Style protein
+        viewer.setStyle({properties: {protein: true}}, {
+          cartoon: { color: 'blue' },
+          stick: { radius: 0.1, color: 'lightblue' }
+        });
+        
+        // Style ligand
+        viewer.setStyle({properties: {ligand: true}}, {
+          sphere: { radius: 0.4 },
+          stick: { radius: 0.2, color: 'green' }
+        });
+        
+        viewer.zoomTo();
+        viewer.render();
+      } catch (error) {
+        console.error("Error rendering binding system:", error);
+      }
+    }, [proteinData, ligandData]);
+
+    return (
+      <div
+        ref={viewerRef}
+        style={{
+          width: "100%",
+          height: "300px",
+          position: "relative",
+          border: "1px solid #ccc",
+          margin: "10px auto",
+        }}
+      ></div>
+    );
+  };
+
   return (
     <div style={{ padding: "20px", textAlign: "center" }}>
-      <h1>Optimize Molecule</h1>
-      <h2>Based on Classical and Quantum Energy Calculations</h2>
+      <h1>Molecular Simulation System</h1>
+      <h2>Powered by CP2K Quantum Chemistry</h2>
+      
+      {/* Cancel Subscription Button */}
       {isSubscribed && (
         <button
           onClick={handleCancelSubscription}
           disabled={isCancelLoading}
           style={{
-            position: "absolute", // Position it in the corner
-            top: "10px", // Distance from the top
-            right: "10px", // Distance from the right
+            position: "absolute",
+            top: "10px",
+            right: "10px",
             backgroundColor: isCancelLoading ? "#ccc" : "grey",
             color: "white",
             border: "none",
@@ -338,205 +492,408 @@ const App = () => {
             padding: "10px 10px",
             fontSize: "10px",
             cursor: isCancelLoading ? "not-allowed" : "pointer",
-            zIndex: 1000, // Ensure it's above other elements
+            zIndex: 1000,
           }}
         >
           {isCancelLoading ? "Cancelling..." : "Cancel Subscription"}
         </button>
       )}
+      
+      {/* How To Use Button */}
+      <button
+        onClick={fetchHowToUse}
+        style={{
+          position: "absolute",
+          top: "10px",
+          left: "10px",
+          backgroundColor: "darkgreen",
+          color: "white",
+          border: "none",
+          borderRadius: "5px",
+          padding: "10px",
+          fontSize: "12px",
+          cursor: "pointer",
+          zIndex: 1000,
+        }}
+      >
+        How To Use & Theory
+      </button>
+      
+      {/* Subscription Form or Welcome Message */}
       {!isSubscribed ? (
         <Elements stripe={stripePromise}>
           <SubscriptionForm
             onSuccess={(email) => {
-              setIsSubscribeLoading(true); // Start loading
+              setIsSubscribeLoading(true);
               handleSubscriptionSuccess(email);
-              setIsSubscribeLoading(false); // Stop loading
-
+              setIsSubscribeLoading(false);
             }}
           />
         </Elements>
       ) : (
         <div>
-          <p>Welcome, {userEmail}! You are subscribed and have full compute power.</p>
+          <p>Welcome, {userEmail}! You are subscribed and have full computational capabilities.</p>
         </div>
       )}
-      <input
-        type="file"
-        onChange={handleFileUpload}
-        style={{
-          padding: "10px",
-          border: "2px dashed gray",
-          cursor: "pointer",
-          marginBottom: "20px",
-        }}
-      />
-
-      {moleculeData && (
-        <>
-          <h3 style={{ marginBottom: "10px" }}>Molecule Visualization:</h3>
-          <MoleculeViewer moleculeData={optimizedMolecule || moleculeData} />
-        </>
-      )}
-
-      <div style={{ display: "flex", gap: "20px", justifyContent: "center", flexWrap: "wrap" }}>
-        <p>Classical parameters:</p>
-        <div>
-          <label>fmax:</label>
-          <input
-            type="number"
-            step="0.001"
-            value={fmax}
-            onChange={(e) =>
-              handleParameterChange(setFmax, e.target.value, limits.fmax.min, limits.fmax.max)
-            }
-          />
-        </div>
-        <div>
-          <label>steps:</label>
-          <input
-            type="number"
-            value={steps}
-            onChange={(e) =>
-              handleParameterChange(setSteps, e.target.value, limits.steps.min, limits.steps.max)
-            }
-          />
-        </div>
-        <p>Quantum parameters:</p>
-        <div>
-          <label>maxiter:</label>
-          <input
-            type="number"
-            value={maxiter}
-            onChange={(e) =>
-              handleParameterChange(setMaxiter, e.target.value, limits.maxiter.min, limits.maxiter.max)
-            }
-          />
-        </div>
-        <div>
-          <label>QAOA Layers (p):</label>
-          <input
-            type="number"
-            value={qaoaLayers}
-            onChange={(e) =>
-              handleParameterChange(setQaoaLayers, e.target.value, limits.qaoaLayers.min, limits.qaoaLayers.max)
-            }
-          />
-        </div>
+      
+      {/* Tab Navigation */}
+      <div style={{ margin: "20px 0", borderBottom: "1px solid #ccc" }}>
+        <button 
+          style={{
+            padding: "10px 20px",
+            backgroundColor: activeTab === "molecule" ? "#007bff" : "#f0f0f0",
+            color: activeTab === "molecule" ? "white" : "black",
+            border: "none",
+            borderRadius: "5px 5px 0 0",
+            marginRight: "5px"
+          }}
+          onClick={() => setActiveTab("molecule")}
+        >
+          Single Molecule
+        </button>
+        <button 
+          style={{
+            padding: "10px 20px",
+            backgroundColor: activeTab === "binding" ? "#007bff" : "#f0f0f0",
+            color: activeTab === "binding" ? "white" : "black",
+            border: "none",
+            borderRadius: "5px 5px 0 0",
+            marginRight: "5px"
+          }}
+          onClick={() => setActiveTab("binding")}
+        >
+          Protein-Ligand Binding
+        </button>
       </div>
-      <div style={{ marginTop: "20px", display: "flex", justifyContent: "center", gap: "10px" }}>
-        <button
-          onClick={handleOptimize}
-          disabled={isOptimizeLoading} // Disable button during loading
-          style={{
-            backgroundColor: isOptimizeLoading ? "#ccc" : "#007bff", // Grey out when loading
-            color: "white",
-            border: "none",
-            borderRadius: "5px",
-            padding: "10px 20px",
-            cursor: isOptimizeLoading ? "not-allowed" : "pointer",
-          }}
-        >
-          {isOptimizeLoading ? "Optimizing..." : "Classical Optimize"} {/* Dynamic text */}
-        </button>
-        <button
-          onClick={handleQuantumOptimize}
-          disabled={isQuantumOptimizeLoading} // Disable button during loading
-          style={{
-            backgroundColor: isQuantumOptimizeLoading ? "#ccc" : "#007bff", // Grey out when loading
-            color: "white",
-            border: "none",
-            borderRadius: "5px",
-            padding: "10px 20px",
-            cursor: isQuantumOptimizeLoading ? "not-allowed" : "pointer",
-          }}
-        >
-          {isQuantumOptimizeLoading ? "Quantum Optimizing..." : "Quantum Optimize"} {/* Dynamic text */}
-        </button>
-        <button
-          onClick={fetchHowToUse}
-          style={{
-            position: "absolute",
-            top: "10px",
-            left: "10px",
-            backgroundColor: "darkgreen",
-            color: "white",
-            border: "none",
-            borderRadius: "5px",
-            padding: "10px",
-            fontSize: "12px",
-            cursor: "pointer",
-            zIndex: 1000,
-          }}
-        >
-          How To Use & Theory
-        </button>
-
-        {isHowToUseVisible && (
-          <div
+      
+      {/* Single Molecule Tab */}
+      {activeTab === "molecule" && (
+        <div>
+          <h3>Single Molecule Optimization</h3>
+          <input
+            type="file"
+            onChange={(e) => handleFileUpload(e, "molecule")}
             style={{
-              position: "fixed",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              backgroundColor: "#333", // Dark grey background
-              color: "white",
-              border: "1px solid #444",
-              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.5)",
-              zIndex: 1000,
-              padding: "20px",
-              width: "80%",
-              height: "80%",
-              overflowY: "auto",
-              textAlign: "left", // Align text to the left
+              padding: "10px",
+              border: "2px dashed gray",
+              cursor: "pointer",
+              marginBottom: "20px",
             }}
-          >
+          />
+          
+          {moleculeData && (
+            <>
+              <h3>Molecule Visualization:</h3>
+              <MoleculeViewer moleculeData={optimizedMolecule || moleculeData} />
+            </>
+          )}
+          
+          {/* CP2K Parameters */}
+          <div style={{ display: "flex", gap: "20px", justifyContent: "center", flexWrap: "wrap", marginTop: "20px" }}>
+            <div>
+              <label>Force Convergence (fmax):</label>
+              <input
+                type="number"
+                step="0.001"
+                value={fmax}
+                onChange={(e) =>
+                  handleParameterChange(setFmax, e.target.value, limits.fmax.min, limits.fmax.max)
+                }
+                style={{ marginLeft: "5px" }}
+              />
+            </div>
+            <div>
+              <label>Optimization Steps:</label>
+              <input
+                type="number"
+                value={steps}
+                onChange={(e) =>
+                  handleParameterChange(setSteps, e.target.value, limits.steps.min, limits.steps.max)
+                }
+                style={{ marginLeft: "5px" }}
+              />
+            </div>
+            <div>
+              <label>Basis Set:</label>
+              <select 
+                value={basis_set}
+                onChange={(e) => setBasisSet(e.target.value)}
+                style={{ marginLeft: "5px" }}
+              >
+                {limits.basis_set.map((basis) => (
+                  <option key={basis} value={basis}>{basis}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label>Functional:</label>
+              <select 
+                value={functional}
+                onChange={(e) => setFunctional(e.target.value)}
+                style={{ marginLeft: "5px" }}
+              >
+                {limits.functional.map((func) => (
+                  <option key={func} value={func}>{func}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label>Charge:</label>
+              <input
+                type="number"
+                value={charge}
+                onChange={(e) => setCharge(parseInt(e.target.value))}
+                style={{ marginLeft: "5px", width: "50px" }}
+              />
+            </div>
+            <div>
+              <label>Spin Polarized:</label>
+              <input
+                type="checkbox"
+                checked={spin_polarized}
+                onChange={(e) => setSpinPolarized(e.target.checked)}
+                style={{ marginLeft: "5px" }}
+              />
+            </div>
+          </div>
+          
+          {/* Action Buttons */}
+          <div style={{ marginTop: "20px", display: "flex", justifyContent: "center", gap: "10px" }}>
             <button
-              onClick={handleClosePopup}
+              onClick={handleOptimize}
+              disabled={isOptimizeLoading || !moleculeData}
               style={{
-                position: "absolute",
-                top: "10px",
-                right: "10px",
-                background: "red",
+                backgroundColor: isOptimizeLoading || !moleculeData ? "#ccc" : "#007bff",
                 color: "white",
                 border: "none",
                 borderRadius: "5px",
-                padding: "5px 10px",
-                cursor: "pointer",
+                padding: "10px 20px",
+                cursor: isOptimizeLoading || !moleculeData ? "not-allowed" : "pointer",
               }}
             >
-              Close
+              {isOptimizeLoading ? "Optimizing..." : "Classical Optimize"}
             </button>
-            <ReactMarkdown style={{ textAlign: "left", color: "white" }}>
-              {howToUseContent}
-            </ReactMarkdown>
+            <button
+              onClick={handleQuantumOptimize}
+              disabled={isQuantumOptimizeLoading || !moleculeData || !isSubscribed}
+              style={{
+                backgroundColor: isQuantumOptimizeLoading || !moleculeData || !isSubscribed ? "#ccc" : "#007bff",
+                color: "white",
+                border: "none",
+                borderRadius: "5px",
+                padding: "10px 20px",
+                cursor: isQuantumOptimizeLoading || !moleculeData || !isSubscribed ? "not-allowed" : "pointer",
+              }}
+            >
+              {isQuantumOptimizeLoading ? "Quantum Optimizing..." : "Quantum Optimize"}
+            </button>
+            <button
+              onClick={() => handleDownload(optimizedMolecule, "optimized_molecule.json")}
+              disabled={!optimizedMolecule}
+              style={{
+                backgroundColor: !optimizedMolecule ? "#ccc" : "#28a745",
+                color: "white",
+                border: "none",
+                borderRadius: "5px",
+                padding: "10px 20px",
+                cursor: !optimizedMolecule ? "not-allowed" : "pointer",
+              }}
+            >
+              Download Result
+            </button>
           </div>
-        )}
-        <button onClick={handleDownload}>Download Optimized Molecule</button>
-      </div>
-
-      {optimizedMolecule && (
-        <div className="box">
-          <h2>Optimized Molecule</h2>
-          <pre>{JSON.stringify(optimizedMolecule.atoms, null, 2)}</pre>
-          <h3>Optimization Details</h3>
-          <p>
-            <strong>Minimum Energy:</strong> {optimizedMolecule.min_energy?.toFixed(6)} eV
-          </p>
-          <h3>Optimization Parameters:</h3>
-          <ul>
-            <li>
-              <strong>fmax:</strong> {fmax} (Classical)
-            </li>
-            <li>
-              <strong>steps:</strong> {steps} (Classical)
-            </li>
-            <li>
-              <strong>maxiter:</strong> {maxiter} (Quantum)
-            </li>
-            <li>
-              <strong>QAOA Layers (p):</strong> {qaoaLayers} (Quantum)
-            </li>
-          </ul>
+          
+          {/* Optimization Results */}
+          {optimizedMolecule && (
+            <div style={{ margin: "20px", padding: "15px", border: "1px solid #ddd", borderRadius: "5px", textAlign: "left" }}>
+              <h2>Optimization Results</h2>
+              <p><strong>Energy:</strong> {optimizedMolecule.energy?.toFixed(6)} eV</p>
+              <p><strong>Converged:</strong> {optimizedMolecule.converged ? "Yes" : "No"}</p>
+              <h3>Parameters Used:</h3>
+              <ul>
+                <li><strong>Force Convergence (fmax):</strong> {optimizedMolecule.parameters?.fmax}</li>
+                <li><strong>Optimization Steps:</strong> {optimizedMolecule.parameters?.steps}</li>
+                <li><strong>Basis Set:</strong> {optimizedMolecule.parameters?.basis_set}</li>
+                <li><strong>Functional:</strong> {optimizedMolecule.parameters?.functional}</li>
+                <li><strong>Charge:</strong> {optimizedMolecule.parameters?.charge}</li>
+                <li><strong>Spin Polarized:</strong> {optimizedMolecule.parameters?.spin_polarized ? "Yes" : "No"}</li>
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+      
+      {/* Protein-Ligand Binding Tab */}
+      {activeTab === "binding" && (
+        <div>
+          <h3>Protein-Ligand Binding Optimization</h3>
+          
+          {!isSubscribed && (
+            <div style={{ color: "red", margin: "10px 0" }}>
+              Protein-ligand binding optimization requires subscription.
+            </div>
+          )}
+          
+          <div style={{ display: "flex", justifyContent: "center", gap: "20px", marginBottom: "20px" }}>
+            <div>
+              <h4>Protein File</h4>
+              <input
+                type="file"
+                onChange={(e) => handleFileUpload(e, "protein")}
+                style={{
+                  padding: "10px",
+                  border: "2px dashed gray",
+                  cursor: "pointer",
+                }}
+                disabled={!isSubscribed}
+              />
+            </div>
+            <div>
+              <h4>Ligand File</h4>
+              <input
+                type="file"
+                onChange={(e) => handleFileUpload(e, "ligand")}
+                style={{
+                  padding: "10px",
+                  border: "2px dashed gray",
+                  cursor: "pointer",
+                }}
+                disabled={!isSubscribed}
+              />
+            </div>
+          </div>
+          
+          {/* Binding System Visualization */}
+          {proteinData && ligandData && (
+            <>
+              <h3>Binding System Visualization:</h3>
+              <BindingViewer 
+                proteinData={bindingResult?.protein || proteinData} 
+                ligandData={bindingResult?.ligand || ligandData} 
+              />
+            </>
+          )}
+          
+          {/* Binding Parameters */}
+          <div style={{ display: "flex", gap: "20px", justifyContent: "center", flexWrap: "wrap", marginTop: "20px" }}>
+            <div>
+              <label>Force Convergence (fmax):</label>
+              <input
+                type="number"
+                step="0.001"
+                value={fmax}
+                onChange={(e) =>
+                  handleParameterChange(setFmax, e.target.value, limits.fmax.min, limits.fmax.max)
+                }
+                style={{ marginLeft: "5px" }}
+                disabled={!isSubscribed}
+              />
+            </div>
+            <div>
+              <label>Optimization Steps:</label>
+              <input
+                type="number"
+                value={steps}
+                onChange={(e) =>
+                  handleParameterChange(setSteps, e.target.value, limits.steps.min, limits.steps.max)
+                }
+                style={{ marginLeft: "5px" }}
+                disabled={!isSubscribed}
+              />
+            </div>
+          </div>
+          
+          {/* Binding Action Buttons */}
+          <div style={{ marginTop: "20px", display: "flex", justifyContent: "center", gap: "10px" }}>
+            <button
+              onClick={handleBindingOptimize}
+              disabled={isBindingOptimizeLoading || !proteinData || !ligandData || !isSubscribed}
+              style={{
+                backgroundColor: isBindingOptimizeLoading || !proteinData || !ligandData || !isSubscribed ? "#ccc" : "#007bff",
+                color: "white",
+                border: "none",
+                borderRadius: "5px",
+                padding: "10px 20px",
+                cursor: isBindingOptimizeLoading || !proteinData || !ligandData || !isSubscribed ? "not-allowed" : "pointer",
+              }}
+            >
+              {isBindingOptimizeLoading ? "Optimizing Binding..." : "Optimize Binding"}
+            </button>
+            <button
+              onClick={() => {
+                if (bindingResult) {
+                  handleDownload({
+                    protein: bindingResult.protein,
+                    ligand: bindingResult.ligand,
+                    binding_energy: bindingResult.binding_energy,
+                    converged: bindingResult.converged
+                  }, "binding_result.json");
+                }
+              }}
+              disabled={!bindingResult}
+              style={{
+                backgroundColor: !bindingResult ? "#ccc" : "#28a745",
+                color: "white",
+                border: "none",
+                borderRadius: "5px",
+                padding: "10px 20px",
+                cursor: !bindingResult ? "not-allowed" : "pointer",
+              }}
+            >
+              Download Binding Result
+            </button>
+          </div>
+          
+          {/* Binding Results */}
+          {bindingResult && (
+            <div style={{ margin: "20px", padding: "15px", border: "1px solid #ddd", borderRadius: "5px", textAlign: "left" }}>
+              <h2>Binding Optimization Results</h2>
+              <p><strong>Binding Energy:</strong> {bindingResult.binding_energy?.toFixed(6)} eV</p>
+              <p><strong>Converged:</strong> {bindingResult.converged ? "Yes" : "No"}</p>
+            </div>
+          )}
+        </div>
+      )}
+      
+      {/* How To Use Popup */}
+      {isHowToUseVisible && (
+        <div
+          style={{
+            position: "fixed",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            backgroundColor: "#333",
+            color: "white",
+            border: "1px solid #444",
+            boxShadow: "0 4px 8px rgba(0, 0, 0, 0.5)",
+            zIndex: 1000,
+            padding: "20px",
+            width: "80%",
+            height: "80%",
+            overflowY: "auto",
+            textAlign: "left",
+          }}
+        >
+          <button
+            onClick={handleClosePopup}
+            style={{
+              position: "absolute",
+              top: "10px",
+              right: "10px",
+              background: "red",
+              color: "white",
+              border: "none",
+              borderRadius: "5px",
+              padding: "5px 10px",
+              cursor: "pointer",
+            }}
+          >
+            Close
+          </button>
+          <ReactMarkdown style={{ textAlign: "left", color: "white" }}>
+            {howToUseContent}
+          </ReactMarkdown>
         </div>
       )}
     </div>

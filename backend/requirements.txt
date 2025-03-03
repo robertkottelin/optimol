@@ -6,3 +6,5 @@ ase
 scipy
 numpy
 python-dotenv
+stripe
+flask_sqlalchemy

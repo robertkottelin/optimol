@@ -4,3 +4,4 @@ frontend/build
 backend/.env
 backend/instance/*
 .env
+backend/.env
