@@ -10,17 +10,9 @@ const stripePromise = loadStripe('pk_test_kbl0ETzPsoiTwU4ZJMvhsYJw006XVnV4Aq');
 
 // Computation limits based on subscription status
 const DEFAULT_COMPUTE_LIMITS = {
-  fmax: { min: 0.05, max: 0.05 },
-  steps: { min: 10, max: 100 },
-  basis_set: ["SZV-MOLOPT-GTH"],
-  functional: ["PBE"],
 };
 
 const SUBSCRIBED_COMPUTE_LIMITS = {
-  fmax: { min: 0.001, max: 0.1 },
-  steps: { min: 10, max: 1000 },
-  basis_set: ["SZV-MOLOPT-GTH", "DZVP-MOLOPT-GTH", "TZVP-MOLOPT-GTH", "TZV2P-MOLOPT-GTH"],
-  functional: ["PBE", "BLYP", "B3LYP", "PBE0"],
 };
 
 const App = () => {
@@ -45,16 +37,7 @@ const App = () => {
   const [isSubscribeLoading, setIsSubscribeLoading] = useState(false);
   const [isCancelLoading, setIsCancelLoading] = useState(false);
   const [isOptimizeLoading, setIsOptimizeLoading] = useState(false);
-  const [isQuantumOptimizeLoading, setIsQuantumOptimizeLoading] = useState(false);
   const [isBindingOptimizeLoading, setIsBindingOptimizeLoading] = useState(false);
-  
-  // Parameters for CP2K calculations
-  const [fmax, setFmax] = useState(limits.fmax.min);
-  const [steps, setSteps] = useState(limits.steps.min);
-  const [basis_set, setBasisSet] = useState(limits.basis_set[0]);
-  const [functional, setFunctional] = useState(limits.functional[0]);
-  const [charge, setCharge] = useState(0);
-  const [spin_polarized, setSpinPolarized] = useState(false);
 
   const apiBaseUrl = "http://localhost:5000/";
 
@@ -91,16 +74,13 @@ const App = () => {
         setLimits(SUBSCRIBED_COMPUTE_LIMITS);
         
         // Update parameters to use full capabilities
-        setFmax(0.005); // Higher precision default
-        setBasisSet("DZVP-MOLOPT-GTH"); // Better basis set
+
       } else {
         setIsSubscribed(false);
         setLimits(DEFAULT_COMPUTE_LIMITS);
         
         // Reset to basic parameters
-        setFmax(DEFAULT_COMPUTE_LIMITS.fmax.min);
-        setBasisSet(DEFAULT_COMPUTE_LIMITS.basis_set[0]);
-        setFunctional(DEFAULT_COMPUTE_LIMITS.functional[0]);
+
       }
     } catch (error) {
       console.error("Error checking subscription status:", error);
@@ -225,12 +205,6 @@ const App = () => {
     try {
       const payload = {
         file1: moleculeData,
-        fmax: fmax,
-        steps: steps,
-        basis_set: basis_set,
-        functional: functional,
-        charge: charge,
-        spin_polarized: spin_polarized,
       };
       
       // Add authentication for subscribed users
@@ -245,39 +219,6 @@ const App = () => {
       alert("Error optimizing molecule. Check the console for details.");
     } finally {
       setIsOptimizeLoading(false);
-    }
-  };
-
-  const handleQuantumOptimize = async () => {
-    if (!moleculeData) {
-      alert("Please upload a molecule file first.");
-      return;
-    }
-    
-    if (!isSubscribed) {
-      alert("Quantum optimization requires a subscription.");
-      return;
-    }
-    
-    setIsQuantumOptimizeLoading(true);
-    
-    try {
-      const payload = {
-        file1: moleculeData,
-        email: userEmail,
-        basis_set: basis_set,
-        functional: functional,
-        charge: charge,
-        spin_polarized: spin_polarized,
-      };
-      
-      const response = await axios.post(`${apiBaseUrl}/quantum-optimize`, payload);
-      setOptimizedMolecule(response.data.optimized_file1);
-    } catch (error) {
-      console.error("Error quantum optimizing molecule:", error);
-      alert("Error quantum optimizing molecule. Check the console for details.");
-    } finally {
-      setIsQuantumOptimizeLoading(false);
     }
   };
 
@@ -299,8 +240,6 @@ const App = () => {
         protein: proteinData,
         ligand: ligandData,
         email: userEmail,
-        fmax: fmax,
-        steps: steps,
       };
       
       const response = await axios.post(`${apiBaseUrl}/binding-optimize`, payload);
@@ -474,7 +413,6 @@ const App = () => {
   return (
     <div style={{ padding: "20px", textAlign: "center" }}>
       <h1>Molecular Simulation System</h1>
-      <h2>Powered by CP2K Quantum Chemistry</h2>
       
       {/* Cancel Subscription Button */}
       {isSubscribed && (
@@ -588,74 +526,6 @@ const App = () => {
             </>
           )}
           
-          {/* CP2K Parameters */}
-          <div style={{ display: "flex", gap: "20px", justifyContent: "center", flexWrap: "wrap", marginTop: "20px" }}>
-            <div>
-              <label>Force Convergence (fmax):</label>
-              <input
-                type="number"
-                step="0.001"
-                value={fmax}
-                onChange={(e) =>
-                  handleParameterChange(setFmax, e.target.value, limits.fmax.min, limits.fmax.max)
-                }
-                style={{ marginLeft: "5px" }}
-              />
-            </div>
-            <div>
-              <label>Optimization Steps:</label>
-              <input
-                type="number"
-                value={steps}
-                onChange={(e) =>
-                  handleParameterChange(setSteps, e.target.value, limits.steps.min, limits.steps.max)
-                }
-                style={{ marginLeft: "5px" }}
-              />
-            </div>
-            <div>
-              <label>Basis Set:</label>
-              <select 
-                value={basis_set}
-                onChange={(e) => setBasisSet(e.target.value)}
-                style={{ marginLeft: "5px" }}
-              >
-                {limits.basis_set.map((basis) => (
-                  <option key={basis} value={basis}>{basis}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label>Functional:</label>
-              <select 
-                value={functional}
-                onChange={(e) => setFunctional(e.target.value)}
-                style={{ marginLeft: "5px" }}
-              >
-                {limits.functional.map((func) => (
-                  <option key={func} value={func}>{func}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label>Charge:</label>
-              <input
-                type="number"
-                value={charge}
-                onChange={(e) => setCharge(parseInt(e.target.value))}
-                style={{ marginLeft: "5px", width: "50px" }}
-              />
-            </div>
-            <div>
-              <label>Spin Polarized:</label>
-              <input
-                type="checkbox"
-                checked={spin_polarized}
-                onChange={(e) => setSpinPolarized(e.target.checked)}
-                style={{ marginLeft: "5px" }}
-              />
-            </div>
-          </div>
           
           {/* Action Buttons */}
           <div style={{ marginTop: "20px", display: "flex", justifyContent: "center", gap: "10px" }}>
@@ -672,20 +542,6 @@ const App = () => {
               }}
             >
               {isOptimizeLoading ? "Optimizing..." : "Classical Optimize"}
-            </button>
-            <button
-              onClick={handleQuantumOptimize}
-              disabled={isQuantumOptimizeLoading || !moleculeData || !isSubscribed}
-              style={{
-                backgroundColor: isQuantumOptimizeLoading || !moleculeData || !isSubscribed ? "#ccc" : "#007bff",
-                color: "white",
-                border: "none",
-                borderRadius: "5px",
-                padding: "10px 20px",
-                cursor: isQuantumOptimizeLoading || !moleculeData || !isSubscribed ? "not-allowed" : "pointer",
-              }}
-            >
-              {isQuantumOptimizeLoading ? "Quantum Optimizing..." : "Quantum Optimize"}
             </button>
             <button
               onClick={() => handleDownload(optimizedMolecule, "optimized_molecule.json")}
@@ -711,12 +567,7 @@ const App = () => {
               <p><strong>Converged:</strong> {optimizedMolecule.converged ? "Yes" : "No"}</p>
               <h3>Parameters Used:</h3>
               <ul>
-                <li><strong>Force Convergence (fmax):</strong> {optimizedMolecule.parameters?.fmax}</li>
-                <li><strong>Optimization Steps:</strong> {optimizedMolecule.parameters?.steps}</li>
-                <li><strong>Basis Set:</strong> {optimizedMolecule.parameters?.basis_set}</li>
-                <li><strong>Functional:</strong> {optimizedMolecule.parameters?.functional}</li>
-                <li><strong>Charge:</strong> {optimizedMolecule.parameters?.charge}</li>
-                <li><strong>Spin Polarized:</strong> {optimizedMolecule.parameters?.spin_polarized ? "Yes" : "No"}</li>
+
               </ul>
             </div>
           )}
