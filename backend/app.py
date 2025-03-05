@@ -1,3 +1,5 @@
+import random
+import traceback
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from ase import Atoms
@@ -43,40 +45,49 @@ class Optimization(db.Model):
 
 load_dotenv()
 STRIPE_SECRET = os.getenv("STRIPE_SECRET")
-CP2K_EXECUTABLE = os.getenv("CP2K_EXECUTABLE", "/usr/bin/cp2k.sopt")
+CP2K_EXECUTABLE = os.getenv("CP2K_EXECUTABLE", "/usr/bin/cp2k.popt")
 
 stripe.api_key = STRIPE_SECRET
 CORS(app, origins=["http://localhost:3000"], methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type"])
 
 def setup_cp2k_calculator(basis_set="DZVP-MOLOPT-SR-GTH", 
-                          potential="GTH-PBE", 
-                          functional="PBE", 
-                          charge=0, 
-                          uks=False):
+                         functional="PBE", 
+                         charge=0, 
+                         uks=False):
     """
     Set up a CP2K calculator with specified parameters.
-    
-    Args:
-        basis_set: Basis set for DFT calculations
-        potential: Pseudopotential for DFT
-        functional: Exchange-correlation functional
-        charge: System charge
-        uks: Unrestricted Kohn-Sham (for open-shell systems)
-        
-    Returns:
-        ASE CP2K calculator instance
     """
+    # Create input template
+    inp = """&GLOBAL
+  PROJECT cp2k-calc
+  RUN_TYPE ENERGY_FORCE
+&END GLOBAL
+&FORCE_EVAL
+  METHOD Quickstep
+  &DFT
+    BASIS_SET_FILE_NAME BASIS_MOLOPT
+    &QS
+      METHOD {}
+    &END QS
+    &POISSON
+      PERIODIC NONE
+      PSOLVER WAVELET
+    &END POISSON
+    &SCF
+      MAX_SCF 200
+      EPS_SCF 1.0E-6
+    &END SCF
+  &END DFT
+&END FORCE_EVAL
+""".format(functional)
+    
+    # Create calculator with input template
     calc = CP2K(
         label="cp2k-calc",
         command=f"{CP2K_EXECUTABLE} -i PREFIX.inp -o PREFIX.out",
-        basis_set=basis_set,
-        potential=potential,
-        xc=functional,
-        uks=uks,
+        inp=inp,
         charge=charge,
-        cutoff=400,  # Energy cutoff in Ry
-        max_scf=200,  # Maximum SCF iterations
-        eps_scf=1.0e-6,  # SCF convergence criterion
+        uks=uks
     )
     
     return calc
@@ -150,14 +161,6 @@ def optimize_molecule(data):
 def setup_qmmm_calculation(protein_data, ligand_data, qm_indices=None):
     """
     Set up QM/MM calculation with CP2K for a protein-ligand system.
-    
-    Args:
-        protein_data: Dictionary containing protein atoms
-        ligand_data: Dictionary containing ligand atoms
-        qm_indices: List of atom indices for QM region, defaults to ligand atoms
-        
-    Returns:
-        ASE Atoms object with QM/MM calculator
     """
     # Convert protein and ligand data to ASE Atoms objects
     protein_atoms = []
@@ -179,23 +182,62 @@ def setup_qmmm_calculation(protein_data, ligand_data, qm_indices=None):
     if qm_indices is None:
         qm_indices = list(range(len(protein_atoms), len(protein_atoms) + len(ligand_atoms)))
     
-    # Create temporary directory for CP2K files
-    temp_dir = tempfile.mkdtemp()
-    os.chdir(temp_dir)
+    # Generate QM indices string for CP2K input
+    qm_kinds = {}
+    for idx in qm_indices:
+        elem = all_symbols[idx]
+        if elem not in qm_kinds:
+            qm_kinds[elem] = []
+        qm_kinds[elem].append(idx + 1)  # CP2K indices are 1-based
     
-    # Set up CP2K QM/MM calculator
+    # Build QM_KIND blocks for the input
+    qm_kind_blocks = ""
+    for elem, indices in qm_kinds.items():
+        indices_str = " ".join(str(i) for i in indices)
+        qm_kind_blocks += f"""    &QM_KIND {elem}
+      MM_INDEX {indices_str}
+    &END QM_KIND
+"""
+    
+    # Create input template for QM/MM calculation
+    inp = f"""&GLOBAL
+  PROJECT cp2k-qmmm
+  RUN_TYPE ENERGY_FORCE
+&END GLOBAL
+&FORCE_EVAL
+  METHOD QMMM
+  &DFT
+    BASIS_SET_FILE_NAME BASIS_MOLOPT
+    &QS
+      METHOD PBE
+    &END QS
+    &POISSON
+      PERIODIC NONE
+      PSOLVER WAVELET
+    &END POISSON
+    &SCF
+      MAX_SCF 200
+      EPS_SCF 1.0E-6
+    &END SCF
+    &XC
+      &XC_FUNCTIONAL PBE
+      &END XC_FUNCTIONAL
+    &END XC
+  &END DFT
+  &QMMM
+    &CELL
+      ABC 40.0 40.0 40.0
+    &END CELL
+{qm_kind_blocks}
+  &END QMMM
+&END FORCE_EVAL
+"""
+    
+    # Setup CP2K calculator with only validated parameters
     calc = CP2K(
         label="cp2k-qmmm",
         command=f"{CP2K_EXECUTABLE} -i PREFIX.inp -o PREFIX.out",
-        basis_set="DZVP-MOLOPT-SR-GTH",
-        potential="GTH-PBE",
-        xc="PBE",
-        cutoff=400,
-        max_scf=200,
-        eps_scf=1.0e-6,
-        poisson_solver="WAVELET",
-        qmmm=True,
-        qmmm_indices=qm_indices
+        inp=inp
     )
     
     system.calc = calc
@@ -311,7 +353,7 @@ def binding_optimize_endpoint():
         else:
             return jsonify({"error": "User email required for authentication"}), 401
 
-        # Run binding optimization
+        # Use real implementation for binding optimization
         result = optimize_binding(data)
         
         # Store in database
@@ -329,8 +371,10 @@ def binding_optimize_endpoint():
         return jsonify({"binding_result": result})
     
     except Exception as e:
+        app.logger.error(f"Endpoint error: {str(e)}")
+        app.logger.error(f"Traceback: {traceback.format_exc()}")
         return jsonify({"error": str(e)}), 500
-
+                
 @app.route('/quantum-optimize', methods=['POST'])
 def quantum_optimize():
     """
