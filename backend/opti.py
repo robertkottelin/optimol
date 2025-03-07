@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 import json
 import numpy as np
 from datetime import datetime
-from app import db
+from extensions import db
 from user import User
 
 # Classical optimization imports
@@ -31,12 +31,7 @@ class Optimization(db.Model):
 def optimize_classical(atoms):
     """
     Optimize molecule using classical molecular dynamics with OpenMM.
-    
-    Args:
-        atoms: List of atom dictionaries with element and coordinates
-        
-    Returns:
-        Dictionary containing optimized atoms and metadata
+    Template-free approach for arbitrary molecules.
     """
     try:   
         start_time = datetime.now()
@@ -56,25 +51,121 @@ def optimize_classical(atoms):
         chain = topology.addChain()
         residue = topology.addResidue('MOL', chain)
         
+        # Element -> Mass mapping (g/mol)
+        element_masses = {
+            'H': 1.008, 'C': 12.011, 'N': 14.007, 'O': 15.999, 'F': 18.998,
+            'P': 30.974, 'S': 32.065, 'Cl': 35.453, 'Br': 79.904, 'I': 126.904
+        }
+        
+        # Add atoms with proper masses
         atom_objects = []
         for i, element in enumerate(elements):
+            mass = element_masses.get(element, 0.0)
             atom_obj = topology.addAtom(element, app.Element.getBySymbol(element), residue)
             atom_objects.append(atom_obj)
         
-        # Add bonds (simplified approach - determining bonds based on distance)
+        # Create system
+        system = mm.System()
+        
+        # Add atom masses to the system
+        for i, element in enumerate(elements):
+            mass = element_masses.get(element, 0.0)
+            system.addParticle(mass)
+        
+        # Determine bonds based on distance
         positions_nm = positions.value_in_unit(unit.nanometer)
+        bonds = []
+        
         for i in range(len(atom_objects)):
             for j in range(i+1, len(atom_objects)):
                 dist = np.sqrt(np.sum((positions_nm[i] - positions_nm[j])**2))
-                # Typical bond length is ~0.15 nm
-                if dist < 0.2:  # Bond threshold
+                if dist < 0.2:  # Bond threshold in nm
                     topology.addBond(atom_objects[i], atom_objects[j])
+                    bonds.append((i, j, dist))
         
-        # Create system with force field
-        forcefield = app.ForceField('amber14-all.xml')
-        system = forcefield.createSystem(topology, nonbondedMethod=app.NoCutoff)
+        # Add HarmonicBondForce
+        bond_force = mm.HarmonicBondForce()
+        for i, j, dist in bonds:
+            # Default parameters: K = 1000 kJ/mol/nm^2
+            bond_force.addBond(i, j, dist, 1000.0)
+        system.addForce(bond_force)
         
-        # Create integrator for minimization
+        # Add HarmonicAngleForce
+        angle_force = mm.HarmonicAngleForce()
+        # Find all angle triplets i-j-k where i-j and j-k are bonded
+        bond_partners = {}
+        for i, j, _ in bonds:
+            if i not in bond_partners:
+                bond_partners[i] = []
+            if j not in bond_partners:
+                bond_partners[j] = []
+            bond_partners[i].append(j)
+            bond_partners[j].append(i)
+        
+        angles = []
+        for j in range(len(atom_objects)):
+            if j in bond_partners:
+                partners = bond_partners[j]
+                for i in range(len(partners)):
+                    for k in range(i+1, len(partners)):
+                        atom_i = partners[i]
+                        atom_k = partners[k]
+                        # Calculate current angle
+                        vec1 = positions_nm[atom_i] - positions_nm[j]
+                        vec2 = positions_nm[atom_k] - positions_nm[j]
+                        norm1 = np.sqrt(np.sum(vec1*vec1))
+                        norm2 = np.sqrt(np.sum(vec2*vec2))
+                        dot = np.sum(vec1*vec2)
+                        cosine = dot / (norm1 * norm2)
+                        cosine = max(-1.0, min(1.0, cosine))
+                        angle = np.arccos(cosine)
+                        # Add angle with K = 500 kJ/mol/radian^2
+                        angle_force.addAngle(atom_i, j, atom_k, angle, 500.0)
+                        angles.append((atom_i, j, atom_k))
+        
+        system.addForce(angle_force)
+        
+        # Add NonbondedForce for non-bonded interactions
+        nonbonded_force = mm.NonbondedForce()
+        
+        # Element -> [charge, sigma (nm), epsilon (kJ/mol)]
+        element_params = {
+            'H': [0.0, 0.106, 0.0656],
+            'C': [0.0, 0.340, 0.4577],
+            'N': [0.0, 0.325, 0.7113],
+            'O': [0.0, 0.296, 0.8786],
+            'F': [0.0, 0.312, 0.255],
+            'P': [0.0, 0.374, 0.8368],
+            'S': [0.0, 0.356, 1.046],
+            'Cl': [0.0, 0.347, 1.1087],
+            'Br': [0.0, 0.391, 0.8368],
+            'I': [0.0, 0.425, 0.6699]
+        }
+        
+        for i, element in enumerate(elements):
+            params = element_params.get(element, [0.0, 0.3, 0.5])
+            nonbonded_force.addParticle(params[0], params[1], params[2])
+        
+        # Track exception pairs to avoid duplicates
+        exception_pairs = set()
+        
+        # Create 1-2 exclusions for bonded atoms
+        for i, j, _ in bonds:
+            pair = (min(i, j), max(i, j))
+            if pair not in exception_pairs:
+                nonbonded_force.addException(i, j, 0.0, 0.1, 0.0)
+                exception_pairs.add(pair)
+        
+        # Add 1-3 angle exclusions
+        for i, j, k in angles:
+            pair = (min(i, k), max(i, k))
+            if pair not in exception_pairs:
+                nonbonded_force.addException(i, k, 0.0, 0.1, 0.0)
+                exception_pairs.add(pair)
+            
+        system.addForce(nonbonded_force)
+        
+        # Create Integrator (300K, 1 ps⁻¹ friction, 2 fs timestep)
         integrator = mm.LangevinIntegrator(300*unit.kelvin, 1.0/unit.picosecond, 0.002*unit.picoseconds)
         
         # Create simulation
@@ -84,12 +175,12 @@ def optimize_classical(atoms):
         # Minimize energy
         simulation.minimizeEnergy(maxIterations=1000)
         
-        # Get minimized positions
+        # Get minimized positions and energy
         state = simulation.context.getState(getPositions=True, getEnergy=True)
         minimized_positions = state.getPositions(asNumpy=True).value_in_unit(unit.angstrom)
         final_energy = state.getPotentialEnergy().value_in_unit(unit.kilojoules_per_mole)
         
-        # Create result with optimized atoms
+        # Format result
         optimized_atoms = []
         for i, atom in enumerate(atoms):
             optimized_atoms.append({
@@ -110,7 +201,9 @@ def optimize_classical(atoms):
                 "library": "OpenMM",
                 "final_energy_kj_mol": final_energy,
                 "duration_seconds": duration,
-                "convergence": "energy_minimized"
+                "convergence": "energy_minimized",
+                "bonds_detected": len(bonds),
+                "angles_detected": len(angles)
             }
         }
         
@@ -123,7 +216,7 @@ def optimize_classical(atoms):
                 "status": "failed"
             }
         }
-
+    
 def optimize_quantum(atoms):
     """
     Optimize molecule using quantum chemistry with PySCF.
@@ -158,7 +251,7 @@ def optimize_quantum(atoms):
         gradients = g.kernel()
         
         # Initialize geometry optimizer
-        max_iterations = 50
+        max_iterations = 10
         convergence_threshold = 1e-5
         
         # Perform geometry optimization

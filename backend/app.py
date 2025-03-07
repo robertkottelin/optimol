@@ -2,7 +2,7 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 import os
 from dotenv import load_dotenv
-from flask_sqlalchemy import SQLAlchemy
+from extensions import db
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -11,14 +11,12 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Initialize SQLAlchemy
-db = SQLAlchemy(app)
-
 # Initialize extensions
+db.init_app(app)  # Initialize db with app
 load_dotenv()
 CORS(app, origins=["http://localhost:3000"], methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type"])
 
-# Import blueprints after db initialization to avoid circular imports
+# Import blueprints after app creation
 from user import user_bp
 from opti import opti_bp
 

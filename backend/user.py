@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 import os
 import stripe
 from datetime import datetime
-from app import db
+from extensions import db
 
 # Create blueprint
 user_bp = Blueprint('user', __name__)
