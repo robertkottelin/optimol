@@ -8,38 +8,26 @@ import SubscriptionForm from './SubscriptionForm';
 
 const stripePromise = loadStripe('pk_test_kbl0ETzPsoiTwU4ZJMvhsYJw006XVnV4Aq');
 
-// Computation limits based on subscription status
-const DEFAULT_COMPUTE_LIMITS = {
-};
-
-const SUBSCRIBED_COMPUTE_LIMITS = {
-};
-
 const App = () => {
   // State for molecule data
   const [moleculeData, setMoleculeData] = useState(null);
-  const [optimizedMolecule, setOptimizedMolecule] = useState(null);
-  const [proteinData, setProteinData] = useState(null);
-  const [ligandData, setLigandData] = useState(null);
-  const [bindingResult, setBindingResult] = useState(null);
+  const [optimizationResult, setOptimizationResult] = useState(null);
+  const [activeView, setActiveView] = useState("original"); // original, classical, quantum
   
   // User and subscription state
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [userEmail, setUserEmail] = useState("");
-  const [limits, setLimits] = useState(DEFAULT_COMPUTE_LIMITS);
   
   // UI state
   const [isHowToUseVisible, setIsHowToUseVisible] = useState(false);
   const [howToUseContent, setHowToUseContent] = useState("");
-  const [activeTab, setActiveTab] = useState("molecule");
   
   // Loading states
   const [isSubscribeLoading, setIsSubscribeLoading] = useState(false);
   const [isCancelLoading, setIsCancelLoading] = useState(false);
   const [isOptimizeLoading, setIsOptimizeLoading] = useState(false);
-  const [isBindingOptimizeLoading, setIsBindingOptimizeLoading] = useState(false);
 
-  const apiBaseUrl = "http://localhost:5000/";
+  const apiBaseUrl = "http://localhost:5000";
 
   // Check subscription status on page load
   useEffect(() => {
@@ -71,16 +59,8 @@ const App = () => {
       if (response.data.isSubscribed) {
         setIsSubscribed(true);
         setUserEmail(email);
-        setLimits(SUBSCRIBED_COMPUTE_LIMITS);
-        
-        // Update parameters to use full capabilities
-
       } else {
         setIsSubscribed(false);
-        setLimits(DEFAULT_COMPUTE_LIMITS);
-        
-        // Reset to basic parameters
-
       }
     } catch (error) {
       console.error("Error checking subscription status:", error);
@@ -91,7 +71,6 @@ const App = () => {
     setIsSubscribed(true);
     setUserEmail(email);
     localStorage.setItem("userEmail", email);
-    setLimits(SUBSCRIBED_COMPUTE_LIMITS);
   };
 
   const handleCancelSubscription = async () => {
@@ -113,7 +92,6 @@ const App = () => {
         setIsSubscribed(false);
         setUserEmail("");
         localStorage.removeItem("userEmail");
-        setLimits(DEFAULT_COMPUTE_LIMITS);
       } else {
         alert("Failed to cancel subscription. Please try again.");
       }
@@ -125,14 +103,7 @@ const App = () => {
     }
   };
 
-  const handleParameterChange = (setter, value, min, max) => {
-    const parsedValue = parseFloat(value);
-    if (parsedValue >= min && parsedValue <= max) {
-      setter(parsedValue);
-    }
-  };
-
-  const handleFileUpload = (event, fileType) => {
+  const handleFileUpload = (event) => {
     const file = event.target.files[0];
 
     if (!file) {
@@ -147,28 +118,14 @@ const App = () => {
         const fileContent = e.target.result;
         const parsedData = JSON.parse(fileContent);
 
-        if (fileType === "molecule") {
-          if (!validateMoleculeJSON(parsedData)) {
-            alert("Invalid molecule JSON format.");
-            return;
-          }
-          setMoleculeData(parsedData.file1);
-          setOptimizedMolecule(null);
-        } else if (fileType === "protein") {
-          if (!validateMoleculeJSON(parsedData)) {
-            alert("Invalid protein JSON format.");
-            return;
-          }
-          setProteinData(parsedData.file1);
-          setBindingResult(null);
-        } else if (fileType === "ligand") {
-          if (!validateMoleculeJSON(parsedData)) {
-            alert("Invalid ligand JSON format.");
-            return;
-          }
-          setLigandData(parsedData.file1);
-          setBindingResult(null);
+        if (!validateMoleculeJSON(parsedData)) {
+          alert("Invalid molecule JSON format.");
+          return;
         }
+        
+        setMoleculeData(parsedData);
+        setOptimizationResult(null);
+        setActiveView("original");
       } catch (error) {
         console.error("Error processing the file:", error);
         alert("Error processing the file. Check the console for details.");
@@ -179,19 +136,27 @@ const App = () => {
   };
 
   const validateMoleculeJSON = (data) => {
-    return (
-      data &&
-      data.file1 &&
-      Array.isArray(data.file1.atoms) &&
-      data.file1.atoms.every(
+    // Check for either format: file1 structure or direct atoms array
+    if (data.file1 && Array.isArray(data.file1.atoms)) {
+      return data.file1.atoms.every(
         (atom) =>
           atom.id &&
           atom.element &&
           typeof atom.x === "number" &&
           typeof atom.y === "number" &&
           typeof atom.z === "number"
-      )
-    );
+      );
+    } else if (Array.isArray(data.atoms)) {
+      return data.atoms.every(
+        (atom) =>
+          atom.id &&
+          atom.element &&
+          typeof atom.x === "number" &&
+          typeof atom.y === "number" &&
+          typeof atom.z === "number"
+      );
+    }
+    return false;
   };
 
   const handleOptimize = async () => {
@@ -200,69 +165,66 @@ const App = () => {
       return;
     }
     
+    if (!isSubscribed) {
+      alert("Please subscribe to use optimization features.");
+      return;
+    }
+    
     setIsOptimizeLoading(true);
     
     try {
       const payload = {
-        file1: moleculeData,
+        email: userEmail,
+        molecule: moleculeData,
       };
       
-      // Add authentication for subscribed users
-      if (isSubscribed) {
-        payload.email = userEmail;
-      }
+      const response = await axios.post(`${apiBaseUrl}/optimize-molecule`, payload);
       
-      const response = await axios.post(`${apiBaseUrl}/optimize`, payload);
-      setOptimizedMolecule(response.data.optimized_file1);
+      if (response.data.success) {
+        setOptimizationResult(response.data);
+        setActiveView("classical"); // Default to showing classical results first
+      } else {
+        alert("Optimization failed. " + (response.data.error || ""));
+      }
     } catch (error) {
       console.error("Error optimizing molecule:", error);
-      alert("Error optimizing molecule. Check the console for details.");
+      alert("Error optimizing molecule: " + (error.response?.data?.error || error.message));
     } finally {
       setIsOptimizeLoading(false);
     }
   };
 
-  const handleBindingOptimize = async () => {
-    if (!proteinData || !ligandData) {
-      alert("Please upload both protein and ligand files first.");
+  const handleDownload = (dataType) => {
+    if (!optimizationResult) {
+      alert("No optimization results available to download.");
       return;
     }
+
+    let data;
+    let filename;
     
-    if (!isSubscribed) {
-      alert("Binding optimization requires a subscription.");
-      return;
-    }
-    
-    setIsBindingOptimizeLoading(true);
-    
-    try {
-      const payload = {
-        protein: proteinData,
-        ligand: ligandData,
-        email: userEmail,
+    if (dataType === "classical") {
+      data = {
+        file1: {
+          atoms: optimizationResult.classical.optimized_atoms,
+          metadata: optimizationResult.classical.metadata
+        }
       };
-      
-      const response = await axios.post(`${apiBaseUrl}/binding-optimize`, payload);
-      setBindingResult(response.data.binding_result);
-    } catch (error) {
-      console.error("Error optimizing binding:", error);
-      alert("Error optimizing binding. Check the console for details.");
-    } finally {
-      setIsBindingOptimizeLoading(false);
-    }
-  };
-
-  const handleDownload = (data, filename) => {
-    if (!data) {
-      alert("No data available to download.");
+      filename = "classical_optimized_molecule.json";
+    } else if (dataType === "quantum") {
+      data = {
+        file1: {
+          atoms: optimizationResult.quantum.optimized_atoms,
+          metadata: optimizationResult.quantum.metadata
+        }
+      };
+      filename = "quantum_optimized_molecule.json";
+    } else {
+      alert("Invalid download type");
       return;
     }
-
-    const jsonData = {
-      file1: data,
-    };
     
-    const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
 
     const link = document.createElement("a");
@@ -273,12 +235,30 @@ const App = () => {
     URL.revokeObjectURL(url);
   };
 
+  // Get atoms array based on active view
+  const getAtoms = () => {
+    if (activeView === "original") {
+      if (moleculeData?.file1?.atoms) {
+        return moleculeData.file1.atoms;
+      } else if (moleculeData?.atoms) {
+        return moleculeData.atoms;
+      }
+      return null;
+    } else if (activeView === "classical" && optimizationResult?.classical?.optimized_atoms) {
+      return optimizationResult.classical.optimized_atoms;
+    } else if (activeView === "quantum" && optimizationResult?.quantum?.optimized_atoms) {
+      return optimizationResult.quantum.optimized_atoms;
+    }
+    return null;
+  };
+
   // Molecule visualization component
-  const MoleculeViewer = ({ moleculeData }) => {
+  const MoleculeViewer = () => {
     const viewerRef = useRef();
+    const atoms = getAtoms();
 
     useEffect(() => {
-      if (!moleculeData || !moleculeData.atoms) {
+      if (!atoms) {
         console.warn("No molecule data found for visualization.");
         return;
       }
@@ -289,7 +269,8 @@ const App = () => {
       viewer.clear();
 
       try {
-        const atoms = moleculeData.atoms.map((atom) => ({
+        // Convert to 3Dmol atom format
+        const mol3dAtoms = atoms.map((atom) => ({
           elem: atom.element,
           x: atom.x,
           y: atom.y,
@@ -297,10 +278,10 @@ const App = () => {
         }));
 
         const model = viewer.addModel();
-        model.addAtoms(atoms);
+        model.addAtoms(mol3dAtoms);
 
         // Add element labels
-        moleculeData.atoms.forEach((atom) => {
+        atoms.forEach((atom) => {
           viewer.addLabel(atom.element, {
             position: { x: atom.x, y: atom.y, z: atom.z },
             fontSize: 12,
@@ -323,78 +304,7 @@ const App = () => {
       } catch (error) {
         console.error("Error rendering molecule:", error);
       }
-    }, [moleculeData]);
-
-    return (
-      <div
-        ref={viewerRef}
-        style={{
-          width: "100%",
-          height: "300px",
-          position: "relative",
-          border: "1px solid #ccc",
-          margin: "10px auto",
-        }}
-      ></div>
-    );
-  };
-
-  // Binding system visualization component
-  const BindingViewer = ({ proteinData, ligandData }) => {
-    const viewerRef = useRef();
-
-    useEffect(() => {
-      if (!proteinData || !proteinData.atoms || !ligandData || !ligandData.atoms) {
-        console.warn("Missing protein or ligand data for visualization.");
-        return;
-      }
-
-      const viewer = $3Dmol.createViewer(viewerRef.current, {
-        backgroundColor: "grey",
-      });
-      viewer.clear();
-
-      try {
-        // Add protein model
-        const proteinModel = viewer.addModel();
-        const proteinAtoms = proteinData.atoms.map((atom) => ({
-          elem: atom.element,
-          x: atom.x,
-          y: atom.y,
-          z: atom.z,
-          properties: { protein: true }
-        }));
-        proteinModel.addAtoms(proteinAtoms);
-        
-        // Add ligand model
-        const ligandModel = viewer.addModel();
-        const ligandAtoms = ligandData.atoms.map((atom) => ({
-          elem: atom.element,
-          x: atom.x,
-          y: atom.y,
-          z: atom.z,
-          properties: { ligand: true }
-        }));
-        ligandModel.addAtoms(ligandAtoms);
-
-        // Style protein
-        viewer.setStyle({properties: {protein: true}}, {
-          cartoon: { color: 'blue' },
-          stick: { radius: 0.1, color: 'lightblue' }
-        });
-        
-        // Style ligand
-        viewer.setStyle({properties: {ligand: true}}, {
-          sphere: { radius: 0.4 },
-          stick: { radius: 0.2, color: 'green' }
-        });
-        
-        viewer.zoomTo();
-        viewer.render();
-      } catch (error) {
-        console.error("Error rendering binding system:", error);
-      }
-    }, [proteinData, ligandData]);
+    }, [atoms]);
 
     return (
       <div
@@ -412,7 +322,7 @@ const App = () => {
 
   return (
     <div style={{ padding: "20px", textAlign: "center" }}>
-      <h1>Molecular Simulation System</h1>
+      <h1>Molecular Optimization System</h1>
       
       {/* Cancel Subscription Button */}
       {isSubscribed && (
@@ -474,238 +384,160 @@ const App = () => {
         </div>
       )}
       
-      {/* Tab Navigation */}
-      <div style={{ margin: "20px 0", borderBottom: "1px solid #ccc" }}>
-        <button 
+      <div>
+        <h3>Molecule Optimization</h3>
+        <input
+          type="file"
+          onChange={handleFileUpload}
           style={{
-            padding: "10px 20px",
-            backgroundColor: activeTab === "molecule" ? "#007bff" : "#f0f0f0",
-            color: activeTab === "molecule" ? "white" : "black",
-            border: "none",
-            borderRadius: "5px 5px 0 0",
-            marginRight: "5px"
+            padding: "10px",
+            border: "2px dashed gray",
+            cursor: "pointer",
+            marginBottom: "20px",
           }}
-          onClick={() => setActiveTab("molecule")}
-        >
-          Single Molecule
-        </button>
-        <button 
-          style={{
-            padding: "10px 20px",
-            backgroundColor: activeTab === "binding" ? "#007bff" : "#f0f0f0",
-            color: activeTab === "binding" ? "white" : "black",
-            border: "none",
-            borderRadius: "5px 5px 0 0",
-            marginRight: "5px"
-          }}
-          onClick={() => setActiveTab("binding")}
-        >
-          Protein-Ligand Binding
-        </button>
-      </div>
-      
-      {/* Single Molecule Tab */}
-      {activeTab === "molecule" && (
-        <div>
-          <h3>Single Molecule Optimization</h3>
-          <input
-            type="file"
-            onChange={(e) => handleFileUpload(e, "molecule")}
+        />
+        
+        {moleculeData && (
+          <>
+            {/* Visualization tabs for switching between original and optimized structures */}
+            {optimizationResult && (
+              <div style={{ marginBottom: "10px" }}>
+                <button 
+                  onClick={() => setActiveView("original")}
+                  style={{
+                    backgroundColor: activeView === "original" ? "#007bff" : "#ccc",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "5px 0 0 5px",
+                    padding: "5px 10px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Original
+                </button>
+                <button 
+                  onClick={() => setActiveView("classical")}
+                  style={{
+                    backgroundColor: activeView === "classical" ? "#28a745" : "#ccc",
+                    color: "white",
+                    border: "none",
+                    padding: "5px 10px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Classical
+                </button>
+                <button 
+                  onClick={() => setActiveView("quantum")}
+                  style={{
+                    backgroundColor: activeView === "quantum" ? "#17a2b8" : "#ccc",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "0 5px 5px 0",
+                    padding: "5px 10px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Quantum
+                </button>
+              </div>
+            )}
+            
+            <h3>{activeView.charAt(0).toUpperCase() + activeView.slice(1)} Structure:</h3>
+            <MoleculeViewer />
+          </>
+        )}
+        
+        {/* Action Buttons */}
+        <div style={{ marginTop: "20px", display: "flex", justifyContent: "center", gap: "10px" }}>
+          <button
+            onClick={handleOptimize}
+            disabled={isOptimizeLoading || !moleculeData || !isSubscribed}
             style={{
-              padding: "10px",
-              border: "2px dashed gray",
-              cursor: "pointer",
-              marginBottom: "20px",
+              backgroundColor: isOptimizeLoading || !moleculeData || !isSubscribed ? "#ccc" : "#007bff",
+              color: "white",
+              border: "none",
+              borderRadius: "5px",
+              padding: "10px 20px",
+              cursor: isOptimizeLoading || !moleculeData || !isSubscribed ? "not-allowed" : "pointer",
             }}
-          />
-          
-          {moleculeData && (
-            <>
-              <h3>Molecule Visualization:</h3>
-              <MoleculeViewer moleculeData={optimizedMolecule || moleculeData} />
-            </>
-          )}
-          
-          
-          {/* Action Buttons */}
-          <div style={{ marginTop: "20px", display: "flex", justifyContent: "center", gap: "10px" }}>
-            <button
-              onClick={handleOptimize}
-              disabled={isOptimizeLoading || !moleculeData}
-              style={{
-                backgroundColor: isOptimizeLoading || !moleculeData ? "#ccc" : "#007bff",
-                color: "white",
-                border: "none",
-                borderRadius: "5px",
-                padding: "10px 20px",
-                cursor: isOptimizeLoading || !moleculeData ? "not-allowed" : "pointer",
-              }}
-            >
-              {isOptimizeLoading ? "Optimizing..." : "Classical Optimize"}
-            </button>
-            <button
-              onClick={() => handleDownload(optimizedMolecule, "optimized_molecule.json")}
-              disabled={!optimizedMolecule}
-              style={{
-                backgroundColor: !optimizedMolecule ? "#ccc" : "#28a745",
-                color: "white",
-                border: "none",
-                borderRadius: "5px",
-                padding: "10px 20px",
-                cursor: !optimizedMolecule ? "not-allowed" : "pointer",
-              }}
-            >
-              Download Result
-            </button>
-          </div>
-          
-          {/* Optimization Results */}
-          {optimizedMolecule && (
-            <div style={{ margin: "20px", padding: "15px", border: "1px solid #ddd", borderRadius: "5px", textAlign: "left" }}>
-              <h2>Optimization Results</h2>
-              <p><strong>Energy:</strong> {optimizedMolecule.energy?.toFixed(6)} eV</p>
-              <p><strong>Converged:</strong> {optimizedMolecule.converged ? "Yes" : "No"}</p>
-              <h3>Parameters Used:</h3>
-              <ul>
-
-              </ul>
-            </div>
-          )}
+          >
+            {isOptimizeLoading ? "Optimizing..." : "Optimize Molecule"}
+          </button>
         </div>
-      )}
-      
-      {/* Protein-Ligand Binding Tab */}
-      {activeTab === "binding" && (
-        <div>
-          <h3>Protein-Ligand Binding Optimization</h3>
-          
-          {!isSubscribed && (
-            <div style={{ color: "red", margin: "10px 0" }}>
-              Protein-ligand binding optimization requires subscription.
+        
+        {/* Optimization Results */}
+        {optimizationResult && (
+          <div style={{ margin: "20px" }}>
+            <h2>Optimization Results</h2>
+            
+            {/* Classical Results */}
+            <div style={{ padding: "15px", border: "1px solid #ddd", borderRadius: "5px", textAlign: "left", marginBottom: "20px" }}>
+              <h3>Classical Optimization</h3>
+              {optimizationResult.classical.error ? (
+                <p style={{ color: "red" }}>Error: {optimizationResult.classical.error}</p>
+              ) : (
+                <div>
+                  <h4>Metadata:</h4>
+                  <p><strong>Method:</strong> {optimizationResult.classical.metadata.method}</p>
+                  <p><strong>Library:</strong> {optimizationResult.classical.metadata.library}</p>
+                  <p><strong>Final Energy:</strong> {optimizationResult.classical.metadata.final_energy_kj_mol} kJ/mol</p>
+                  <p><strong>Duration:</strong> {optimizationResult.classical.metadata.duration_seconds} seconds</p>
+                  <p><strong>Status:</strong> {optimizationResult.classical.metadata.convergence || "Unknown"}</p>
+                  
+                  <button
+                    onClick={() => handleDownload("classical")}
+                    style={{
+                      backgroundColor: "#28a745",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "5px",
+                      padding: "5px 10px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Download Classical Result
+                  </button>
+                </div>
+              )}
             </div>
-          )}
-          
-          <div style={{ display: "flex", justifyContent: "center", gap: "20px", marginBottom: "20px" }}>
-            <div>
-              <h4>Protein File</h4>
-              <input
-                type="file"
-                onChange={(e) => handleFileUpload(e, "protein")}
-                style={{
-                  padding: "10px",
-                  border: "2px dashed gray",
-                  cursor: "pointer",
-                }}
-                disabled={!isSubscribed}
-              />
-            </div>
-            <div>
-              <h4>Ligand File</h4>
-              <input
-                type="file"
-                onChange={(e) => handleFileUpload(e, "ligand")}
-                style={{
-                  padding: "10px",
-                  border: "2px dashed gray",
-                  cursor: "pointer",
-                }}
-                disabled={!isSubscribed}
-              />
-            </div>
-          </div>
-          
-          {/* Binding System Visualization */}
-          {proteinData && ligandData && (
-            <>
-              <h3>Binding System Visualization:</h3>
-              <BindingViewer 
-                proteinData={bindingResult?.protein || proteinData} 
-                ligandData={bindingResult?.ligand || ligandData} 
-              />
-            </>
-          )}
-          
-          {/* Binding Parameters */}
-          <div style={{ display: "flex", gap: "20px", justifyContent: "center", flexWrap: "wrap", marginTop: "20px" }}>
-            <div>
-              <label>Force Convergence (fmax):</label>
-              <input
-                type="number"
-                step="0.001"
-                value={fmax}
-                onChange={(e) =>
-                  handleParameterChange(setFmax, e.target.value, limits.fmax.min, limits.fmax.max)
-                }
-                style={{ marginLeft: "5px" }}
-                disabled={!isSubscribed}
-              />
-            </div>
-            <div>
-              <label>Optimization Steps:</label>
-              <input
-                type="number"
-                value={steps}
-                onChange={(e) =>
-                  handleParameterChange(setSteps, e.target.value, limits.steps.min, limits.steps.max)
-                }
-                style={{ marginLeft: "5px" }}
-                disabled={!isSubscribed}
-              />
+            
+            {/* Quantum Results */}
+            <div style={{ padding: "15px", border: "1px solid #ddd", borderRadius: "5px", textAlign: "left" }}>
+              <h3>Quantum Optimization</h3>
+              {optimizationResult.quantum.error ? (
+                <p style={{ color: "red" }}>Error: {optimizationResult.quantum.error}</p>
+              ) : (
+                <div>
+                  <h4>Metadata:</h4>
+                  <p><strong>Method:</strong> {optimizationResult.quantum.metadata.method}</p>
+                  <p><strong>Library:</strong> {optimizationResult.quantum.metadata.library}</p>
+                  <p><strong>Theory Level:</strong> {optimizationResult.quantum.metadata.theory_level}</p>
+                  <p><strong>Final Energy:</strong> {optimizationResult.quantum.metadata.final_energy_hartree} Hartree</p>
+                  <p><strong>Iterations:</strong> {optimizationResult.quantum.metadata.iterations}</p>
+                  <p><strong>Converged:</strong> {optimizationResult.quantum.metadata.converged ? "Yes" : "No"}</p>
+                  <p><strong>Duration:</strong> {optimizationResult.quantum.metadata.duration_seconds} seconds</p>
+                  
+                  <button
+                    onClick={() => handleDownload("quantum")}
+                    style={{
+                      backgroundColor: "#17a2b8",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "5px",
+                      padding: "5px 10px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Download Quantum Result
+                  </button>
+                </div>
+              )}
             </div>
           </div>
-          
-          {/* Binding Action Buttons */}
-          <div style={{ marginTop: "20px", display: "flex", justifyContent: "center", gap: "10px" }}>
-            <button
-              onClick={handleBindingOptimize}
-              disabled={isBindingOptimizeLoading || !proteinData || !ligandData || !isSubscribed}
-              style={{
-                backgroundColor: isBindingOptimizeLoading || !proteinData || !ligandData || !isSubscribed ? "#ccc" : "#007bff",
-                color: "white",
-                border: "none",
-                borderRadius: "5px",
-                padding: "10px 20px",
-                cursor: isBindingOptimizeLoading || !proteinData || !ligandData || !isSubscribed ? "not-allowed" : "pointer",
-              }}
-            >
-              {isBindingOptimizeLoading ? "Optimizing Binding..." : "Optimize Binding"}
-            </button>
-            <button
-              onClick={() => {
-                if (bindingResult) {
-                  handleDownload({
-                    protein: bindingResult.protein,
-                    ligand: bindingResult.ligand,
-                    binding_energy: bindingResult.binding_energy,
-                    converged: bindingResult.converged
-                  }, "binding_result.json");
-                }
-              }}
-              disabled={!bindingResult}
-              style={{
-                backgroundColor: !bindingResult ? "#ccc" : "#28a745",
-                color: "white",
-                border: "none",
-                borderRadius: "5px",
-                padding: "10px 20px",
-                cursor: !bindingResult ? "not-allowed" : "pointer",
-              }}
-            >
-              Download Binding Result
-            </button>
-          </div>
-          
-          {/* Binding Results */}
-          {bindingResult && (
-            <div style={{ margin: "20px", padding: "15px", border: "1px solid #ddd", borderRadius: "5px", textAlign: "left" }}>
-              <h2>Binding Optimization Results</h2>
-              <p><strong>Binding Energy:</strong> {bindingResult.binding_energy?.toFixed(6)} eV</p>
-              <p><strong>Converged:</strong> {bindingResult.converged ? "Yes" : "No"}</p>
-            </div>
-          )}
-        </div>
-      )}
-      
+        )}
+      </div>
+            
       {/* How To Use Popup */}
       {isHowToUseVisible && (
         <div
