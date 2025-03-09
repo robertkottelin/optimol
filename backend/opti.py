@@ -28,13 +28,28 @@ class Optimization(db.Model):
     def __repr__(self):
         return f'<Optimization {self.id} for User {self.user_id}>'
 
-def optimize_classical(atoms):
+def optimize_classical(atoms, params=None):
     """
     Optimize molecule using classical molecular dynamics with OpenMM.
     Template-free approach for arbitrary molecules.
+    
+    Args:
+        atoms: List of atom dictionaries with element and coordinates
+        params: Dictionary of optimization parameters
     """
     try:   
         start_time = datetime.now()
+        
+        # Set default parameters if not provided
+        if params is None:
+            params = {}
+            
+        # Extract parameters with defaults
+        temperature = params.get("temperature", 300)  # Kelvin
+        max_iterations = params.get("max_iterations", 1000)  # For energy minimization
+        bond_threshold = params.get("bond_threshold", 0.2)  # nm
+        bond_force_constant = params.get("bond_force_constant", 1000.0)  # kJ/mol/nm^2
+        angle_force_constant = params.get("angle_force_constant", 500.0)  # kJ/mol/radian^2
         
         # Create system from atoms
         positions = []
@@ -79,15 +94,15 @@ def optimize_classical(atoms):
         for i in range(len(atom_objects)):
             for j in range(i+1, len(atom_objects)):
                 dist = np.sqrt(np.sum((positions_nm[i] - positions_nm[j])**2))
-                if dist < 0.2:  # Bond threshold in nm
+                if dist < bond_threshold:  # Bond threshold in nm (now parameterized)
                     topology.addBond(atom_objects[i], atom_objects[j])
                     bonds.append((i, j, dist))
         
         # Add HarmonicBondForce
         bond_force = mm.HarmonicBondForce()
         for i, j, dist in bonds:
-            # Default parameters: K = 1000 kJ/mol/nm^2
-            bond_force.addBond(i, j, dist, 1000.0)
+            # Use parameterized force constant
+            bond_force.addBond(i, j, dist, bond_force_constant)
         system.addForce(bond_force)
         
         # Add HarmonicAngleForce
@@ -119,13 +134,13 @@ def optimize_classical(atoms):
                         cosine = dot / (norm1 * norm2)
                         cosine = max(-1.0, min(1.0, cosine))
                         angle = np.arccos(cosine)
-                        # Add angle with K = 500 kJ/mol/radian^2
-                        angle_force.addAngle(atom_i, j, atom_k, angle, 500.0)
+                        # Use parameterized force constant
+                        angle_force.addAngle(atom_i, j, atom_k, angle, angle_force_constant)
                         angles.append((atom_i, j, atom_k))
         
         system.addForce(angle_force)
         
-        # Add NonbondedForce for non-bonded interactions
+        # Add NonbondedForce for non-bonded interactions (unchanged)
         nonbonded_force = mm.NonbondedForce()
         
         # Element -> [charge, sigma (nm), epsilon (kJ/mol)]
@@ -165,15 +180,15 @@ def optimize_classical(atoms):
             
         system.addForce(nonbonded_force)
         
-        # Create Integrator (300K, 1 ps⁻¹ friction, 2 fs timestep)
-        integrator = mm.LangevinIntegrator(300*unit.kelvin, 1.0/unit.picosecond, 0.002*unit.picoseconds)
+        # Create Integrator with parameterized temperature
+        integrator = mm.LangevinIntegrator(temperature*unit.kelvin, 1.0/unit.picosecond, 0.002*unit.picoseconds)
         
         # Create simulation
         simulation = app.Simulation(topology, system, integrator)
         simulation.context.setPositions(positions)
         
-        # Minimize energy
-        simulation.minimizeEnergy(maxIterations=1000)
+        # Minimize energy with parameterized max iterations
+        simulation.minimizeEnergy(maxIterations=max_iterations)
         
         # Get minimized positions and energy
         state = simulation.context.getState(getPositions=True, getEnergy=True)
@@ -199,6 +214,13 @@ def optimize_classical(atoms):
             "metadata": {
                 "method": "classical_molecular_dynamics",
                 "library": "OpenMM",
+                "parameters": {
+                    "temperature": temperature,
+                    "max_iterations": max_iterations,
+                    "bond_threshold": bond_threshold,
+                    "bond_force_constant": bond_force_constant,
+                    "angle_force_constant": angle_force_constant
+                },
                 "final_energy_kj_mol": final_energy,
                 "duration_seconds": duration,
                 "convergence": "energy_minimized",
@@ -217,12 +239,13 @@ def optimize_classical(atoms):
             }
         }
     
-def optimize_quantum(atoms):
+def optimize_quantum(atoms, params=None):
     """
     Optimize molecule using quantum chemistry with PySCF.
     
     Args:
         atoms: List of atom dictionaries with element and coordinates
+        params: Dictionary of optimization parameters
         
     Returns:
         Dictionary containing optimized atoms and metadata
@@ -230,15 +253,25 @@ def optimize_quantum(atoms):
     try:       
         start_time = datetime.now()
         
+        # Set default parameters if not provided
+        if params is None:
+            params = {}
+        
+        # Extract parameters with defaults
+        basis = params.get("basis", "6-31g")
+        max_iterations = params.get("max_iterations", 10)
+        convergence_threshold = params.get("convergence_threshold", 1e-5)
+        step_size = params.get("step_size", 0.1)
+        
         # Convert atoms to PySCF format
         atom_list = []
         for atom in atoms:
             atom_list.append([atom["element"], (atom["x"], atom["y"], atom["z"])])
         
-        # Create molecule
+        # Create molecule with parameterized basis set
         mol = gto.M(
             atom=atom_list,
-            basis='6-31g',
+            basis=basis,
             verbose=0
         )
         
@@ -250,11 +283,7 @@ def optimize_quantum(atoms):
         g = grad.RHF(mf)
         gradients = g.kernel()
         
-        # Initialize geometry optimizer
-        max_iterations = 10
-        convergence_threshold = 1e-5
-        
-        # Perform geometry optimization
+        # Perform geometry optimization with parameterized values
         converged = False
         iteration = 0
         current_atoms = atom_list.copy()
@@ -264,8 +293,7 @@ def optimize_quantum(atoms):
             # Get coordinates
             coords = np.array([atom[1] for atom in current_atoms])
             
-            # Update geometry based on gradient
-            step_size = 0.1
+            # Update geometry based on gradient using parameterized step size
             new_coords = coords - step_size * gradients
             
             # Update atom list
@@ -276,7 +304,7 @@ def optimize_quantum(atoms):
             # Create new molecule
             new_mol = gto.M(
                 atom=new_atom_list,
-                basis='6-31g',
+                basis=basis,  # Use parameterized basis
                 verbose=0
             )
             
@@ -288,7 +316,7 @@ def optimize_quantum(atoms):
             new_g = grad.RHF(new_mf)
             new_gradients = new_g.kernel()
             
-            # Check convergence
+            # Check convergence using parameterized threshold
             energy_change = abs(new_energy - current_energy)
             gradient_norm = np.linalg.norm(new_gradients)
             
@@ -320,7 +348,13 @@ def optimize_quantum(atoms):
             "metadata": {
                 "method": "quantum_chemistry",
                 "library": "PySCF",
-                "theory_level": "RHF/6-31G",
+                "parameters": {
+                    "basis": basis,
+                    "max_iterations": max_iterations,
+                    "convergence_threshold": convergence_threshold,
+                    "step_size": step_size
+                },
+                "theory_level": f"RHF/{basis}",
                 "final_energy_hartree": float(current_energy),
                 "iterations": iteration,
                 "converged": converged,
@@ -341,12 +375,27 @@ def optimize_quantum(atoms):
 @opti_bp.route('/optimize-molecule', methods=['POST'])
 def optimize_molecule():
     """
-    Endpoint to optimize molecular structures using both classical and quantum methods.
+    Endpoint to optimize molecular structures using either classical or quantum methods.
     Requires an active subscription.
     
     Expected request format:
     {
         "email": "user@example.com",
+        "optimization_type": "classical" or "quantum",
+        "optimization_params": {
+            // For classical:
+            "temperature": 300,
+            "max_iterations": 1000,
+            "bond_threshold": 0.2,
+            "bond_force_constant": 1000.0,
+            "angle_force_constant": 500.0
+            
+            // For quantum:
+            "basis": "6-31g",
+            "max_iterations": 10,
+            "convergence_threshold": 1e-5,
+            "step_size": 0.1
+        },
         "molecule": {
             "file1": {
                 "atoms": [
@@ -365,9 +414,14 @@ def optimize_molecule():
             
         email = data.get("email")
         molecule_data = data.get("molecule")
+        optimization_type = data.get("optimization_type")
+        optimization_params = data.get("optimization_params", {})
         
         if not email or not molecule_data:
             return jsonify({"error": "Invalid input: Missing 'email' or 'molecule' data"}), 400
+            
+        if not optimization_type or optimization_type not in ["classical", "quantum"]:
+            return jsonify({"error": "Invalid input: Missing or invalid 'optimization_type' (must be 'classical' or 'quantum')"}), 400
             
         # Verify subscription status
         user = User.query.filter_by(email=email).first()
@@ -390,21 +444,22 @@ def optimize_molecule():
         except Exception as e:
             return jsonify({"error": f"Error parsing molecule data: {str(e)}"}), 400
             
-        # Perform classical optimization
-        classical_result = optimize_classical(atoms)
-        
-        # Perform quantum optimization
-        quantum_result = optimize_quantum(atoms)
+        # Perform requested optimization with parameters
+        result = None
+        if optimization_type == "classical":
+            result = optimize_classical(atoms, optimization_params)
+        elif optimization_type == "quantum":
+            result = optimize_quantum(atoms, optimization_params)
         
         # Store optimization results in database
         optimization = Optimization(
             user_id=user.id,
-            optimization_type="both",  # Both classical and quantum
-            parameters=json.dumps(molecule_data),
-            result=json.dumps({
-                "classical": classical_result,
-                "quantum": quantum_result
-            })
+            optimization_type=optimization_type,
+            parameters=json.dumps({
+                "molecule": molecule_data,
+                "optimization_params": optimization_params
+            }),
+            result=json.dumps(result)
         )
         db.session.add(optimization)
         db.session.commit()
@@ -413,8 +468,7 @@ def optimize_molecule():
         return jsonify({
             "success": True,
             "optimizationId": optimization.id,
-            "classical": classical_result,
-            "quantum": quantum_result,
+            "result": result,
             "original_molecule": molecule_data
         }), 200
         

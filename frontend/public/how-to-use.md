@@ -1,262 +1,265 @@
-## How To Use & Theory
+# Optimol Molecular Optimization System Documentation
 
-This system performs molecular structure optimization and binding simulations using CP2K, a quantum chemistry and solid state physics software package implementing DFT-based electronic structure methods.
+## 1. System Overview
 
----
+The Optimol Molecular Optimization System provides computational tools for molecular structure optimization using both classical molecular dynamics and quantum chemical methods. This document outlines operational procedures, input specifications, and theoretical foundations.
 
-### Technical Overview
+## 2. Input Specifications
 
-The application implements a multi-scale computational framework providing:
+### 2.1 File Format
 
-1. **DFT-Based Structural Optimization**: Geometry optimization using Kohn-Sham Density Functional Theory
-2. **QM/MM Binding Simulations**: Hybrid quantum mechanics/molecular mechanics for protein-ligand interactions
-3. **Tiered Computational Parameters**: Resource allocation based on subscription status
-
----
-
-### Input File Specification
-
-#### Single Molecule JSON Schema
+Input files must be JSON formatted with the following structure:
 
 ```json
 {
   "file1": {
     "atoms": [
-      { "id": 1, "element": "H", "x": 0.0, "y": 0.0, "z": 0.0 },
-      { "id": 2, "element": "H", "x": 0.0, "y": 0.0, "z": 0.74 },
-      { "id": 3, "element": "O", "x": 0.0, "y": 0.65, "z": 0.0 }
+      {
+        "id": 1,
+        "element": "C",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      {
+        "id": 2,
+        "element": "H",
+        "x": 1.09,
+        "y": 0.0,
+        "z": 0.0
+      }
+      // Additional atoms
     ]
   }
 }
 ```
 
-#### Protein-Ligand JSON Schema (Two Separate Files)
-
-Protein file:
-```json
-{
-  "file1": {
-    "atoms": [
-      { "id": 1, "element": "C", "x": 0.0, "y": 0.0, "z": 0.0 },
-      { "id": 2, "element": "N", "x": 1.32, "y": 0.0, "z": 0.0 },
-      ...
-    ]
-  }
-}
-```
-
-Ligand file (separate upload):
-```json
-{
-  "file1": {
-    "atoms": [
-      { "id": 1, "element": "C", "x": 10.0, "y": 5.0, "z": 3.0 },
-      { "id": 2, "element": "O", "x": 11.2, "y": 5.2, "z": 3.0 },
-      ...
-    ]
-  }
-}
-```
-
----
-
-### Computational Parameters
-
-#### 1. Structural Optimization Parameters
-
-| Parameter | Description | Default | Standard Range | Premium Range |
-|-----------|-------------|---------|---------------|---------------|
-| `fmax` | Force convergence criterion (eV/Å) | 0.005 | Fixed: 0.05 | 0.001-0.1 |
-| `steps` | Maximum geometry optimization steps | 100 | 10-100 | 10-1000 |
-| `basis_set` | DFT basis set | SZV-MOLOPT-GTH | SZV only | Multiple options |
-| `functional` | Exchange-correlation functional | PBE | PBE only | PBE, BLYP, B3LYP, PBE0 |
-| `charge` | System charge | 0 | Fixed: 0 | Any integer |
-| `spin_polarized` | Unrestricted Kohn-Sham | false | Fixed: false | true/false |
-
-#### 2. Binding Simulation Parameters (Premium Only)
-
-| Parameter | Description | Default | Range |
-|-----------|-------------|---------|-------|
-| `fmax` | Force convergence (QM/MM) | 0.05 | 0.01-0.1 |
-| `steps` | Maximum optimization steps | 100 | 10-1000 |
-| `qm_indices` | Optional QM atom indices | Auto (ligand) | Custom selection |
-
----
-
-### Technical Methodology
-
-#### 1. DFT-Based Structure Optimization
-
-CP2K implements the **Gaussian and Plane Waves** (GPW) method for efficient DFT calculations:
-
-- **Electron Density**: Represented on a real-space grid using plane waves
-- **Orbitals**: Represented using Gaussian basis functions
-- **Core-Electron Treatment**: GTH pseudopotentials
-- **SCF Procedure**: Converges electron density to minimize total energy
-
-The optimization process uses the **BFGS** algorithm to minimize forces on atoms:
-
-1. Calculate energy and forces using CP2K's DFT implementation
-2. Update atomic positions based on BFGS quasi-Newton algorithm
-3. Iterate until forces fall below threshold (`fmax`) or maximum steps reached
-4. Return optimized structure and energy
-
-#### 2. QM/MM Binding Simulations (Premium Feature)
-
-QM/MM simulations divide the system into regions treated at different levels of theory:
-
-- **QM Region**: Typically the ligand and binding site residues
-- **MM Region**: Remainder of protein and solvent environment
-
-The technical implementation uses:
-
-1. Electronic embedding with electrostatic coupling between regions
-2. DFT treatment of QM region with selected functional and basis set
-3. Classical force field treatment of MM region
-4. Energy minimization of the combined system
-5. Extraction of binding energy and optimized structures
-
----
-
-### Computational Theory
-
-#### Density Functional Theory
-
-CP2K implements Kohn-Sham DFT, which solves for the ground state electron density ρ(r) by minimizing the energy functional:
-
-E[ρ] = T[ρ] + Eext[ρ] + EH[ρ] + Exc[ρ]
-
-Where:
-- T[ρ]: Kinetic energy of non-interacting electrons
-- Eext[ρ]: External potential energy (electron-nuclei interaction)
-- EH[ρ]: Hartree energy (classical electron-electron repulsion)
-- Exc[ρ]: Exchange-correlation energy
-
-#### Exchange-Correlation Functionals
-
-Available functionals represent different approximations to Exc[ρ]:
-
-- **PBE**: Generalized gradient approximation (GGA) with efficient scaling
-- **BLYP**: Combined Becke exchange with Lee-Yang-Parr correlation
-- **B3LYP**: Hybrid functional with exact exchange mixing (Premium)
-- **PBE0**: Hybrid functional with 25% exact exchange (Premium)
-
-#### Basis Sets
-
-CP2K uses molecularly optimized (MOLOPT) basis sets of increasing accuracy:
-
-- **SZV**: Single-zeta valence (minimal basis, fastest)
-- **DZVP**: Double-zeta valence with polarization functions
-- **TZVP**: Triple-zeta valence with polarization functions
-- **TZV2P**: Triple-zeta valence with double polarization (highest accuracy)
-
----
-
-### Workflow Instructions
-
-#### Single Molecule Optimization
-
-1. Navigate to "Single Molecule" tab
-2. Upload molecular structure JSON
-3. Select computational parameters:
-   - fmax: Force convergence criterion
-   - steps: Maximum optimization steps
-   - basis_set: Select appropriate basis functions
-   - functional: Select exchange-correlation functional
-   - charge: Set molecular charge
-   - spin_polarized: Enable for open-shell systems
-4. Execute "Classical Optimize" for standard DFT calculation
-5. Premium users can select "Quantum Optimize" for enhanced accuracy
-6. Download optimized structure and energy data
-
-#### Protein-Ligand Binding (Premium Feature)
-
-1. Navigate to "Protein-Ligand Binding" tab
-2. Upload separate protein and ligand structure files
-3. Configure binding parameters:
-   - fmax: Force convergence criterion
-   - steps: Maximum optimization steps
-4. Execute "Optimize Binding" to run QM/MM simulation
-5. Download binding results with optimized structures and binding energy
-
----
-
-### Output Data Format
-
-#### Single Molecule Optimization Output
+Alternatively:
 
 ```json
 {
   "atoms": [
-    { "id": 1, "element": "H", "x": 0.012, "y": 0.003, "z": -0.087 },
-    { "id": 2, "element": "H", "x": -0.002, "y": 0.005, "z": 0.962 },
-    { "id": 3, "element": "O", "x": -0.005, "y": 0.744, "z": 0.001 }
-  ],
-  "energy": -75.091253,
-  "converged": true,
-  "parameters": {
-    "fmax": 0.005,
-    "steps": 200,
-    "basis_set": "DZVP-MOLOPT-GTH",
-    "functional": "PBE",
-    "charge": 0,
-    "spin_polarized": false
+    {
+      "id": 1,
+      "element": "C",
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    // Additional atoms
+  ]
+}
+```
+
+### 2.2 Required Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | Integer | Unique atom identifier |
+| element | String | Chemical element symbol |
+| x | Number | X-coordinate in Angstroms |
+| y | Number | Y-coordinate in Angstroms |
+| z | Number | Z-coordinate in Angstroms |
+
+### 2.3 Supported Elements
+
+The system supports standard chemical elements including but not limited to: H, C, N, O, F, P, S, Cl, Br, I.
+
+### 2.4 Example Input File
+
+```json
+{
+  "file1": {
+    "atoms": [
+      {"id": 1, "element": "C", "x": 0.000, "y": 0.000, "z": 0.000},
+      {"id": 2, "element": "H", "x": 0.000, "y": 0.000, "z": 1.089},
+      {"id": 3, "element": "H", "x": 1.026, "y": 0.000, "z": -0.363},
+      {"id": 4, "element": "H", "x": -0.513, "y": -0.889, "z": -0.363},
+      {"id": 5, "element": "H", "x": -0.513, "y": 0.889, "z": -0.363}
+    ]
   }
 }
 ```
 
-#### Binding Simulation Output
+This example represents methane (CH₄).
 
-```json
-{
-  "protein": {
-    "atoms": [
-      { "id": 1, "element": "C", "x": 0.127, "y": 0.043, "z": 0.012 },
-      ...
-    ]
-  },
-  "ligand": {
-    "atoms": [
-      { "id": 1, "element": "C", "x": 9.872, "y": 5.126, "z": 3.041 },
-      ...
-    ]
-  },
-  "binding_energy": -12.347,
-  "converged": true
-}
+## 3. Application Usage
+
+### 3.1 Workflow Overview
+
+1. Upload molecular structure file
+2. Select optimization method
+3. Configure optimization parameters
+4. Execute optimization
+5. Visualize and analyze results
+6. Download optimized structure
+
+### 3.2 Optimization Method Selection
+
+The system provides two optimization methods:
+
+1. **Classical Optimization**: Uses molecular mechanics force fields
+2. **Quantum Optimization**: Employs quantum chemistry calculations
+
+### 3.3 Parameter Configuration
+
+#### 3.3.1 Classical Parameters
+
+| Parameter | Description | Range | Default |
+|-----------|-------------|-------|---------|
+| Temperature | Simulation temperature (K) | 1-1000 | 300 |
+| Max Iterations | Maximum energy minimization steps | 100-1000 | 1000/100* |
+| Bond Threshold | Distance threshold for bond detection (nm) | 0.1-0.5 | 0.2 |
+| Bond Force Constant | Bond strength parameter (kJ/mol/nm²) | 100-10000 | 1000.0 |
+| Angle Force Constant | Angle stiffness parameter (kJ/mol/rad²) | 50-5000 | 500.0 |
+
+#### 3.3.2 Quantum Parameters
+
+| Parameter | Description | Range | Default |
+|-----------|-------------|-------|---------|
+| Basis Set | Atomic orbital basis functions | STO-3G, 6-31G, 6-311G**, cc-pVDZ** | 6-31G |
+| Max Iterations | Maximum optimization steps | 1-10/3* | 10/3* |
+| Convergence Threshold | Energy convergence criterion | 0.000001-0.01 | 0.00001 |
+| Step Size | Geometry update magnitude | 0.01-1.0 | 0.1 |
+
+*Subscription-dependent limits  
+**Available only with subscription
+
+### 3.4 Result Interpretation
+
+#### 3.4.1 Classical Optimization Results
+
+- Final energy (kJ/mol)
+- Number of detected bonds and angles
+- Convergence status
+- Computation duration
+
+#### 3.4.2 Quantum Optimization Results
+
+- Final energy (Hartree)
+- Iteration count
+- Convergence status
+- Computation duration
+
+### 3.5 Output Format
+
+The optimized structure is available for download in the same JSON format as the input, with updated atomic coordinates and additional metadata.
+
+## 4. Theoretical Background
+
+### 4.1 Classical Molecular Optimization
+
+#### 4.1.1 Methodology
+
+The classical optimization employs molecular mechanics principles using the OpenMM library. The system implements a template-free approach suitable for arbitrary molecules.
+
+#### 4.1.2 Force Field Implementation
+
+The molecular system is parameterized using:
+
+1. **HarmonicBondForce**: Models covalent bonds as harmonic springs
+   ```
+   E_bond = k_b(r - r_0)²
+   ```
+   where k_b is the bond force constant, r is the bond length, and r_0 is the equilibrium bond length.
+
+2. **HarmonicAngleForce**: Models bond angles as harmonic potentials
+   ```
+   E_angle = k_θ(θ - θ_0)²
+   ```
+   where k_θ is the angle force constant, θ is the bond angle, and θ_0 is the equilibrium angle.
+
+3. **NonbondedForce**: Models van der Waals and electrostatic interactions
+   ```
+   E_nonbonded = 4ε[(σ/r)¹² - (σ/r)⁶] + q₁q₂/4πε₀r
+   ```
+   where ε and σ are Lennard-Jones parameters, q₁ and q₂ are charges, and r is the interatomic distance.
+
+#### 4.1.3 Energy Minimization
+
+The optimization uses the Langevin integrator in combination with an energy minimization algorithm to find the local energy minimum. The temperature parameter affects the stochastic dynamics during energy minimization.
+
+### 4.2 Quantum Chemical Optimization
+
+#### 4.2.1 Methodology
+
+Quantum optimization employs ab initio quantum chemistry methods implemented in PySCF. The system uses Hartree-Fock (HF) theory with specified basis sets.
+
+#### 4.2.2 Hartree-Fock Theory
+
+The HF method approximates the many-electron wavefunction as a Slater determinant of single-electron orbitals. The electronic energy is:
+
+```
+E = Σᵢ hᵢᵢ + 1/2 Σᵢⱼ (2Jᵢⱼ - Kᵢⱼ)
 ```
 
----
+where:
+- hᵢᵢ represents one-electron integrals
+- Jᵢⱼ represents Coulomb integrals
+- Kᵢⱼ represents exchange integrals
 
-### Technical Notes
+#### 4.2.3 Basis Sets
 
-1. **Resource Allocation**: Computational intensity scales with:
-   - System size (number of atoms)
-   - Basis set complexity (SZV < DZVP < TZVP < TZV2P)
-   - Functional complexity (GGA < hybrid)
-   - QM region size in QM/MM simulations
+The available basis sets provide different levels of accuracy:
 
-2. **Accuracy Considerations**:
-   - DFT calculations approximate electron correlation
-   - Larger basis sets reduce basis set superposition error
-   - Hybrid functionals generally improve accuracy at higher computational cost
-   - QM/MM boundaries may introduce artificial effects
+- **STO-3G**: Minimal basis set, fastest but least accurate
+- **6-31G**: Standard split-valence basis, good balance of speed and accuracy
+- **6-311G**: Extended split-valence basis, improved accuracy (subscription only)
+- **cc-pVDZ**: Correlation-consistent basis, high accuracy (subscription only)
 
-3. **Performance Optimization**:
-   - Use minimal basis sets for initial optimization
-   - Progress to more complete basis sets for final refinement
-   - Select appropriate functional for specific chemical properties
-   - Optimize QM region selection for binding studies
+#### 4.2.4 Geometry Optimization
 
----
+The optimization employs a gradient-based method where:
 
-### Development Roadmap
+1. The electronic energy is calculated using the HF method
+2. Energy gradients (forces) with respect to nuclear coordinates are computed
+3. Molecular geometry is updated using:
+   ```
+   R_new = R_old - step_size × gradient
+   ```
+4. Process repeats until convergence criteria are satisfied:
+   - Energy change < convergence_threshold
+   - Gradient norm < convergence_threshold
 
-- Integration of additional CP2K capabilities:
-  - Ab initio molecular dynamics
-  - Excited state calculations (TDDFT)
-  - Advanced sampling methods
-  - Reaction path optimization
-- Expanded visualization capabilities
-- Custom force field implementation for MM region
-- Machine learning acceleration for QM calculations
+## 5. Subscription Features
+
+The application implements a tiered feature model:
+
+### 5.1 Free Account Limitations
+
+- Classical optimization: Max 100 iterations
+- Quantum optimization: Max 3 iterations
+- Basis set selection limited to STO-3G and 6-31G
+
+### 5.2 Subscribed Account Features
+
+- Classical optimization: Max 1000 iterations
+- Quantum optimization: Max 10 iterations
+- Full basis set access including 6-311G and cc-pVDZ
+- Enhanced accuracy and convergence capabilities
+
+## 6. Technical Implementation
+
+The system architecture consists of:
+
+- Frontend: React.js with 3DMol.js for molecular visualization
+- Backend: Flask with OpenMM and PySCF for computational operations
+- Database: SQLite for user and optimization record storage
+- Authentication: Stripe for subscription management
+
+## 7. Troubleshooting
+
+### 7.1 Common Issues
+
+- **Invalid JSON format**: Ensure structure follows required schema
+- **Optimization failure**: Consider adjusting parameters or simplifying molecular structure
+- **Visualization issues**: Verify that atom coordinates are in proper units (Angstroms)
+
+### 7.2 Known Limitations
+
+- Maximum molecule size: ~100 atoms for quantum calculations
+- Supported atom types: Main group elements
+- No support for metal complexes or periodic systems
+
+### 7.3 Notes
+- Developers are pushing to prod constantly so please save your work!

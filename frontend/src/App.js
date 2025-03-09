@@ -8,11 +8,45 @@ import SubscriptionForm from './SubscriptionForm';
 
 const stripePromise = loadStripe('pk_test_kbl0ETzPsoiTwU4ZJMvhsYJw006XVnV4Aq');
 
+// Constants for iteration limits
+const ITERATION_LIMITS = {
+  subscribed: {
+    classical: 100000,
+    quantum: 1000
+  },
+  unsubscribed: {
+    classical: 100, // Reduced limit for non-subscribers
+    quantum: 5      // Reduced limit for non-subscribers
+  }
+};
+
+// Default optimization parameters
+const defaultClassicalParams = {
+  temperature: 300,
+  max_iterations: 1000,  // Will be capped for non-subscribers
+  bond_threshold: 0.2,
+  bond_force_constant: 1000.0,
+  angle_force_constant: 500.0
+};
+
+const defaultQuantumParams = {
+  basis: "6-31g",
+  max_iterations: 10,   // Will be capped for non-subscribers
+  convergence_threshold: 0.00001,
+  step_size: 0.1
+};
+
 const App = () => {
   // State for molecule data
   const [moleculeData, setMoleculeData] = useState(null);
   const [optimizationResult, setOptimizationResult] = useState(null);
-  const [activeView, setActiveView] = useState("original"); // original, classical, quantum
+  const [activeView, setActiveView] = useState("original"); // original, optimized
+  const [optimizationType, setOptimizationType] = useState("classical"); // classical or quantum
+  
+  // Optimization parameters state
+  const [classicalParams, setClassicalParams] = useState({...defaultClassicalParams});
+  const [quantumParams, setQuantumParams] = useState({...defaultQuantumParams});
+  const [showAdvancedParams, setShowAdvancedParams] = useState(false);
   
   // User and subscription state
   const [isSubscribed, setIsSubscribed] = useState(false);
@@ -29,11 +63,47 @@ const App = () => {
 
   const apiBaseUrl = "http://localhost:5000";
 
-  // Check subscription status on page load
+  // Helper function to consistently apply iteration limits
+  const applyIterationLimits = (isUserSubscribed) => {
+    // Apply limits to classical parameters
+    const limitedClassicalParams = {...defaultClassicalParams};
+    const classicalMaxIterations = isUserSubscribed 
+      ? ITERATION_LIMITS.subscribed.classical
+      : ITERATION_LIMITS.unsubscribed.classical;
+      
+    limitedClassicalParams.max_iterations = Math.min(
+      limitedClassicalParams.max_iterations, 
+      classicalMaxIterations
+    );
+    setClassicalParams(limitedClassicalParams);
+    
+    // Apply limits to quantum parameters
+    const limitedQuantumParams = {...defaultQuantumParams};
+    const quantumMaxIterations = isUserSubscribed 
+      ? ITERATION_LIMITS.subscribed.quantum
+      : ITERATION_LIMITS.unsubscribed.quantum;
+      
+    limitedQuantumParams.max_iterations = Math.min(
+      limitedQuantumParams.max_iterations, 
+      quantumMaxIterations
+    );
+    
+    // Apply basis set restrictions for non-subscribers
+    if (!isUserSubscribed && (limitedQuantumParams.basis === "6-311g" || limitedQuantumParams.basis === "cc-pvdz")) {
+      limitedQuantumParams.basis = "6-31g";
+    }
+    
+    setQuantumParams(limitedQuantumParams);
+  };
+
+  // Check subscription status on page load and apply limits
   useEffect(() => {
     const email = localStorage.getItem("userEmail");
     if (email) {
       checkSubscriptionStatus(email);
+    } else {
+      // For non-subscribed users, apply the default limits
+      applyIterationLimits(false);
     }
   }, []);
 
@@ -56,14 +126,18 @@ const App = () => {
   const checkSubscriptionStatus = async (email) => {
     try {
       const response = await axios.post(`${apiBaseUrl}/check-subscription`, { email });
-      if (response.data.isSubscribed) {
-        setIsSubscribed(true);
-        setUserEmail(email);
-      } else {
-        setIsSubscribed(false);
-      }
+      const userIsSubscribed = response.data.isSubscribed;
+      
+      setIsSubscribed(userIsSubscribed);
+      setUserEmail(email);
+      
+      // Apply appropriate limits based on subscription status
+      applyIterationLimits(userIsSubscribed);
     } catch (error) {
       console.error("Error checking subscription status:", error);
+      // If there's an error, assume user is not subscribed
+      setIsSubscribed(false);
+      applyIterationLimits(false);
     }
   };
 
@@ -71,6 +145,9 @@ const App = () => {
     setIsSubscribed(true);
     setUserEmail(email);
     localStorage.setItem("userEmail", email);
+    
+    // Apply subscriber limits
+    applyIterationLimits(true);
   };
 
   const handleCancelSubscription = async () => {
@@ -92,6 +169,9 @@ const App = () => {
         setIsSubscribed(false);
         setUserEmail("");
         localStorage.removeItem("userEmail");
+        
+        // Apply non-subscriber limits using the helper function
+        applyIterationLimits(false);
       } else {
         alert("Failed to cancel subscription. Please try again.");
       }
@@ -165,24 +245,53 @@ const App = () => {
       return;
     }
     
-    if (!isSubscribed) {
-      alert("Please subscribe to use optimization features.");
-      return;
-    }
-    
     setIsOptimizeLoading(true);
     
     try {
+      // Get the correct parameters based on selected optimization type
+      const optimizationParams = 
+        optimizationType === "classical" ? {...classicalParams} : {...quantumParams};
+        
+      // Apply iteration limits for all users
+      if (optimizationType === "classical") {
+        // Apply appropriate limits based on subscription status
+        const maxIterations = isSubscribed 
+          ? ITERATION_LIMITS.subscribed.classical
+          : ITERATION_LIMITS.unsubscribed.classical;
+          
+        optimizationParams.max_iterations = Math.min(
+          optimizationParams.max_iterations, 
+          maxIterations
+        );
+      } else {
+        // Apply appropriate limits based on subscription status
+        const maxIterations = isSubscribed 
+          ? ITERATION_LIMITS.subscribed.quantum
+          : ITERATION_LIMITS.unsubscribed.quantum;
+          
+        optimizationParams.max_iterations = Math.min(
+          optimizationParams.max_iterations, 
+          maxIterations
+        );
+        
+        // Enforce basis set restrictions for non-subscribers only
+        if (!isSubscribed && (optimizationParams.basis === "6-311g" || optimizationParams.basis === "cc-pvdz")) {
+          optimizationParams.basis = "6-31g";
+        }
+      }
+      
       const payload = {
-        email: userEmail,
+        email: userEmail || "guest@example.com",
         molecule: moleculeData,
+        optimization_type: optimizationType,
+        optimization_params: optimizationParams
       };
       
       const response = await axios.post(`${apiBaseUrl}/optimize-molecule`, payload);
       
       if (response.data.success) {
         setOptimizationResult(response.data);
-        setActiveView("classical"); // Default to showing classical results first
+        setActiveView("optimized"); // Show optimized results after successful optimization
       } else {
         alert("Optimization failed. " + (response.data.error || ""));
       }
@@ -194,35 +303,71 @@ const App = () => {
     }
   };
 
-  const handleDownload = (dataType) => {
+  const handleParamChange = (type, paramName, value) => {
+    if (type === "classical") {
+      setClassicalParams(prev => ({
+        ...prev,
+        [paramName]: value
+      }));
+    } else {
+      setQuantumParams(prev => ({
+        ...prev,
+        [paramName]: value
+      }));
+    }
+  };
+
+  const handleResetParams = (type) => {
+    if (type === "classical") {
+      const params = {...defaultClassicalParams};
+      
+      // Always apply appropriate limits based on subscription status
+      const maxIterations = isSubscribed 
+        ? ITERATION_LIMITS.subscribed.classical
+        : ITERATION_LIMITS.unsubscribed.classical;
+        
+      params.max_iterations = Math.min(
+        params.max_iterations, 
+        maxIterations
+      );
+      
+      setClassicalParams(params);
+    } else {
+      const params = {...defaultQuantumParams};
+      
+      // Always apply appropriate limits based on subscription status
+      const maxIterations = isSubscribed 
+        ? ITERATION_LIMITS.subscribed.quantum
+        : ITERATION_LIMITS.unsubscribed.quantum;
+        
+      params.max_iterations = Math.min(
+        params.max_iterations, 
+        maxIterations
+      );
+      
+      // Restrict to simpler basis sets for free users only
+      if (!isSubscribed && (params.basis === "6-311g" || params.basis === "cc-pvdz")) {
+        params.basis = "6-31g";
+      }
+      
+      setQuantumParams(params);
+    }
+  };
+
+  const handleDownload = () => {
     if (!optimizationResult) {
       alert("No optimization results available to download.");
       return;
     }
 
-    let data;
-    let filename;
+    const data = {
+      file1: {
+        atoms: optimizationResult.result.optimized_atoms,
+        metadata: optimizationResult.result.metadata
+      }
+    };
     
-    if (dataType === "classical") {
-      data = {
-        file1: {
-          atoms: optimizationResult.classical.optimized_atoms,
-          metadata: optimizationResult.classical.metadata
-        }
-      };
-      filename = "classical_optimized_molecule.json";
-    } else if (dataType === "quantum") {
-      data = {
-        file1: {
-          atoms: optimizationResult.quantum.optimized_atoms,
-          metadata: optimizationResult.quantum.metadata
-        }
-      };
-      filename = "quantum_optimized_molecule.json";
-    } else {
-      alert("Invalid download type");
-      return;
-    }
+    const filename = `${optimizationType}_optimized_molecule.json`;
     
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -244,12 +389,88 @@ const App = () => {
         return moleculeData.atoms;
       }
       return null;
-    } else if (activeView === "classical" && optimizationResult?.classical?.optimized_atoms) {
-      return optimizationResult.classical.optimized_atoms;
-    } else if (activeView === "quantum" && optimizationResult?.quantum?.optimized_atoms) {
-      return optimizationResult.quantum.optimized_atoms;
+    } else if (activeView === "optimized" && optimizationResult?.result?.optimized_atoms) {
+      return optimizationResult.result.optimized_atoms;
     }
     return null;
+  };
+
+  // Subscription Limit Notice Component
+  const SubscriptionLimitNotice = ({ isSubscribed, optimizationType }) => {
+    if (isSubscribed) return null;
+    
+    const limit = optimizationType === "classical" 
+      ? ITERATION_LIMITS.unsubscribed.classical 
+      : ITERATION_LIMITS.unsubscribed.quantum;
+    
+    const fullLimit = optimizationType === "classical" 
+      ? ITERATION_LIMITS.subscribed.classical 
+      : ITERATION_LIMITS.subscribed.quantum;
+    
+    return (
+      <div style={{
+        backgroundColor: '#772200',
+        color: 'white',
+        padding: '8px 12px',
+        borderRadius: '4px',
+        marginBottom: '15px',
+        fontSize: '14px',
+        textAlign: 'left'
+      }}>
+        <strong>Free Account Limitation:</strong> Iterations capped at {limit} (vs. {fullLimit} for subscribers). 
+        <a 
+          href="#" 
+          onClick={(e) => { e.preventDefault(); document.querySelector('.subscription-form').scrollIntoView(); }}
+          style={{ color: '#ffcc00', marginLeft: '5px' }}
+        >
+          Subscribe for full capabilities
+        </a>
+      </div>
+    );
+  };
+
+  // OptimizeButton Component
+  const OptimizeButton = () => {
+    // Determine the button text
+    let buttonText = isOptimizeLoading 
+      ? "Optimizing..." 
+      : `Run ${optimizationType === "classical" ? "Classical" : "Quantum"} Optimization`;
+      
+    // Add subscription indicator for free users
+    if (!isSubscribed && !isOptimizeLoading) {
+      buttonText += " (Limited)";
+    }
+    
+    return (
+      <div style={{ marginTop: "20px", display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
+        <button
+          onClick={handleOptimize}
+          disabled={isOptimizeLoading || !moleculeData}
+          style={{
+            backgroundColor: isOptimizeLoading || !moleculeData ? "#ccc" : 
+                            (optimizationType === "classical" ? "#28a745" : "#17a2b8"),
+            color: "white",
+            border: "none",
+            borderRadius: "5px",
+            padding: "10px 20px",
+            cursor: isOptimizeLoading || !moleculeData ? "not-allowed" : "pointer",
+          }}
+        >
+          {buttonText}
+        </button>
+        
+        {!isSubscribed && (
+          <div style={{ 
+            fontSize: "12px", 
+            color: "#aaa", 
+            maxWidth: "400px",
+            textAlign: "center"
+          }}>
+            Free users are limited to {ITERATION_LIMITS.unsubscribed.classical} iterations for classical and {ITERATION_LIMITS.unsubscribed.quantum} for quantum optimizations.
+          </div>
+        )}
+      </div>
+    );
   };
 
   // Molecule visualization component
@@ -320,6 +541,324 @@ const App = () => {
     );
   };
 
+  // Parameter Configuration Components
+  const ClassicalParametersConfig = () => (
+    <div style={{ 
+      border: '1px solid #28a745', 
+      padding: '15px', 
+      borderRadius: '5px', 
+      marginTop: '10px', 
+      backgroundColor: '#242424',
+      color: '#ffffff'
+    }}>
+      <h4 style={{ color: '#28a745', marginBottom: '15px' }}>Classical Optimization Parameters</h4>
+      
+      <SubscriptionLimitNotice isSubscribed={isSubscribed} optimizationType="classical" />
+      
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div>
+          <label style={{ color: '#ffffff', fontWeight: 'bold', display: 'inline-block', width: '180px' }}>Temperature (K): </label>
+          <input 
+            type="number" 
+            value={classicalParams.temperature}
+            min="1"
+            max="1000"
+            step="10"
+            onChange={(e) => handleParamChange('classical', 'temperature', Number(e.target.value))}
+            style={{ 
+              width: '80px', 
+              marginLeft: '5px',
+              backgroundColor: '#444',
+              color: '#ffffff',
+              padding: '6px',
+              borderRadius: '4px',
+              border: '1px solid #28a745'
+            }}
+          />
+        </div>
+        
+        <div>
+          <label style={{ color: '#ffffff', fontWeight: 'bold', display: 'inline-block', width: '180px' }}>Max Iterations: </label>
+          <input 
+            type="number" 
+            value={classicalParams.max_iterations}
+            min="100"
+            max={isSubscribed ? ITERATION_LIMITS.subscribed.classical : ITERATION_LIMITS.unsubscribed.classical}
+            step="100"
+            onChange={(e) => handleParamChange('classical', 'max_iterations', Number(e.target.value))}
+            style={{ 
+              width: '80px', 
+              marginLeft: '5px',
+              backgroundColor: '#444',
+              color: '#ffffff',
+              padding: '6px',
+              borderRadius: '4px',
+              border: '1px solid #28a745'
+            }}
+          />
+          {!isSubscribed && classicalParams.max_iterations > ITERATION_LIMITS.unsubscribed.classical && (
+            <span style={{ color: '#ffcc00', marginLeft: '10px', fontSize: '12px' }}>
+              Will be capped at {ITERATION_LIMITS.unsubscribed.classical}
+            </span>
+          )}
+          {isSubscribed && classicalParams.max_iterations > ITERATION_LIMITS.subscribed.classical && (
+            <span style={{ color: '#ffcc00', marginLeft: '10px', fontSize: '12px' }}>
+              Will be capped at {ITERATION_LIMITS.subscribed.classical}
+            </span>
+          )}
+        </div>
+        
+        {showAdvancedParams && (
+          <>
+            <div>
+              <label style={{ color: '#ffffff', fontWeight: 'bold', display: 'inline-block', width: '180px' }}>Bond Threshold (nm): </label>
+              <input 
+                type="number" 
+                value={classicalParams.bond_threshold}
+                min="0.1"
+                max="0.5"
+                step="0.01"
+                onChange={(e) => handleParamChange('classical', 'bond_threshold', Number(e.target.value))}
+                style={{ 
+                  width: '80px', 
+                  marginLeft: '5px',
+                  backgroundColor: '#444',
+                  color: '#ffffff',
+                  padding: '6px',
+                  borderRadius: '4px',
+                  border: '1px solid #28a745'
+                }}
+              />
+            </div>
+            
+            <div>
+              <label style={{ color: '#ffffff', fontWeight: 'bold', display: 'inline-block', width: '220px' }}>Bond Force Constant (kJ/mol/nm²): </label>
+              <input 
+                type="number" 
+                value={classicalParams.bond_force_constant}
+                min="100"
+                max="10000"
+                step="100"
+                onChange={(e) => handleParamChange('classical', 'bond_force_constant', Number(e.target.value))}
+                style={{ 
+                  width: '80px', 
+                  marginLeft: '5px',
+                  backgroundColor: '#444',
+                  color: '#ffffff',
+                  padding: '6px',
+                  borderRadius: '4px',
+                  border: '1px solid #28a745'
+                }}
+              />
+            </div>
+            
+            <div>
+              <label style={{ color: '#ffffff', fontWeight: 'bold', display: 'inline-block', width: '220px' }}>Angle Force Constant (kJ/mol/rad²): </label>
+              <input 
+                type="number" 
+                value={classicalParams.angle_force_constant}
+                min="50"
+                max="5000"
+                step="50"
+                onChange={(e) => handleParamChange('classical', 'angle_force_constant', Number(e.target.value))}
+                style={{ 
+                  width: '80px', 
+                  marginLeft: '5px',
+                  backgroundColor: '#444',
+                  color: '#ffffff',
+                  padding: '6px',
+                  borderRadius: '4px',
+                  border: '1px solid #28a745'
+                }}
+              />
+            </div>
+          </>
+        )}
+      </div>
+      
+      <div style={{ marginTop: '15px' }}>
+        <button
+          onClick={() => handleResetParams('classical')}
+          style={{
+            backgroundColor: '#6c757d',
+            color: 'white',
+            border: 'none',
+            borderRadius: '3px',
+            padding: '8px 12px',
+            marginRight: '10px',
+            cursor: 'pointer',
+          }}
+        >
+          Reset to Defaults
+        </button>
+        
+        <button
+          onClick={() => setShowAdvancedParams(!showAdvancedParams)}
+          style={{
+            backgroundColor: '#17a2b8',
+            color: 'white',
+            border: 'none',
+            borderRadius: '3px',
+            padding: '8px 12px',
+            cursor: 'pointer',
+          }}
+        >
+          {showAdvancedParams ? 'Hide Advanced Parameters' : 'Show Advanced Parameters'}
+        </button>
+      </div>
+    </div>
+  );
+
+  const QuantumParametersConfig = () => (
+    <div style={{ 
+      border: '1px solid #33b5e5', 
+      padding: '15px', 
+      borderRadius: '5px', 
+      marginTop: '10px', 
+      backgroundColor: '#242424',
+      color: '#ffffff'
+    }}>
+      <h4 style={{ color: '#33b5e5', marginBottom: '15px' }}>Quantum Optimization Parameters</h4>
+      
+      <SubscriptionLimitNotice isSubscribed={isSubscribed} optimizationType="quantum" />
+      
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div>
+          <label style={{ color: '#ffffff', fontWeight: 'bold', display: 'inline-block', width: '180px' }}>Basis Set: </label>
+          <select 
+            value={quantumParams.basis}
+            onChange={(e) => handleParamChange('quantum', 'basis', e.target.value)}
+            style={{ 
+              marginLeft: '5px', 
+              backgroundColor: '#444',
+              color: '#ffffff',
+              padding: '6px',
+              borderRadius: '4px',
+              border: '1px solid #33b5e5'
+            }}
+          >
+            <option value="sto-3g">STO-3G (Minimal)</option>
+            <option value="6-31g">6-31G (Standard)</option>
+            {isSubscribed && <option value="6-311g">6-311G (Extended)</option>}
+            {isSubscribed && <option value="cc-pvdz">cc-pVDZ (Double Zeta)</option>}
+          </select>
+          {!isSubscribed && (quantumParams.basis === "6-311g" || quantumParams.basis === "cc-pvdz") && (
+            <span style={{ color: '#ffcc00', marginLeft: '10px', fontSize: '12px' }}>
+              Extended basis sets require subscription
+            </span>
+          )}
+        </div>
+        
+        <div>
+          <label style={{ color: '#ffffff', fontWeight: 'bold', display: 'inline-block', width: '180px' }}>Max Iterations: </label>
+          <input 
+            type="number" 
+            value={quantumParams.max_iterations}
+            min="1"
+            max={isSubscribed ? ITERATION_LIMITS.subscribed.quantum : ITERATION_LIMITS.unsubscribed.quantum}
+            onChange={(e) => handleParamChange('quantum', 'max_iterations', Number(e.target.value))}
+            style={{ 
+              width: '80px', 
+              marginLeft: '5px',
+              backgroundColor: '#444',
+              color: '#ffffff',
+              padding: '6px',
+              borderRadius: '4px',
+              border: '1px solid #33b5e5'
+            }}
+          />
+          {!isSubscribed && quantumParams.max_iterations > ITERATION_LIMITS.unsubscribed.quantum && (
+            <span style={{ color: '#ffcc00', marginLeft: '10px', fontSize: '12px' }}>
+              Will be capped at {ITERATION_LIMITS.unsubscribed.quantum}
+            </span>
+          )}
+          {isSubscribed && quantumParams.max_iterations > ITERATION_LIMITS.subscribed.quantum && (
+            <span style={{ color: '#ffcc00', marginLeft: '10px', fontSize: '12px' }}>
+              Will be capped at {ITERATION_LIMITS.subscribed.quantum}
+            </span>
+          )}
+        </div>
+        
+        {showAdvancedParams && (
+          <>
+            <div>
+              <label style={{ color: '#ffffff', fontWeight: 'bold', display: 'inline-block', width: '180px' }}>Convergence Threshold: </label>
+              <input 
+                type="number" 
+                value={quantumParams.convergence_threshold}
+                min="0.000001"
+                max="0.01"
+                step="0.000001"
+                onChange={(e) => handleParamChange('quantum', 'convergence_threshold', Number(e.target.value))}
+                style={{ 
+                  width: '120px', 
+                  marginLeft: '5px',
+                  backgroundColor: '#444',
+                  color: '#ffffff',
+                  padding: '6px',
+                  borderRadius: '4px',
+                  border: '1px solid #33b5e5'
+                }}
+              />
+            </div>
+            
+            <div>
+              <label style={{ color: '#ffffff', fontWeight: 'bold', display: 'inline-block', width: '180px' }}>Step Size: </label>
+              <input 
+                type="number" 
+                value={quantumParams.step_size}
+                min="0.01"
+                max="1.0"
+                step="0.01"
+                onChange={(e) => handleParamChange('quantum', 'step_size', Number(e.target.value))}
+                style={{ 
+                  width: '80px', 
+                  marginLeft: '5px',
+                  backgroundColor: '#444',
+                  color: '#ffffff',
+                  padding: '6px',
+                  borderRadius: '4px',
+                  border: '1px solid #33b5e5'
+                }}
+              />
+            </div>
+          </>
+        )}
+      </div>
+      
+      <div style={{ marginTop: '15px' }}>
+        <button
+          onClick={() => handleResetParams('quantum')}
+          style={{
+            backgroundColor: '#6c757d',
+            color: 'white',
+            border: 'none',
+            borderRadius: '3px',
+            padding: '8px 12px',
+            marginRight: '10px',
+            cursor: 'pointer',
+          }}
+        >
+          Reset to Defaults
+        </button>
+        
+        <button
+          onClick={() => setShowAdvancedParams(!showAdvancedParams)}
+          style={{
+            backgroundColor: '#17a2b8',
+            color: 'white',
+            border: 'none',
+            borderRadius: '3px',
+            padding: '8px 12px',
+            cursor: 'pointer',
+          }}
+        >
+          {showAdvancedParams ? 'Hide Advanced Parameters' : 'Show Advanced Parameters'}
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div style={{ padding: "20px", textAlign: "center" }}>
       <h1>Molecular Optimization System</h1>
@@ -369,15 +908,17 @@ const App = () => {
       
       {/* Subscription Form or Welcome Message */}
       {!isSubscribed ? (
-        <Elements stripe={stripePromise}>
-          <SubscriptionForm
-            onSuccess={(email) => {
-              setIsSubscribeLoading(true);
-              handleSubscriptionSuccess(email);
-              setIsSubscribeLoading(false);
-            }}
-          />
-        </Elements>
+        <div className="subscription-form">
+          <Elements stripe={stripePromise}>
+            <SubscriptionForm
+              onSuccess={(email) => {
+                setIsSubscribeLoading(true);
+                handleSubscriptionSuccess(email);
+                setIsSubscribeLoading(false);
+              }}
+            />
+          </Elements>
+        </div>
       ) : (
         <div>
           <p>Welcome, {userEmail}! You are subscribed and have full computational capabilities.</p>
@@ -399,9 +940,48 @@ const App = () => {
         
         {moleculeData && (
           <>
+            {/* Optimization Type Selection */}
+            <div style={{ marginBottom: "20px" }}>
+              <h4>Select Optimization Method:</h4>
+              <div style={{ display: "flex", justifyContent: "center", gap: "10px" }}>
+                <button
+                  onClick={() => setOptimizationType("classical")}
+                  style={{
+                    backgroundColor: optimizationType === "classical" ? "#28a745" : "#ccc",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "5px",
+                    padding: "10px 20px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Classical Optimization
+                </button>
+                <button
+                  onClick={() => setOptimizationType("quantum")}
+                  style={{
+                    backgroundColor: optimizationType === "quantum" ? "#17a2b8" : "#ccc",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "5px",
+                    padding: "10px 20px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Quantum Optimization
+                </button>
+              </div>
+            </div>
+            
+            {/* Parameter Configuration */}
+            {optimizationType === "classical" ? 
+              <ClassicalParametersConfig /> : 
+              <QuantumParametersConfig />
+            }
+            
             {/* Visualization tabs for switching between original and optimized structures */}
             {optimizationResult && (
-              <div style={{ marginBottom: "10px" }}>
+              <div style={{ marginBottom: "10px", marginTop: "20px" }}>
                 <button 
                   onClick={() => setActiveView("original")}
                   style={{
@@ -416,21 +996,10 @@ const App = () => {
                   Original
                 </button>
                 <button 
-                  onClick={() => setActiveView("classical")}
+                  onClick={() => setActiveView("optimized")}
                   style={{
-                    backgroundColor: activeView === "classical" ? "#28a745" : "#ccc",
-                    color: "white",
-                    border: "none",
-                    padding: "5px 10px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Classical
-                </button>
-                <button 
-                  onClick={() => setActiveView("quantum")}
-                  style={{
-                    backgroundColor: activeView === "quantum" ? "#17a2b8" : "#ccc",
+                    backgroundColor: activeView === "optimized" ? 
+                      (optimizationType === "classical" ? "#28a745" : "#17a2b8") : "#ccc",
                     color: "white",
                     border: "none",
                     borderRadius: "0 5px 5px 0",
@@ -438,90 +1007,60 @@ const App = () => {
                     cursor: "pointer",
                   }}
                 >
-                  Quantum
+                  {optimizationType === "classical" ? "Classical" : "Quantum"} Optimized
                 </button>
               </div>
             )}
             
-            <h3>{activeView.charAt(0).toUpperCase() + activeView.slice(1)} Structure:</h3>
+            <h3>{activeView === "original" ? "Original" : 
+                 (optimizationType === "classical" ? "Classical" : "Quantum") + " Optimized"} Structure:</h3>
             <MoleculeViewer />
+            
+            {/* Action Buttons */}
+            <OptimizeButton />
           </>
         )}
-        
-        {/* Action Buttons */}
-        <div style={{ marginTop: "20px", display: "flex", justifyContent: "center", gap: "10px" }}>
-          <button
-            onClick={handleOptimize}
-            disabled={isOptimizeLoading || !moleculeData || !isSubscribed}
-            style={{
-              backgroundColor: isOptimizeLoading || !moleculeData || !isSubscribed ? "#ccc" : "#007bff",
-              color: "white",
-              border: "none",
-              borderRadius: "5px",
-              padding: "10px 20px",
-              cursor: isOptimizeLoading || !moleculeData || !isSubscribed ? "not-allowed" : "pointer",
-            }}
-          >
-            {isOptimizeLoading ? "Optimizing..." : "Optimize Molecule"}
-          </button>
-        </div>
         
         {/* Optimization Results */}
         {optimizationResult && (
           <div style={{ margin: "20px" }}>
-            <h2>Optimization Results</h2>
+            <h2>{optimizationType === "classical" ? "Classical" : "Quantum"} Optimization Results</h2>
             
-            {/* Classical Results */}
-            <div style={{ padding: "15px", border: "1px solid #ddd", borderRadius: "5px", textAlign: "left", marginBottom: "20px" }}>
-              <h3>Classical Optimization</h3>
-              {optimizationResult.classical.error ? (
-                <p style={{ color: "red" }}>Error: {optimizationResult.classical.error}</p>
-              ) : (
-                <div>
-                  <h4>Metadata:</h4>
-                  <p><strong>Method:</strong> {optimizationResult.classical.metadata.method}</p>
-                  <p><strong>Library:</strong> {optimizationResult.classical.metadata.library}</p>
-                  <p><strong>Final Energy:</strong> {optimizationResult.classical.metadata.final_energy_kj_mol} kJ/mol</p>
-                  <p><strong>Duration:</strong> {optimizationResult.classical.metadata.duration_seconds} seconds</p>
-                  <p><strong>Status:</strong> {optimizationResult.classical.metadata.convergence || "Unknown"}</p>
-                  
-                  <button
-                    onClick={() => handleDownload("classical")}
-                    style={{
-                      backgroundColor: "#28a745",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "5px",
-                      padding: "5px 10px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Download Classical Result
-                  </button>
-                </div>
-              )}
-            </div>
-            
-            {/* Quantum Results */}
             <div style={{ padding: "15px", border: "1px solid #ddd", borderRadius: "5px", textAlign: "left" }}>
-              <h3>Quantum Optimization</h3>
-              {optimizationResult.quantum.error ? (
-                <p style={{ color: "red" }}>Error: {optimizationResult.quantum.error}</p>
+              {optimizationResult.result.error ? (
+                <p style={{ color: "red" }}>Error: {optimizationResult.result.error}</p>
               ) : (
                 <div>
                   <h4>Metadata:</h4>
-                  <p><strong>Method:</strong> {optimizationResult.quantum.metadata.method}</p>
-                  <p><strong>Library:</strong> {optimizationResult.quantum.metadata.library}</p>
-                  <p><strong>Theory Level:</strong> {optimizationResult.quantum.metadata.theory_level}</p>
-                  <p><strong>Final Energy:</strong> {optimizationResult.quantum.metadata.final_energy_hartree} Hartree</p>
-                  <p><strong>Iterations:</strong> {optimizationResult.quantum.metadata.iterations}</p>
-                  <p><strong>Converged:</strong> {optimizationResult.quantum.metadata.converged ? "Yes" : "No"}</p>
-                  <p><strong>Duration:</strong> {optimizationResult.quantum.metadata.duration_seconds} seconds</p>
+                  <p><strong>Method:</strong> {optimizationResult.result.metadata.method}</p>
+                  <p><strong>Library:</strong> {optimizationResult.result.metadata.library}</p>
+                  
+                  {optimizationType === "classical" ? (
+                    <>
+                      <p><strong>Temperature:</strong> {optimizationResult.result.metadata.parameters.temperature} K</p>
+                      <p><strong>Max Iterations:</strong> {optimizationResult.result.metadata.parameters.max_iterations}</p>
+                      <p><strong>Final Energy:</strong> {optimizationResult.result.metadata.final_energy_kj_mol} kJ/mol</p>
+                      <p><strong>Convergence:</strong> {optimizationResult.result.metadata.convergence || "Unknown"}</p>
+                      <p><strong>Bonds Detected:</strong> {optimizationResult.result.metadata.bonds_detected}</p>
+                      <p><strong>Angles Detected:</strong> {optimizationResult.result.metadata.angles_detected}</p>
+                    </>
+                  ) : (
+                    <>
+                      <p><strong>Basis Set:</strong> {optimizationResult.result.metadata.parameters.basis}</p>
+                      <p><strong>Max Iterations:</strong> {optimizationResult.result.metadata.parameters.max_iterations}</p>
+                      <p><strong>Theory Level:</strong> {optimizationResult.result.metadata.theory_level}</p>
+                      <p><strong>Final Energy:</strong> {optimizationResult.result.metadata.final_energy_hartree} Hartree</p>
+                      <p><strong>Iterations:</strong> {optimizationResult.result.metadata.iterations}</p>
+                      <p><strong>Converged:</strong> {optimizationResult.result.metadata.converged ? "Yes" : "No"}</p>
+                    </>
+                  )}
+                  
+                  <p><strong>Duration:</strong> {optimizationResult.result.metadata.duration_seconds} seconds</p>
                   
                   <button
-                    onClick={() => handleDownload("quantum")}
+                    onClick={handleDownload}
                     style={{
-                      backgroundColor: "#17a2b8",
+                      backgroundColor: optimizationType === "classical" ? "#28a745" : "#17a2b8",
                       color: "white",
                       border: "none",
                       borderRadius: "5px",
@@ -529,7 +1068,7 @@ const App = () => {
                       cursor: "pointer",
                     }}
                   >
-                    Download Quantum Result
+                    Download Result
                   </button>
                 </div>
               )}
