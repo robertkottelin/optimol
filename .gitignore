@@ -8,3 +8,4 @@ backend/instance/*
 .env
 backend/.env
 backend/__pycache__/opti.cpython-310.pyc
+instance/*
