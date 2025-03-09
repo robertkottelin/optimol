@@ -1,148 +1,531 @@
-body {
+/* Import fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap');
+
+/* CSS Reset and Base Styles */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
   margin: 0;
-  font-family: Arial, sans-serif;
-  background-color: #333; /* Charcoal grey background */
-  color: #f0f0f0; /* Light grey text for readability */
+  padding: 0;
+  min-height: 100vh;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
-h1, h2, h3 {
-  color: #ffffff; /* Bright white text for headers */
-  text-align: center;
+body {
+  background-color: #0c1021;
+  color: #f0f4f8;
 }
 
-input[type="file"] {
-  padding: 10px;
-  border: 2px dashed #888;
-  border-radius: 5px;
-  background-color: #444;
-  color: #f0f0f0;
-  cursor: pointer;
+/* Animation Keyframes */
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
 }
 
-label {
-  color: #f0f0f0;
+@keyframes slideUp {
+  0% { transform: translateY(20px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
 }
 
-input[type="number"], input[type="text"] {
-  padding: 8px;
-  border: 1px solid #888;
-  border-radius: 5px;
-  background-color: #444;
-  color: #f0f0f0;
+@keyframes glow {
+  0% { box-shadow: 0 0 5px rgba(56, 189, 248, 0.5); }
+  50% { box-shadow: 0 0 20px rgba(56, 189, 248, 0.8); }
+  100% { box-shadow: 0 0 5px rgba(56, 189, 248, 0.5); }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Utility Classes */
+.fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.slide-up {
+  animation: slideUp 0.5s ease-out forwards;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+.float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Modern Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Glass Effect */
+.glass {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(16, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+/* Form Elements */
+input, select, textarea, button {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  outline: none;
+}
+
+input, select, textarea {
+  background-color: rgba(16, 24, 39, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: #f0f4f8;
+  padding: 12px 16px;
+  transition: all 0.3s ease;
+  font-size: 14px;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: rgba(56, 189, 248, 0.6);
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.3);
 }
 
 button {
-  padding: 10px 20px;
-  font-size: 16px;
-  border: none;
-  border-radius: 5px;
-  background-color: #555; /* Subtle button color */
-  color: #f0f0f0;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  border: none;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-button:hover {
-  background-color: #777; /* Slightly brighter on hover */
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
-div {
+/* Card Styles */
+.card {
+  background: linear-gradient(145deg, rgba(26, 33, 62, 0.8), rgba(16, 24, 39, 0.8));
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 0 15px -3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.35), 0 0 20px -5px rgba(0, 0, 0, 0.25);
+}
+
+/* Stripe Element Styling */
+.StripeElement {
+  background-color: rgba(16, 24, 39, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 16px;
+  transition: all 0.3s ease;
+}
+
+.StripeElement--focus {
+  border-color: rgba(56, 189, 248, 0.6);
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.3);
+}
+
+.StripeElement--invalid {
+  border-color: #f43f5e;
+}
+
+/* Subscription Form Specific Styles */
+.subscription-form {
+  padding: 32px;
+  border-radius: 16px;
+  margin-bottom: 32px;
+  position: relative;
+  overflow: hidden;
+}
+
+.subscription-form::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(to right, #38bdf8, #818cf8, #c084fc);
+}
+
+.subscription-form .form-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin-top: 0;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: 'Manrope', sans-serif;
+}
+
+.premium-badge {
+  background: linear-gradient(135deg, #38bdf8, #818cf8);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  letter-spacing: 0.5px;
+}
+
+.benefits-list {
+  margin-bottom: 24px;
+  padding: 16px;
+  background-color: rgba(12, 16, 33, 0.5);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.benefit-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.benefit-item:last-child {
+  margin-bottom: 0;
+}
+
+.check-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border-radius: 50%;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.input-group {
+  position: relative;
   margin-bottom: 20px;
 }
 
-pre {
-  background-color: #666; /* Grey background */
-  color: #fff; /* White text */
-  padding: 10px;
-  border-radius: 5px;
-  max-height: 300px;
-  overflow-y: auto;
-  border: 1px solid #555;
-  text-align: left; /* Align text to the left */
-  font-family: "Courier New", Courier, monospace; /* Use a monospaced font for JSON */
-  white-space: pre-wrap; /* Wrap long lines */
-  word-wrap: break-word; /* Break long words */
+.input-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
 }
 
-
-.optimized-molecule {
-  background-color: #666; /* Grey background */
-  color: #fff; /* White text */
-  padding: 10px;
-  border-radius: 5px;
-  max-height: 300px;
-  overflow-y: auto;
-  border: 1px solid #555;
+.email-input {
+  width: 100%;
+  padding-left: 40px;
+  background-color: rgba(16, 24, 39, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  height: 48px;
 }
 
-input:focus, button:focus {
-  outline: none;
-  box-shadow: 0 0 5px #aaa;
+.card-element-container {
+  position: relative;
+  margin-bottom: 24px;
+  background-color: rgba(16, 24, 39, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 16px 16px 16px 40px;
 }
 
-.container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
+.card-element-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
 }
 
-.viewer-container {
-  border: 1px solid #555;
-  border-radius: 5px;
-  background-color: #444;
-}
-
-input[type="file"]::file-selector-button {
-  background: #555;
-  color: #f0f0f0;
-  border: none;
-  padding: 8px;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-input[type="file"]::file-selector-button:hover {
-  background: #777;
-}
-
-.box {
-  background-color: #666; /* Grey background for all boxes */
-  color: #fff; /* White text */
-  padding: 15px;
-  border-radius: 5px;
-  border: 1px solid #555;
-  margin: 10px auto;
-  max-width: 600px;
-}
-
-.box h2, .box h3, .box p, .box ul, .box li, .box strong {
-  color: #fff; /* Ensure all text elements are white */
-}
-
-.box ul {
-  padding-left: 20px; /* Indent for list items */
-}
-
-.box li {
-  margin-bottom: 5px; /* Add spacing between list items */
-}
-
-.stripe-card-element {
+.secure-badge {
   display: flex;
-  gap: 10px; /* Adjust the gap between fields */
-  justify-content: center; /* Align elements in the center */
+  align-items: center;
+  gap: 8px;
+  color: #94a3b8;
+  font-size: 14px;
+  margin-bottom: 24px;
 }
 
-.StripeElement {
-  padding: 8px;
-  border: 1px solid #888;
-  border-radius: 5px;
-  background-color: #444;
-  color: #f0f0f0;
-  flex: 1; /* Allow equal spacing */
+.subscribe-button {
+  width: 100%;
+  height: 48px;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: linear-gradient(135deg, #38bdf8, #818cf8);
+  color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
 }
 
-input:focus, .StripeElement--focus {
-  outline: none;
-  box-shadow: 0 0 5px #aaa;
+.subscribe-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.25);
+}
+
+.subscribe-button.loading {
+  background: linear-gradient(135deg, #64748b, #475569);
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.subscription-terms {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+/* Molecule Viewer */
+.viewer-container {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+.viewer-header {
+  background: rgba(16, 24, 39, 0.9);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Header styling */
+.app-header {
+  text-align: center;
+  margin-bottom: 40px;
+  position: relative;
+}
+
+.app-title {
+  font-size: 48px;
+  font-weight: 800;
+  margin: 0;
+  font-family: 'Manrope', sans-serif;
+  background: linear-gradient(135deg, #38bdf8, #818cf8, #c084fc);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+}
+
+.app-subtitle {
+  color: #94a3b8;
+  margin-top: 12px;
+  font-size: 18px;
+  font-weight: 300;
+}
+
+/* Method Selection Cards */
+.method-card {
+  padding: 24px;
+  border-radius: 16px;
+  background: rgba(16, 24, 39, 0.7);
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.method-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.03), transparent);
+  pointer-events: none;
+}
+
+.method-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+}
+
+.classical-active {
+  border-color: #10b981;
+  background: linear-gradient(145deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05));
+}
+
+.quantum-active {
+  border-color: #38bdf8;
+  background: linear-gradient(145deg, rgba(56, 189, 248, 0.1), rgba(37, 99, 235, 0.05));
+}
+
+/* Results section */
+.results-container {
+  border-radius: 16px;
+  padding: 24px;
+  background: linear-gradient(145deg, rgba(26, 33, 62, 0.8), rgba(16, 24, 39, 0.8));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 15px 25px rgba(0, 0, 0, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.results-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(to right, #10b981, #38bdf8);
+}
+
+/* Optimize buttons */
+.optimize-button {
+  padding: 14px 32px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 16px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.optimize-button::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), transparent);
+  pointer-events: none;
+}
+
+.classical-button {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+}
+
+.quantum-button {
+  background: linear-gradient(135deg, #38bdf8, #2563eb);
+  color: white;
+}
+
+/* File upload area */
+.file-upload-area {
+  border: 2px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  padding: 40px;
+  text-align: center;
+  transition: all 0.3s ease;
+  background: rgba(16, 24, 39, 0.4);
+}
+
+.file-upload-area:hover, .file-upload-active {
+  border-color: #38bdf8;
+  background: rgba(56, 189, 248, 0.08);
+}
+
+/* Welcome message */
+.welcome-message {
+  background: linear-gradient(145deg, rgba(56, 189, 248, 0.15), rgba(37, 99, 235, 0.1));
+  border-left: 4px solid #38bdf8;
+  border-radius: 12px;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Popup styles */
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.popup-content {
+  width: 80%;
+  height: 80%;
+  max-width: 1200px;
+  background: linear-gradient(145deg, rgba(26, 33, 62, 0.95), rgba(16, 24, 39, 0.95));
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .app-title {
+    font-size: 36px;
+  }
+  
+  .subscription-form {
+    padding: 24px;
+  }
+  
+  .method-selection {
+    flex-direction: column;
+  }
 }
