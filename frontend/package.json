@@ -11,6 +11,8 @@
     "react-scripts": "^5.0.1"
   },
   "homepage": "https://robertkottelin.github.io/optimol",
+  "name": "optimol",
+  "version": "0.1.0",
   "scripts": {
     "start": "react-scripts start",
     "test": "react-scripts test",

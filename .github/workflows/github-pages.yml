@@ -26,7 +26,10 @@ jobs:
     - name: Build static assets
       run: |
         cd frontend
-        npm run build
+        PUBLIC_URL="/optimol" npm run build
+    - name: Create .nojekyll file
+      run: |
+        touch frontend/build/.nojekyll
         
     - name: Deploy to GitHub Pages
       uses: JamesIves/github-pages-deploy-action@v4
