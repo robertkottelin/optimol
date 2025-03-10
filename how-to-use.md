@@ -53,13 +53,11 @@ Alternatively:
 
 ### 2.2 Required Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| id | Integer | Unique atom identifier |
-| element | String | Chemical element symbol |
-| x | Number | X-coordinate in Angstroms |
-| y | Number | Y-coordinate in Angstroms |
-| z | Number | Z-coordinate in Angstroms |
+* `id`: Integer - Unique atom identifier
+* `element`: String - Chemical element symbol
+* `x`: Number - X-coordinate in Angstroms
+* `y`: Number - Y-coordinate in Angstroms
+* `z`: Number - Z-coordinate in Angstroms
 
 ### 2.3 Supported Elements
 
@@ -103,24 +101,20 @@ The system provides two optimization methods:
 
 ### 3.3 Parameter Configuration
 
-#### 3.3.1 Classical Parameters
+### 3.3.1 Classical Parameters
 
-| Parameter | Description | Range | Default |
-|-----------|-------------|-------|---------|
-| Temperature | Simulation temperature (K) | 1-1000 | 300 |
-| Max Iterations | Maximum energy minimization steps | 100-1000 | 1000/100* |
-| Bond Threshold | Distance threshold for bond detection (nm) | 0.1-0.5 | 0.2 |
-| Bond Force Constant | Bond strength parameter (kJ/mol/nm²) | 100-10000 | 1000.0 |
-| Angle Force Constant | Angle stiffness parameter (kJ/mol/rad²) | 50-5000 | 500.0 |
+* `Temperature`: Simulation temperature (K) - Range: 1-1000 (Default: 300)
+* `Max Iterations`: Maximum energy minimization steps - Range: 100-1000 (Default: 1000/100*)
+* `Bond Threshold`: Distance threshold for bond detection (nm) - Range: 0.1-0.5 (Default: 0.2)
+* `Bond Force Constant`: Bond strength parameter (kJ/mol/nm²) - Range: 100-10000 (Default: 1000.0)
+* `Angle Force Constant`: Angle stiffness parameter (kJ/mol/rad²) - Range: 50-5000 (Default: 500.0)
 
-#### 3.3.2 Quantum Parameters
+### 3.3.2 Quantum Parameters
 
-| Parameter | Description | Range | Default |
-|-----------|-------------|-------|---------|
-| Basis Set | Atomic orbital basis functions | STO-3G, 6-31G, 6-311G**, cc-pVDZ** | 6-31G |
-| Max Iterations | Maximum optimization steps | 1-10/3* | 10/3* |
-| Convergence Threshold | Energy convergence criterion | 0.000001-0.01 | 0.00001 |
-| Step Size | Geometry update magnitude | 0.01-1.0 | 0.1 |
+* `Basis Set`: Atomic orbital basis functions - Options: STO-3G, 6-31G, 6-311G**, cc-pVDZ** (Default: 6-31G)
+* `Max Iterations`: Maximum optimization steps - Range: 1-10/3* (Default: 10/3*)
+* `Convergence Threshold`: Energy convergence criterion - Range: 0.000001-0.01 (Default: 0.00001)
+* `Step Size`: Geometry update magnitude - Range: 0.01-1.0 (Default: 0.1)
 
 *Subscription-dependent limits  
 **Available only with subscription
