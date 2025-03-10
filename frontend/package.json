@@ -10,11 +10,12 @@
     "react-markdown": "^9.0.1",
     "react-scripts": "^5.0.1"
   },
+  "homepage": "https://robertkottelin.github.io/optimol",
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "build": "PUBLIC_URL=https://robertkottelin.github.io/optimol react-scripts build"
   },
   "browserslist": {
     "production": [
