@@ -7,17 +7,12 @@ dependencies:
   - flask
   - flask-cors
   - numpy
-  - scipy
-  - matplotlib
-  - ase
-  - qiskit
   - pip
   - python-dotenv
   - stripe
   - pip:
-      - dill
-      - qiskit-aer
-      - qiskit-algorithms
+      - pyscf
+      - openmm
       - gunicorn
       - flask-sqlalchemy
 

@@ -51,6 +51,14 @@ def index():
 def optimize_test():
     return "POST test request received successfully!"
 
+@app.route('/health')
+def health_check():
+    try:
+        db.session.execute('SELECT 1')
+        return jsonify({"status": "healthy"}), 200
+    except Exception as e:
+        return jsonify({"status": "unhealthy", "error": str(e)}), 500
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()  # Create tables within the app context
