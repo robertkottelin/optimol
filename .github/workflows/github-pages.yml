@@ -28,12 +28,6 @@ jobs:
         cd frontend
         PUBLIC_URL="/optimol" npm run build
 
-    - name: Copy documentation files
-      run: |
-          cd frontend
-          # Ensure documentation is explicitly copied
-          cp how-to-use.md build/
-
     - name: Create .nojekyll file
       run: |
         touch frontend/build/.nojekyll

@@ -3,6 +3,7 @@ import axios from "axios";
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import ReactMarkdown from "react-markdown";
+import howToUseContent from '!raw-loader!../how-to-use.md';
 
 // Import style constants
 import { styles } from './styles/components';
@@ -43,7 +44,6 @@ const App = () => {
   
   // UI state
   const [isHowToUseVisible, setIsHowToUseVisible] = useState(false);
-  const [howToUseContent, setHowToUseContent] = useState("");
   const [isDragActive, setIsDragActive] = useState(false);
   
   // Loading states
@@ -97,16 +97,8 @@ const App = () => {
     }
   }, []);
 
-  // Fetch "how-to-use.md" content on demand
-  const fetchHowToUse = async () => {
-    try {
-      const response = await axios.get('/how-to-use.md');
-      setHowToUseContent(response.data);
-      setIsHowToUseVisible(true);
-    } catch (error) {
-      console.error("Error fetching 'how-to-use.md':", error);
-      alert("Failed to load instructions. Check console for details.");
-    }
+  const handleShowHowToUse = () => {
+    setIsHowToUseVisible(true);
   };
 
   const handleClosePopup = () => {
@@ -457,7 +449,7 @@ const App = () => {
         
         {/* Top Action Buttons */}
         <button
-          onClick={fetchHowToUse}
+          onClick={handleShowHowToUse}
           style={styles.howToUseButton}
           className="float"
         >
