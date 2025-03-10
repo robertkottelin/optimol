@@ -47,15 +47,6 @@ const MoleculeViewer = ({ atoms }) => {
         stick: { radius: 0.15, colorscheme: 'Jmol' },
       });
       
-      // Add better lighting
-      viewer.setLightingPreset('default');
-      
-      // Add depth perception with fog
-      viewer.fog(0.1, 100, "rgb(15, 23, 42)");
-      
-      // Apply ambient occlusion for better depth perception
-      viewer.enableAO();
-      
       // Add subtle rotation for 3D effect
       viewer.spin('y', 0.5);
       

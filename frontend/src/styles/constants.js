@@ -101,11 +101,11 @@ export const COLORS = {
   // User type-based iteration limits
   export const ITERATION_LIMITS = {
     subscribed: {
-      classical: 100000,
+      classical: 1000000,
       quantum: 1000
     },
     unsubscribed: {
-      classical: 100,
+      classical: 1000,
       quantum: 5
     }
   };
