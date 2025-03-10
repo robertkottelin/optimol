@@ -9,3 +9,5 @@ backend/instance/*
 backend/.env
 backend/__pycache__/opti.cpython-310.pyc
 instance/*
+backend/__pycache__/extensions.cpython-310.pyc
+backend/__pycache__/user.cpython-310.pyc

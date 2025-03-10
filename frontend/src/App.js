@@ -1217,12 +1217,21 @@ const App = () => {
     return false;
   };
 
+  const handleOptimizationTypeChange = (newType) => {
+    // If optimization type is changing, reset the active view to original
+    if (newType !== optimizationType) {
+      setActiveView("original");
+    }
+    
+    setOptimizationType(newType);
+  };
+
   const handleOptimize = async () => {
     if (!moleculeData) {
       alert("Please upload a molecule file first.");
       return;
     }
-    
+
     setIsOptimizeLoading(true);
     
     try {
@@ -1268,6 +1277,7 @@ const App = () => {
       const response = await axios.post(`${apiBaseUrl}/optimize-molecule`, payload);
       
       if (response.data.success) {
+        // Clear any previous result for the other optimization type
         setOptimizationResult(response.data);
         setActiveView("optimized"); // Show optimized results after successful optimization
       } else {
@@ -1280,7 +1290,6 @@ const App = () => {
       setIsOptimizeLoading(false);
     }
   };
-
   const handleParamChange = (type, paramName, value) => {
     if (type === "classical") {
       setClassicalParams(prev => ({
@@ -1737,7 +1746,7 @@ const App = () => {
     </div>
   );
 
-  // Results component with enhanced styling
+  // Replace the existing OptimizationResults component with this updated version
   const OptimizationResults = () => {
     if (!optimizationResult || !optimizationResult.result) return null;
     
@@ -1754,6 +1763,30 @@ const App = () => {
           </h3>
           <div style={{ ...styles.resultItem, color: COLORS.danger }}>
             {result.error}
+          </div>
+        </div>
+      );
+    }
+    
+    // Check if the optimization type matches the result data structure
+    const resultMatchesType = (
+      (optimizationType === "classical" && result.metadata.method === "classical_molecular_dynamics") ||
+      (optimizationType === "quantum" && result.metadata.method === "quantum_chemistry")
+    );
+    
+    // If types don't match, show type mismatch message
+    if (!resultMatchesType) {
+      return (
+        <div style={styles.resultsContainer}>
+          <h3 style={styles.resultTitle}>
+            <span style={{ ...styles.resultIcon, color: COLORS.warning }}>
+              <Icons.warning />
+            </span>
+            Results Not Available
+          </h3>
+          <div style={{ ...styles.resultItem }}>
+            <p>Please run a {optimizationType} optimization to see {optimizationType} results.</p>
+            <p>Currently viewing results from a previous {optimizationType === "classical" ? "quantum" : "classical"} optimization.</p>
           </div>
         </div>
       );
@@ -1782,56 +1815,96 @@ const App = () => {
           <>
             <div style={styles.resultItem}>
               <span style={styles.resultLabel}>Temperature:</span>
-              <span style={styles.resultValue}>{result.metadata.parameters.temperature} K</span>
+              <span style={styles.resultValue}>
+                {result.metadata.parameters?.temperature !== undefined ? 
+                  `${result.metadata.parameters.temperature} K` : 
+                  "N/A"}
+              </span>
             </div>
             
             <div style={styles.resultItem}>
               <span style={styles.resultLabel}>Final Energy:</span>
-              <span style={styles.resultValue}>{result.metadata.final_energy_kj_mol.toFixed(4)} kJ/mol</span>
+              <span style={styles.resultValue}>
+                {result.metadata.final_energy_kj_mol !== undefined ? 
+                  `${result.metadata.final_energy_kj_mol.toFixed(4)} kJ/mol` : 
+                  "N/A"}
+              </span>
             </div>
             
             <div style={styles.resultItem}>
               <span style={styles.resultLabel}>Bonds Detected:</span>
-              <span style={styles.resultValue}>{result.metadata.bonds_detected}</span>
+              <span style={styles.resultValue}>
+                {result.metadata.bonds_detected !== undefined ? 
+                  result.metadata.bonds_detected : 
+                  "N/A"}
+              </span>
             </div>
             
             <div style={styles.resultItem}>
               <span style={styles.resultLabel}>Angles Detected:</span>
-              <span style={styles.resultValue}>{result.metadata.angles_detected}</span>
+              <span style={styles.resultValue}>
+                {result.metadata.angles_detected !== undefined ? 
+                  result.metadata.angles_detected : 
+                  "N/A"}
+              </span>
             </div>
           </>
         ) : (
           <>
             <div style={styles.resultItem}>
               <span style={styles.resultLabel}>Basis Set:</span>
-              <span style={styles.resultValue}>{result.metadata.parameters.basis}</span>
+              <span style={styles.resultValue}>
+                {result.metadata.parameters?.basis !== undefined ?
+                  result.metadata.parameters.basis :
+                  "N/A"}
+              </span>
             </div>
             
             <div style={styles.resultItem}>
               <span style={styles.resultLabel}>Theory Level:</span>
-              <span style={styles.resultValue}>{result.metadata.theory_level}</span>
+              <span style={styles.resultValue}>
+                {result.metadata.theory_level !== undefined ?
+                  result.metadata.theory_level :
+                  "N/A"}
+              </span>
             </div>
             
             <div style={styles.resultItem}>
               <span style={styles.resultLabel}>Final Energy:</span>
-              <span style={styles.resultValue}>{result.metadata.final_energy_hartree.toFixed(6)} Hartree</span>
+              <span style={styles.resultValue}>
+                {result.metadata.final_energy_hartree !== undefined ? 
+                  `${result.metadata.final_energy_hartree.toFixed(6)} Hartree` : 
+                  "N/A"}
+              </span>
             </div>
             
             <div style={styles.resultItem}>
               <span style={styles.resultLabel}>Iterations:</span>
-              <span style={styles.resultValue}>{result.metadata.iterations}</span>
+              <span style={styles.resultValue}>
+                {result.metadata.iterations !== undefined ?
+                  result.metadata.iterations :
+                  "N/A"}
+              </span>
             </div>
             
             <div style={styles.resultItem}>
               <span style={styles.resultLabel}>Converged:</span>
-              <span style={styles.resultValue}>{result.metadata.converged ? "Yes" : "No"}</span>
+              <span style={styles.resultValue}>
+                {result.metadata.converged !== undefined ?
+                  (result.metadata.converged ? "Yes" : "No") :
+                  "N/A"}
+              </span>
             </div>
           </>
         )}
         
         <div style={styles.resultItem}>
           <span style={styles.resultLabel}>Duration:</span>
-          <span style={styles.resultValue}>{result.metadata.duration_seconds.toFixed(2)} seconds</span>
+          <span style={styles.resultValue}>
+            {result.metadata.duration_seconds !== undefined ?
+              `${result.metadata.duration_seconds.toFixed(2)} seconds` :
+              "N/A"}
+          </span>
         </div>
         
         <div style={{ marginTop: SPACING.lg }}>
@@ -1856,7 +1929,6 @@ const App = () => {
       </div>
     );
   };
-
   // Main App render
   return (
     <div style={styles.app}>
@@ -1984,7 +2056,7 @@ const App = () => {
                 <div 
                   className={`method-card ${optimizationType === "classical" ? 'classical-active' : ''}`}
                   style={styles.methodSelectionButton(optimizationType === "classical", "classical")}
-                  onClick={() => setOptimizationType("classical")}
+                  onClick={() => handleOptimizationTypeChange("classical")}
                 >
                   <span style={{
                     ...styles.methodIcon,
@@ -2005,7 +2077,7 @@ const App = () => {
                 <div 
                   className={`method-card ${optimizationType === "quantum" ? 'quantum-active' : ''}`}
                   style={styles.methodSelectionButton(optimizationType === "quantum", "quantum")}
-                  onClick={() => setOptimizationType("quantum")}
+                  onClick={() => handleOptimizationTypeChange("quantum")}
                 >
                   <span style={{
                     ...styles.methodIcon,
