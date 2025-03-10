@@ -48,7 +48,7 @@ const MoleculeViewer = ({ atoms }) => {
       });
       
       // Add subtle rotation for 3D effect
-      viewer.spin('y', 0.5);
+    //   viewer.spin('y', 0.5);
       
       viewer.zoomTo();
       viewer.render();

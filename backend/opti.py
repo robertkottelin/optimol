@@ -256,7 +256,6 @@ def optimize_quantum(atoms, params=None):
         # Set default parameters if not provided
         if params is None:
             params = {}
-        
         # Extract parameters with defaults
         basis = params.get("basis", "6-31g")
         max_iterations = params.get("max_iterations", 10)
