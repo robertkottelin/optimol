@@ -3,7 +3,6 @@ import axios from "axios";
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import ReactMarkdown from "react-markdown";
-import howToUseContent from '!raw-loader!./how-to-use.md';
 
 // Import style constants
 import { styles } from './styles/components';
