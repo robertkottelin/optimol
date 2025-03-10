@@ -53,6 +53,24 @@ const App = () => {
 
   const apiBaseUrl = "http://localhost:5000";
 
+  const [howToUseContent, setHowToUseContent] = useState("");
+  useEffect(() => {
+    // Load documentation from public directory
+    fetch(`${process.env.PUBLIC_URL}/how-to-use.md`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Documentation file not found');
+        }
+        return response.text();
+      })
+      .then(text => setHowToUseContent(text))
+      .catch(error => {
+        console.error("Failed to load documentation:", error);
+        // Fallback content
+        setHowToUseContent("# Molecular Optimization System\n\nDocumentation is currently unavailable.");
+      });
+  }, []);
+
   // Helper function to consistently apply iteration limits
   const applyIterationLimits = (isUserSubscribed) => {
     // Apply limits to classical parameters
