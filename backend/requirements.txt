@@ -1,10 +1,7 @@
 flask
 flask-cors
-qiskit
-qiskit-aer
-ase
-scipy
 numpy
 python-dotenv
 stripe
-flask_sqlalchemy
+openmm
+pyscf
