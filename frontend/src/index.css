@@ -515,6 +515,34 @@ button:disabled {
   overflow: hidden;
 }
 
+/* Test molecule button styles */
+.test-molecule-button {
+  padding: 14px 24px;
+  background: linear-gradient(145deg, rgba(56, 189, 248, 0.1), rgba(37, 99, 235, 0.05));
+  color: #f0f4f8;
+  border-radius: 12px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 15px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.test-molecule-button:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(145deg, rgba(56, 189, 248, 0.15), rgba(37, 99, 235, 0.1));
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+  border-color: rgba(56, 189, 248, 0.5);
+}
+
+.test-molecule-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .app-title {
@@ -527,5 +555,10 @@ button:disabled {
   
   .method-selection {
     flex-direction: column;
+  }
+  
+  .test-molecule-button {
+    padding: 10px 16px;
+    font-size: 14px;
   }
 }

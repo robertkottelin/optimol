@@ -88,7 +88,7 @@ export const ClassicalParametersConfig = ({
           style={styles.parameterCheckbox}
         />
         <span style={styles.parameterHelp}>
-          Forces execution of exactly the specified number of iterations regardless of convergence
+          Forces execution of iterations regardless of convergence
         </span>
       </div>
       

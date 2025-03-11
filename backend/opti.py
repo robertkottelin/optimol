@@ -213,8 +213,10 @@ def optimize_classical(atoms, params=None):
                 energy_history.append(energy)
                 iterations_performed += 1
                 
-                # Safety check for instability 
-                if i > 0 and energy > energy_history[i-1]*1.5:
+                # MODIFIED: More robust safety check for complex molecules
+                # Only break if energy increases dramatically (5x) and we're past initial fluctuations
+                if (i > 20 and energy > energy_history[i-1] * 5.0) or not np.isfinite(energy):
+                    print(f"Breaking at iteration {i} due to energy instability: {energy}")
                     break
                     
             state = simulation_opt.context.getState(getPositions=True, getEnergy=True)
@@ -291,8 +293,7 @@ def optimize_classical(atoms, params=None):
                 "library": "OpenMM",
                 "status": "failed"
             }
-        }
-            
+        }         
 def optimize_quantum(atoms, params=None):
     """
     Optimize molecule using quantum chemistry with PySCF.

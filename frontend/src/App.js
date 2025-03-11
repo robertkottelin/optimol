@@ -9,7 +9,8 @@ import { styles } from './styles/components';
 import { 
   ITERATION_LIMITS, 
   defaultClassicalParams, 
-  defaultQuantumParams 
+  defaultQuantumParams,
+  TEST_MOLECULES
 } from './styles/constants';
 
 // Import components
@@ -72,35 +73,42 @@ const App = () => {
 
   // Helper function to consistently apply iteration limits
   const applyIterationLimits = (isUserSubscribed) => {
-    // Apply limits to classical parameters
-    const limitedClassicalParams = {...defaultClassicalParams};
-    const classicalMaxIterations = isUserSubscribed 
-      ? ITERATION_LIMITS.subscribed.classical
-      : ITERATION_LIMITS.unsubscribed.classical;
+    // Apply limits to classical parameters - preserving existing values
+    setClassicalParams(prevParams => {
+      const classicalMaxIterations = isUserSubscribed 
+        ? ITERATION_LIMITS.subscribed.classical
+        : ITERATION_LIMITS.unsubscribed.classical;
+        
+      return {
+        ...prevParams, // Preserve existing params including force_iterations
+        max_iterations: Math.min(
+          prevParams.max_iterations, 
+          classicalMaxIterations
+        )
+      };
+    });
+    
+    // Apply limits to quantum parameters - preserving existing values
+    setQuantumParams(prevParams => {
+      const quantumMaxIterations = isUserSubscribed 
+        ? ITERATION_LIMITS.subscribed.quantum
+        : ITERATION_LIMITS.unsubscribed.quantum;
       
-    limitedClassicalParams.max_iterations = Math.min(
-      limitedClassicalParams.max_iterations, 
-      classicalMaxIterations
-    );
-    setClassicalParams(limitedClassicalParams);
-    
-    // Apply limits to quantum parameters
-    const limitedQuantumParams = {...defaultQuantumParams};
-    const quantumMaxIterations = isUserSubscribed 
-      ? ITERATION_LIMITS.subscribed.quantum
-      : ITERATION_LIMITS.unsubscribed.quantum;
+      // Apply basis set restrictions for non-subscribers
+      let updatedBasis = prevParams.basis;
+      if (!isUserSubscribed && (updatedBasis === "6-311g" || updatedBasis === "cc-pvdz")) {
+        updatedBasis = "6-31g";
+      }
       
-    limitedQuantumParams.max_iterations = Math.min(
-      limitedQuantumParams.max_iterations, 
-      quantumMaxIterations
-    );
-    
-    // Apply basis set restrictions for non-subscribers
-    if (!isUserSubscribed && (limitedQuantumParams.basis === "6-311g" || limitedQuantumParams.basis === "cc-pvdz")) {
-      limitedQuantumParams.basis = "6-31g";
-    }
-    
-    setQuantumParams(limitedQuantumParams);
+      return {
+        ...prevParams, // Preserve existing params
+        max_iterations: Math.min(
+          prevParams.max_iterations, 
+          quantumMaxIterations
+        ),
+        basis: updatedBasis
+      };
+    });
   };
 
   // Check subscription status on page load and apply limits
@@ -109,7 +117,9 @@ const App = () => {
     if (email) {
       checkSubscriptionStatus(email);
     } else {
-      // For non-subscribed users, apply the default limits
+      // For non-subscribed users, initialize with default values and apply limits
+      setClassicalParams(defaultClassicalParams);
+      setQuantumParams(defaultQuantumParams);
       applyIterationLimits(false);
     }
   }, []);
@@ -145,7 +155,7 @@ const App = () => {
     setUserEmail(email);
     localStorage.setItem("userEmail", email);
     
-    // Apply subscriber limits
+    // Apply subscriber limits while preserving current parameter values
     applyIterationLimits(true);
   };
 
@@ -169,7 +179,7 @@ const App = () => {
         setUserEmail("");
         localStorage.removeItem("userEmail");
         
-        // Apply non-subscriber limits using the helper function
+        // Apply non-subscriber limits while preserving current parameter values
         applyIterationLimits(false);
       } else {
         alert("Failed to cancel subscription. Please try again.");
@@ -289,7 +299,7 @@ const App = () => {
 
   const handleOptimize = async () => {
     if (!moleculeData) {
-      alert("Please upload a molecule file first.");
+      alert("Please upload or select a molecule first.");
       return;
     }
 
@@ -370,38 +380,56 @@ const App = () => {
 
   const handleResetParams = (type) => {
     if (type === "classical") {
-      const params = {...defaultClassicalParams};
-      
-      // Always apply appropriate limits based on subscription status
-      const maxIterations = isSubscribed 
-        ? ITERATION_LIMITS.subscribed.classical
-        : ITERATION_LIMITS.unsubscribed.classical;
+      // Keep current force_iterations setting when resetting other parameters
+      setClassicalParams(prevParams => {
+        const params = {...defaultClassicalParams};
         
-      params.max_iterations = Math.min(
-        params.max_iterations, 
-        maxIterations
-      );
-      
-      setClassicalParams(params);
+        // Preserve force_iterations setting
+        params.force_iterations = prevParams.force_iterations;
+        
+        // Always apply appropriate limits based on subscription status
+        const maxIterations = isSubscribed 
+          ? ITERATION_LIMITS.subscribed.classical
+          : ITERATION_LIMITS.unsubscribed.classical;
+          
+        params.max_iterations = Math.min(
+          params.max_iterations, 
+          maxIterations
+        );
+        
+        return params;
+      });
     } else {
-      const params = {...defaultQuantumParams};
-      
-      // Always apply appropriate limits based on subscription status
-      const maxIterations = isSubscribed 
-        ? ITERATION_LIMITS.subscribed.quantum
-        : ITERATION_LIMITS.unsubscribed.quantum;
+      // For quantum parameters - apply subscription-based limits
+      setQuantumParams(prevParams => {
+        const params = {...defaultQuantumParams};
         
-      params.max_iterations = Math.min(
-        params.max_iterations, 
-        maxIterations
-      );
-      
-      // Restrict to simpler basis sets for free users only
-      if (!isSubscribed && (params.basis === "6-311g" || params.basis === "cc-pvdz")) {
-        params.basis = "6-31g";
-      }
-      
-      setQuantumParams(params);
+        // Always apply appropriate limits based on subscription status
+        const maxIterations = isSubscribed 
+          ? ITERATION_LIMITS.subscribed.quantum
+          : ITERATION_LIMITS.unsubscribed.quantum;
+          
+        params.max_iterations = Math.min(
+          params.max_iterations, 
+          maxIterations
+        );
+        
+        // Restrict to simpler basis sets for free users only
+        if (!isSubscribed && (params.basis === "6-311g" || params.basis === "cc-pvdz")) {
+          params.basis = "6-31g";
+        }
+        
+        return params;
+      });
+    }
+  };
+  
+  // Handle test molecule selection
+  const handleTestMoleculeSelect = (moleculeKey) => {
+    if (TEST_MOLECULES[moleculeKey]) {
+      setMoleculeData(TEST_MOLECULES[moleculeKey]);
+      setOptimizationResult(null);
+      setActiveView("original");
     }
   };
 
@@ -532,6 +560,33 @@ const App = () => {
             Molecule Optimization
             <span style={styles.sectionTitleUnderline}></span>
           </h2>
+          
+          {/* Test Molecules Buttons */}
+          <div style={styles.testMoleculesContainer}>
+            <h3 style={styles.testMoleculesTitle}>
+              Test Molecules
+              <span style={styles.testMoleculesTitleIcon}></span>
+            </h3>
+            <div style={styles.testMoleculesButtonContainer}>
+              <button 
+                onClick={() => handleTestMoleculeSelect('water')} 
+                style={styles.testMoleculeButton}
+                className="test-molecule-button"
+              >
+                <span style={styles.testMoleculeIcon}><Icons.molecule /></span>
+                Water (H₂O)
+              </button>
+              <button 
+                onClick={() => handleTestMoleculeSelect('ibuprofen')} 
+                style={styles.testMoleculeButton}
+                className="test-molecule-button"
+              >
+                <span style={styles.testMoleculeIcon}><Icons.molecule /></span>
+                Ibuprofen (C₁₃H₁₈O₂)
+              </button>
+            </div>
+
+          </div>
           
           {/* File Upload Area */}
           <div 
