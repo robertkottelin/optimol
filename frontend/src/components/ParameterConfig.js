@@ -77,16 +77,36 @@ export const ClassicalParametersConfig = ({
             Will be capped at {ITERATION_LIMITS.unsubscribed.classical.toLocaleString()}
           </span>
         )}
-        {isSubscribed && classicalParams.max_iterations > ITERATION_LIMITS.subscribed.classical && (
-          <span style={styles.warningText}>
-            <Icons.warning />
-            Will be capped at {ITERATION_LIMITS.subscribed.classical.toLocaleString()}
-          </span>
-        )}
+      </div>
+      
+      <div style={styles.parameterGroup}>
+        <label style={styles.parameterLabel}>Force All Iterations:</label>
+        <input 
+          type="checkbox" 
+          checked={classicalParams.force_iterations}
+          onChange={(e) => handleParamChange('classical', 'force_iterations', e.target.checked)}
+          style={styles.parameterCheckbox}
+        />
+        <span style={styles.parameterHelp}>
+          Forces execution of exactly the specified number of iterations regardless of convergence
+        </span>
       </div>
       
       {showAdvancedParams && (
         <>
+          <div style={styles.parameterGroup}>
+            <label style={styles.parameterLabel}>Convergence Tolerance (kJ/mol):</label>
+            <input 
+              type="number" 
+              value={classicalParams.tolerance}
+              min="0.001"
+              max="10.0"
+              step="0.1"
+              onChange={(e) => handleParamChange('classical', 'tolerance', Number(e.target.value))}
+              style={styles.parameterInput}
+            />
+          </div>
+          
           <div style={styles.parameterGroup}>
             <label style={styles.parameterLabel}>Bond Threshold (nm):</label>
             <input 

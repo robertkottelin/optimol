@@ -116,7 +116,9 @@ export const COLORS = {
     max_iterations: 1000,
     bond_threshold: 0.2,
     bond_force_constant: 1000.0,
-    angle_force_constant: 500.0
+    angle_force_constant: 500.0,
+    tolerance: 10.0,
+    force_iterations: false
   };
   
   export const defaultQuantumParams = {

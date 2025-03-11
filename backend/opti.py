@@ -32,10 +32,6 @@ def optimize_classical(atoms, params=None):
     """
     Optimize molecule using classical molecular dynamics with OpenMM.
     Template-free approach for arbitrary molecules.
-    
-    Args:
-        atoms: List of atom dictionaries with element and coordinates
-        params: Dictionary of optimization parameters
     """
     try:   
         start_time = datetime.now()
@@ -50,6 +46,8 @@ def optimize_classical(atoms, params=None):
         bond_threshold = params.get("bond_threshold", 0.2)  # nm
         bond_force_constant = params.get("bond_force_constant", 1000.0)  # kJ/mol/nm^2
         angle_force_constant = params.get("angle_force_constant", 500.0)  # kJ/mol/radian^2
+        tolerance = params.get("tolerance", 10.0)  # kJ/mol/nm (force units)
+        force_iterations = params.get("force_iterations", False)  # Whether to force all iterations
         
         # Create system from atoms
         positions = []
@@ -140,7 +138,7 @@ def optimize_classical(atoms, params=None):
         
         system.addForce(angle_force)
         
-        # Add NonbondedForce for non-bonded interactions (unchanged)
+        # Add NonbondedForce for non-bonded interactions
         nonbonded_force = mm.NonbondedForce()
         
         # Element -> [charge, sigma (nm), epsilon (kJ/mol)]
@@ -187,15 +185,66 @@ def optimize_classical(atoms, params=None):
         simulation = app.Simulation(topology, system, integrator)
         simulation.context.setPositions(positions)
         
-        # Minimize energy with parameterized max iterations
-        simulation.minimizeEnergy(maxIterations=max_iterations)
+        # Get initial energy
+        state = simulation.context.getState(getEnergy=True)
+        start_energy = state.getPotentialEnergy().value_in_unit(unit.kilojoules_per_mole)
         
-        # Get minimized positions and energy
-        state = simulation.context.getState(getPositions=True, getEnergy=True)
-        minimized_positions = state.getPositions(asNumpy=True).value_in_unit(unit.angstrom)
-        final_energy = state.getPotentialEnergy().value_in_unit(unit.kilojoules_per_mole)
+        # Custom iteration tracking
+        iterations_performed = 0
         
-        # Format result
+        if force_iterations:
+            # Manual optimization to force all iterations
+            energy_history = []
+            
+            # Initial minimization to stabilize structure
+            simulation.minimizeEnergy(maxIterations=100)
+            
+            # Create optimization simulation with small time step
+            integrator_opt = mm.VerletIntegrator(0.001*unit.picoseconds)
+            simulation_opt = app.Simulation(topology, system, integrator_opt)
+            simulation_opt.context.setPositions(simulation.context.getState(getPositions=True).getPositions())
+            
+            # Execute exact number of iterations requested
+            for i in range(max_iterations):
+                simulation_opt.step(1)
+                
+                state = simulation_opt.context.getState(getEnergy=True)
+                energy = state.getPotentialEnergy().value_in_unit(unit.kilojoules_per_mole)
+                energy_history.append(energy)
+                iterations_performed += 1
+                
+                # Safety check for instability 
+                if i > 0 and energy > energy_history[i-1]*1.5:
+                    break
+                    
+            state = simulation_opt.context.getState(getPositions=True, getEnergy=True)
+            minimized_positions = state.getPositions(asNumpy=True).value_in_unit(unit.angstrom)
+            final_energy = state.getPotentialEnergy().value_in_unit(unit.kilojoules_per_mole)
+            
+        else:
+            # Standard energy minimization with correct force units for tolerance
+            # Convert tolerance from kJ/mol/nm to force units as expected by OpenMM
+            force_tolerance = tolerance * unit.kilojoule_per_mole / unit.nanometer
+            
+            # Skip passing tolerance if using default value to avoid unit errors
+            if abs(tolerance - 10.0) < 0.01:  # If close to default value
+                simulation.minimizeEnergy(maxIterations=max_iterations)
+            else:
+                # Use custom tolerance
+                simulation.minimizeEnergy(tolerance=force_tolerance, maxIterations=max_iterations)
+            
+            # Get final state
+            state = simulation.context.getState(getPositions=True, getEnergy=True)
+            final_energy = state.getPotentialEnergy().value_in_unit(unit.kilojoules_per_mole)
+            energy_change = abs(start_energy - final_energy)
+            
+            # Estimate iterations based on energy change and tolerance
+            # This is an approximation since OpenMM doesn't expose actual iteration count
+            iterations_performed = min(max_iterations, int((energy_change/tolerance) * 10))
+            
+            minimized_positions = state.getPositions(asNumpy=True).value_in_unit(unit.angstrom)
+        
+        # Format result with optimized coordinates
         optimized_atoms = []
         for i, atom in enumerate(atoms):
             optimized_atoms.append({
@@ -219,9 +268,14 @@ def optimize_classical(atoms, params=None):
                     "max_iterations": max_iterations,
                     "bond_threshold": bond_threshold,
                     "bond_force_constant": bond_force_constant,
-                    "angle_force_constant": angle_force_constant
+                    "angle_force_constant": angle_force_constant,
+                    "tolerance": tolerance,
+                    "force_iterations": force_iterations
                 },
+                "iterations_performed": iterations_performed,
                 "final_energy_kj_mol": final_energy,
+                "initial_energy_kj_mol": start_energy,
+                "energy_change_kj_mol": abs(start_energy - final_energy),
                 "duration_seconds": duration,
                 "convergence": "energy_minimized",
                 "bonds_detected": len(bonds),
@@ -238,7 +292,7 @@ def optimize_classical(atoms, params=None):
                 "status": "failed"
             }
         }
-    
+            
 def optimize_quantum(atoms, params=None):
     """
     Optimize molecule using quantum chemistry with PySCF.

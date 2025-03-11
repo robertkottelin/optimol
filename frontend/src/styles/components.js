@@ -232,6 +232,17 @@ import {
       fontWeight: FONTS.weightMedium,
       color: COLORS.text,
     },
+    parameterCheckbox: {
+      width: "20px",
+      height: "20px",
+      cursor: "pointer",
+      accentColor: COLORS.primary
+    },
+    parameterHelp: {
+      fontSize: "0.8rem",
+      color: COLORS.textSecondary,
+      marginLeft: "10px"
+    },
     parameterInput: {
       width: "120px",
       padding: `${SPACING.xs} ${SPACING.sm}`,

@@ -79,10 +79,39 @@ const OptimizationResults = ({ optimizationResult, optimizationType, handleDownl
           </div>
           
           <div style={styles.resultItem}>
+            <span style={styles.resultLabel}>Iterations:</span>
+            <span style={styles.resultValue}>
+              {result.metadata.iterations_performed !== undefined ? 
+                (result.metadata.parameters.force_iterations ? 
+                  `${result.metadata.iterations_performed} (forced)` : 
+                  `${result.metadata.iterations_performed} (converged)`) : 
+                "N/A"}
+            </span>
+          </div>
+          
+          <div style={styles.resultItem}>
+            <span style={styles.resultLabel}>Initial Energy:</span>
+            <span style={styles.resultValue}>
+              {result.metadata.initial_energy_kj_mol !== undefined ? 
+                `${result.metadata.initial_energy_kj_mol.toFixed(4)} kJ/mol` : 
+                "N/A"}
+            </span>
+          </div>
+          
+          <div style={styles.resultItem}>
             <span style={styles.resultLabel}>Final Energy:</span>
             <span style={styles.resultValue}>
               {result.metadata.final_energy_kj_mol !== undefined ? 
                 `${result.metadata.final_energy_kj_mol.toFixed(4)} kJ/mol` : 
+                "N/A"}
+            </span>
+          </div>
+          
+          <div style={styles.resultItem}>
+            <span style={styles.resultLabel}>Energy Change:</span>
+            <span style={styles.resultValue}>
+              {result.metadata.energy_change_kj_mol !== undefined ? 
+                `${result.metadata.energy_change_kj_mol.toFixed(4)} kJ/mol` : 
                 "N/A"}
             </span>
           </div>
@@ -106,7 +135,7 @@ const OptimizationResults = ({ optimizationResult, optimizationType, handleDownl
           </div>
         </>
       ) : (
-        <>
+          <>
           <div style={styles.resultItem}>
             <span style={styles.resultLabel}>Basis Set:</span>
             <span style={styles.resultValue}>

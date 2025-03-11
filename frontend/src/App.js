@@ -334,7 +334,9 @@ const App = () => {
         optimization_type: optimizationType,
         optimization_params: optimizationParams
       };
-      
+
+      console.log('Optimization payload:', JSON.stringify(payload, null, 2));
+    
       const response = await axios.post(`${apiBaseUrl}/optimize-molecule`, payload);
       
       if (response.data.success) {
