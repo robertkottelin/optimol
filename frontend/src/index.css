@@ -1153,3 +1153,56 @@ button:disabled {
     padding: 8px !important;
   }
 }
+
+/* Molecule Viewer specific fixes - Add these to index.css */
+
+/* Fix for molecule viewer container */
+.visualization-container {
+  position: relative !important;
+  overflow: hidden !important;
+  margin: 24px 0 !important;
+}
+
+/* Ensure the 3D viewer has correct positioning */
+.viewer-container {
+  position: relative !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  display: block !important;
+}
+
+/* Fix 3DMol container positioning */
+.viewer-container > div {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Force visualization container to be properly displayed on mobile */
+@media (max-width: 768px) {
+  .visualization-container {
+    margin: 16px 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Ensure no unwanted margins inside visualization container */
+  .visualization-header {
+    margin-bottom: 0 !important;
+  }
+  
+  /* Fix canvas positioning */
+  canvas {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+  
+  /* Ensure container is tall enough */
+  .viewer-container {
+    min-height: 300px !important;
+  }
+}

@@ -11,114 +11,143 @@ const MoleculeViewer = ({ atoms, isMobile }) => {
       return;
     }
 
-    const viewer = $3Dmol.createViewer(viewerRef.current, {
-      backgroundColor: "rgb(15, 23, 42)",
-    });
-    viewer.clear();
+    // Add a slight delay to ensure container is fully rendered
+    const timer = setTimeout(() => {
+      const viewer = $3Dmol.createViewer(viewerRef.current, {
+        backgroundColor: "rgb(15, 23, 42)",
+      });
+      viewer.clear();
 
-    try {
-      // Convert to 3Dmol atom format
-      const mol3dAtoms = atoms.map((atom) => ({
-        elem: atom.element,
-        x: atom.x,
-        y: atom.y,
-        z: atom.z,
-      }));
+      try {
+        // Convert to 3Dmol atom format
+        const mol3dAtoms = atoms.map((atom) => ({
+          elem: atom.element,
+          x: atom.x,
+          y: atom.y,
+          z: atom.z,
+        }));
 
-      const model = viewer.addModel();
-      model.addAtoms(mol3dAtoms);
+        const model = viewer.addModel();
+        model.addAtoms(mol3dAtoms);
 
-      // Add element labels - scale down for mobile
-      atoms.forEach((atom) => {
-        viewer.addLabel(atom.element, {
-          position: { x: atom.x, y: atom.y, z: atom.z },
-          fontSize: isMobile ? 12 : 14,
-          fontColor: "white",
-          backgroundColor: "rgba(0, 0, 0, 0.5)",
-          borderRadius: 10,
-          padding: isMobile ? 2 : 3,
-          inFront: true,
+        // Add element labels - scale down for mobile
+        atoms.forEach((atom) => {
+          viewer.addLabel(atom.element, {
+            position: { x: atom.x, y: atom.y, z: atom.z },
+            fontSize: isMobile ? 12 : 14,
+            fontColor: "white",
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            borderRadius: 10,
+            padding: isMobile ? 2 : 3,
+            inFront: true,
+          });
         });
-      });
 
-      // Style atoms and bonds with enhanced visuals
-      // Use smaller sphere radius on mobile for better rendering
-      viewer.setStyle({}, {
-        sphere: { 
-          radius: isMobile ? 0.30 : 0.35, 
-          scale: isMobile ? 0.85 : 0.9, 
-          colorscheme: 'Jmol' 
-        },
-        stick: { 
-          radius: isMobile ? 0.12 : 0.15, 
-          colorscheme: 'Jmol' 
-        },
-      });
-      
-      // Add controls info for touch devices
-      if (isMobile) {
-        viewer.addLabel("Touch: Rotate | Pinch: Zoom", {
-          position: { x: 0, y: 0, z: 0 },
-          fontSize: 10,
-          fontColor: "white",
-          backgroundColor: "rgba(0, 0, 0, 0.7)",
-          padding: 4,
-          inFront: true,
-          fixed: true, // stays in place during rotation
+        // Style atoms and bonds with enhanced visuals
+        viewer.setStyle({}, {
+          sphere: { 
+            radius: isMobile ? 0.30 : 0.35, 
+            scale: isMobile ? 0.85 : 0.9, 
+            colorscheme: 'Jmol' 
+          },
+          stick: { 
+            radius: isMobile ? 0.12 : 0.15, 
+            colorscheme: 'Jmol' 
+          },
         });
         
-        // Clear the help text after 5 seconds
-        setTimeout(() => {
-          viewer.removeAllLabels();
-          // Re-add the atom labels
-          atoms.forEach((atom) => {
-            viewer.addLabel(atom.element, {
-              position: { x: atom.x, y: atom.y, z: atom.z },
-              fontSize: 12,
-              fontColor: "white",
-              backgroundColor: "rgba(0, 0, 0, 0.5)",
-              borderRadius: 10,
-              padding: 2,
-              inFront: true,
-            });
+        // Add controls info for touch devices
+        if (isMobile) {
+          viewer.addLabel("Touch: Rotate | Pinch: Zoom", {
+            position: { x: 0, y: 0, z: 0 },
+            fontSize: 10,
+            fontColor: "white",
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
+            padding: 4,
+            inFront: true,
+            fixed: true, // stays in place during rotation
           });
-          viewer.render();
-        }, 5000);
-      }
-      
-      viewer.zoomTo();
-      viewer.render();
-      
-      // Set up responsive resize handler
-      const handleResize = () => {
-        viewer.resize();
+          
+          // Clear the help text after 5 seconds
+          setTimeout(() => {
+            viewer.removeAllLabels();
+            // Re-add the atom labels
+            atoms.forEach((atom) => {
+              viewer.addLabel(atom.element, {
+                position: { x: atom.x, y: atom.y, z: atom.z },
+                fontSize: 12,
+                fontColor: "white",
+                backgroundColor: "rgba(0, 0, 0, 0.5)",
+                borderRadius: 10,
+                padding: 2,
+                inFront: true,
+              });
+            });
+            viewer.render();
+          }, 5000);
+        }
+        
+        // Center and zoom to fit the molecule
+        viewer.zoomTo();
         viewer.render();
-      };
-      
-      window.addEventListener('resize', handleResize);
-      
-      // Cleanup
-      return () => {
-        window.removeEventListener('resize', handleResize);
-      };
-    } catch (error) {
-      console.error("Error rendering molecule:", error);
-    }
+        
+        // Force a resize to ensure proper fit
+        viewer.resize();
+        
+        // Additional render after short delay to ensure everything is displayed correctly
+        setTimeout(() => {
+          viewer.resize();
+          viewer.render();
+        }, 100);
+      } catch (error) {
+        console.error("Error rendering molecule:", error);
+      }
+    }, 50);
+
+    // Set up responsive resize handler
+    const handleResize = () => {
+      if (viewerRef.current) {
+        const viewer = $3Dmol.viewers[viewerRef.current.id];
+        if (viewer) {
+          viewer.resize();
+          viewer.render();
+        }
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(timer);
+    };
   }, [atoms, isMobile]);
 
   return (
     <div 
       className="viewer-container" 
       style={{
-        ...styles.viewerContainer,
-        height: isMobile ? '350px' : '450px'
+        position: 'relative',
+        width: '100%',
+        height: isMobile ? '350px' : '450px',
+        margin: '0 auto',
+        borderRadius: '12px',
+        overflow: 'hidden',
+        backgroundColor: "rgba(15, 23, 42, 0.5)",
+        boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.2)",
+        border: "1px solid rgba(255, 255, 255, 0.1)"
       }}
     >
       <div
         ref={viewerRef}
+        id={`molecule-viewer-${Math.random().toString(36).substr(2, 9)}`}
         style={{
           width: "100%",
           height: "100%",
+          position: "absolute",
+          top: 0,
+          left: 0,
           borderRadius: "12px",
         }}
       ></div>
