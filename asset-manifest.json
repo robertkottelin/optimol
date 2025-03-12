@@ -1,13 +1,13 @@
 {
   "files": {
-    "main.css": "https://robertkottelin.github.io/optimol/static/css/main.3e360740.css",
-    "main.js": "https://robertkottelin.github.io/optimol/static/js/main.3e423f3f.js",
+    "main.css": "https://robertkottelin.github.io/optimol/static/css/main.9cac02ca.css",
+    "main.js": "https://robertkottelin.github.io/optimol/static/js/main.eba38786.js",
     "index.html": "https://robertkottelin.github.io/optimol/index.html",
-    "main.3e360740.css.map": "https://robertkottelin.github.io/optimol/static/css/main.3e360740.css.map",
-    "main.3e423f3f.js.map": "https://robertkottelin.github.io/optimol/static/js/main.3e423f3f.js.map"
+    "main.9cac02ca.css.map": "https://robertkottelin.github.io/optimol/static/css/main.9cac02ca.css.map",
+    "main.eba38786.js.map": "https://robertkottelin.github.io/optimol/static/js/main.eba38786.js.map"
   },
   "entrypoints": [
-    "static/css/main.3e360740.css",
-    "static/js/main.3e423f3f.js"
+    "static/css/main.9cac02ca.css",
+    "static/js/main.eba38786.js"
   ]
 }
