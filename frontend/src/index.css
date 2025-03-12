@@ -543,22 +543,368 @@ button:disabled {
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
+/* Mobile-specific classes */
+.mobile-full-width {
+  width: 100% !important;
+}
+
+.mobile-stack {
+  flex-direction: column !important;
+}
+
+.mobile-center {
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.mobile-hidden {
+  display: none !important;
+}
+
+.mobile-visible {
+  display: block !important;
+}
+
+.mobile-text-center {
+  text-align: center !important;
+}
+
+.mobile-smaller-text {
+  font-size: 90% !important;
+}
+
+.mobile-smaller-padding {
+  padding: 16px !important;
+}
+
+.mobile-margin-bottom {
+  margin-bottom: 16px !important;
+}
+
+.tablet-visible {
+  display: none;
+}
+
+/* Mobile menu button */
+.mobile-menu-button {
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #38bdf8, #2563eb);
+  color: white;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+
 /* Responsive adjustments */
+@media (max-width: 1200px) {
+  .container {
+    padding: 0 16px;
+  }
+  
+  .app {
+    padding: 16px !important;
+  }
+  
+  .tablet-stack {
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+  
+  .tablet-visible {
+    display: block;
+  }
+}
+
+@media (max-width: 992px) {
+  .app-title {
+    font-size: 42px;
+  }
+  
+  .app-subtitle {
+    font-size: 17px;
+  }
+  
+  .method-card {
+    width: 100% !important;
+    max-width: none !important;
+    margin-bottom: 16px !important;
+  }
+  
+  .tablet-full-width {
+    width: 100% !important;
+    max-width: none !important;
+  }
+  
+  .results-container, 
+  .parameters-container, 
+  .visualization-container {
+    padding: 20px;
+  }
+  
+  .popupContent {
+    width: 90%;
+    height: 90%;
+  }
+}
+
 @media (max-width: 768px) {
   .app-title {
     font-size: 36px;
+  }
+  
+  .app-subtitle {
+    font-size: 16px;
+    padding: 0 10px;
   }
   
   .subscription-form {
     padding: 24px;
   }
   
-  .method-selection {
-    flex-direction: column;
+  .method-selection-container {
+    flex-direction: column !important;
   }
   
   .test-molecule-button {
     padding: 10px 16px;
     font-size: 14px;
+  }
+  
+  .welcome-message {
+    flex-direction: column;
+    text-align: center;
+    padding: 16px;
+  }
+  
+  .optimize-button-container {
+    width: 100% !important;
+  }
+  
+  .optimize-button {
+    width: 100% !important;
+    padding: 12px 20px !important;
+  }
+  
+  .test-molecules-button-container {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .howToUseButton, 
+  .cancelSubscriptionButton {
+    position: static !important;
+    margin: 10px;
+    display: inline-flex;
+  }
+  
+  .top-buttons-container {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  
+  .parameter-group {
+    margin-bottom: 16px;
+  }
+  
+  .result-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .result-value {
+    margin-top: 4px;
+    width: 100%;
+  }
+  
+  .mobile-menu-button {
+    display: flex;
+  }
+  
+  .button-group {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .button-group button {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-title {
+    font-size: 28px;
+  }
+  
+  .app-subtitle {
+    font-size: 14px;
+  }
+  
+  .card, 
+  .glass {
+    border-radius: 12px;
+  }
+  
+  .test-molecules-container {
+    padding: 16px;
+  }
+  
+  .test-molecules-button-container {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .test-molecule-button {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .file-upload-area {
+    padding: 20px;
+  }
+  
+  .file-upload-text {
+    font-size: 14px;
+  }
+  
+  .file-upload-subtext {
+    font-size: 12px;
+  }
+  
+  .parameter-group {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .parameter-label {
+    margin-bottom: 8px;
+    width: 100%;
+  }
+  
+  .parameter-input, 
+  .parameter-select {
+    width: 100%;
+  }
+  
+  .visualization-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .tabs {
+    margin-top: 10px;
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .tab {
+    font-size: 12px;
+    padding: 6px 10px !important;
+  }
+  
+  .popup-content {
+    width: 95%;
+    height: 95%;
+    padding: 16px;
+  }
+  
+  .subscription-form .form-title {
+    font-size: 20px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .premium-badge {
+    margin-bottom: 8px;
+  }
+}
+
+/* Specific mobile fixes */
+@media (max-width: 768px) {
+  .parameter-help {
+    margin-left: 0 !important;
+    display: block;
+    margin-top: 4px;
+  }
+  
+  .warning-text {
+    margin-left: 0 !important;
+    display: block;
+    margin-top: 4px;
+  }
+  
+  .danger-badge,
+  .warning-badge {
+    margin-left: 0 !important;
+    display: inline-flex;
+    margin-top: 4px;
+  }
+  
+  .viewer-container {
+    height: 350px !important;
+  }
+  
+  /* Fix for the mobile navigation */
+  .mobile-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    z-index: 90;
+    display: flex;
+    justify-content: space-around;
+    padding: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .mobile-nav-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 12px;
+    padding: 8px;
+    border-radius: 8px;
+  }
+  
+  .mobile-nav-button.active {
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.1);
+  }
+  
+  .mobile-nav-icon {
+    margin-bottom: 4px;
+    font-size: 20px;
+  }
+}
+
+/* Transition and motion improvements for mobile */
+@media (max-width: 768px) {
+  .card:hover {
+    transform: none;
+  }
+  
+  .method-card:hover {
+    transform: none;
+  }
+  
+  .animation-reduce {
+    animation: none !important;
+    transition: none !important;
   }
 }

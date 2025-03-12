@@ -36,7 +36,7 @@ const SparkleIcon = () => (
   </svg>
 );
 
-const SubscriptionForm = ({ onSuccess }) => {
+const SubscriptionForm = ({ onSuccess, isMobile }) => {
   const stripe = useStripe();
   const elements = useElements();
   const [email, setEmail] = useState("");
@@ -102,24 +102,24 @@ const SubscriptionForm = ({ onSuccess }) => {
   };
 
   return (
-    <div className="subscription-form glass">
-      <h3 className="form-title">
+    <div className={`subscription-form glass ${isMobile ? 'mobile-smaller-padding' : ''}`}>
+      <h3 className={`form-title ${isMobile ? 'mobile-stack' : ''}`}>
         <span className="premium-badge"><SparkleIcon /> PRO</span>
-        Unlock Advanced Molecular Optimization
+        <span>Unlock Advanced Molecular Optimization</span>
       </h3>
       
-      <div className="benefits-list">
+      <div className={`benefits-list ${isMobile ? 'mobile-smaller-padding' : ''}`}>
         <div className="benefit-item">
           <div className="check-icon"><CheckIcon /></div>
-          <div>Up to 100,000 iterations for classical optimization</div>
+          <div className={isMobile ? 'mobile-smaller-text' : ''}>Up to 100,000 iterations for classical optimization</div>
         </div>
         <div className="benefit-item">
           <div className="check-icon"><CheckIcon /></div>
-          <div>Up to 1,000 iterations for quantum optimization</div>
+          <div className={isMobile ? 'mobile-smaller-text' : ''}>Up to 1,000 iterations for quantum optimization</div>
         </div>
         <div className="benefit-item">
           <div className="check-icon"><CheckIcon /></div>
-          <div>Access to extended basis sets (6-311G, cc-pVDZ)</div>
+          <div className={isMobile ? 'mobile-smaller-text' : ''}>Access to extended basis sets (6-311G, cc-pVDZ)</div>
         </div>
       </div>
       
@@ -147,7 +147,7 @@ const SubscriptionForm = ({ onSuccess }) => {
               style: {
                 base: {
                   color: "#f0f4f8",
-                  fontSize: "16px",
+                  fontSize: isMobile ? "14px" : "16px",
                   fontFamily: "'Inter', sans-serif",
                   fontSmoothing: "antialiased",
                   "::placeholder": { color: "#94a3b8" },
@@ -161,7 +161,7 @@ const SubscriptionForm = ({ onSuccess }) => {
           />
         </div>
         
-        <div className="secure-badge">
+        <div className={`secure-badge ${isMobile ? 'mobile-smaller-text' : ''}`}>
           <LockIcon /> Secure payment - $10/month
         </div>
         
@@ -180,7 +180,7 @@ const SubscriptionForm = ({ onSuccess }) => {
           )}
         </button>
         
-        <div className="subscription-terms">
+        <div className={`subscription-terms ${isMobile ? 'mobile-smaller-text' : ''}`}>
           Cancel anytime. Subscription renews monthly.
         </div>
       </form>

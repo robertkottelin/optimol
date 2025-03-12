@@ -45,11 +45,29 @@ const App = () => {
   // UI state
   const [isHowToUseVisible, setIsHowToUseVisible] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   // Loading states
   const [isSubscribeLoading, setIsSubscribeLoading] = useState(false);
   const [isCancelLoading, setIsCancelLoading] = useState(false);
   const [isOptimizeLoading, setIsOptimizeLoading] = useState(false);
+
+  // Check for mobile viewport
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    // Initial check
+    checkIfMobile();
+    
+    // Add event listener for window resize
+    window.addEventListener('resize', checkIfMobile);
+    
+    // Cleanup
+    return () => window.removeEventListener('resize', checkIfMobile);
+  }, []);
 
   const apiBaseUrl = "http://localhost:5000";
 
@@ -126,10 +144,15 @@ const App = () => {
 
   const handleShowHowToUse = () => {
     setIsHowToUseVisible(true);
+    setIsMobileMenuOpen(false);
   };
 
   const handleClosePopup = () => {
     setIsHowToUseVisible(false);
+  };
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
   const checkSubscriptionStatus = async (email) => {
@@ -476,7 +499,7 @@ const App = () => {
 
   // Main App render
   return (
-    <div style={styles.app}>
+    <div style={{...styles.app, padding: isMobile ? '16px' : styles.app.padding}}>
       <div style={styles.decorativeBg}></div>
       
       {/* Decorative animated lines for cyberpunk effect */}
@@ -494,46 +517,48 @@ const App = () => {
           </p>
         </header>
         
-        {/* Top Action Buttons */}
-        <button
-          onClick={handleShowHowToUse}
-          style={styles.howToUseButton}
-          className="float"
-        >
-          <span style={styles.howToUseIcon}><Icons.book /></span>
-          Documentation & Theory
-        </button>
-        
-        {isSubscribed && (
+        {/* Top Action Buttons - for mobile, move to a container */}
+        <div className="top-buttons-container">
           <button
-            onClick={handleCancelSubscription}
-            disabled={isCancelLoading}
-            style={{
-              ...styles.cancelSubscriptionButton,
-              opacity: isCancelLoading ? 0.7 : 1,
-              cursor: isCancelLoading ? "not-allowed" : "pointer",
-            }}
+            onClick={handleShowHowToUse}
+            style={styles.howToUseButton}
+            className="float"
           >
-            {isCancelLoading ? (
-              <>
-                <span className="spin" style={{ display: "inline-block", marginRight: "5px" }}>
-                  <Icons.spinner />
-                </span>
-                Cancelling...
-              </>
-            ) : (
-              <>
-                <span style={styles.cancelSubscriptionIcon}><Icons.cancel /></span>
-                Cancel Subscription
-              </>
-            )}
+            <span style={styles.howToUseIcon}><Icons.book /></span>
+            Documentation & Theory
           </button>
-        )}
+          
+          {isSubscribed && (
+            <button
+              onClick={handleCancelSubscription}
+              disabled={isCancelLoading}
+              style={{
+                ...styles.cancelSubscriptionButton,
+                opacity: isCancelLoading ? 0.7 : 1,
+                cursor: isCancelLoading ? "not-allowed" : "pointer",
+              }}
+            >
+              {isCancelLoading ? (
+                <>
+                  <span className="spin" style={{ display: "inline-block", marginRight: "5px" }}>
+                    <Icons.spinner />
+                  </span>
+                  Cancelling...
+                </>
+              ) : (
+                <>
+                  <span style={styles.cancelSubscriptionIcon}><Icons.cancel /></span>
+                  Cancel Subscription
+                </>
+              )}
+            </button>
+          )}
+        </div>
         
         {/* Subscription Form or Welcome Message */}
         <div className="fade-in glass card" style={isSubscribed ? styles.cardWithGlow : styles.card}>
           {!isSubscribed ? (
-            <div className="subscription-form">
+            <div className={`subscription-form ${isMobile ? 'mobile-smaller-padding' : ''}`}>
               <Elements stripe={stripePromise}>
                 <SubscriptionForm
                   onSuccess={(email) => {
@@ -541,11 +566,12 @@ const App = () => {
                     handleSubscriptionSuccess(email);
                     setIsSubscribeLoading(false);
                   }}
+                  isMobile={isMobile}
                 />
               </Elements>
             </div>
           ) : (
-            <div className="welcome-message" style={styles.welcomeMessage}>
+            <div className={`welcome-message ${isMobile ? 'mobile-stack mobile-text-center' : ''}`} style={styles.welcomeMessage}>
               <div style={styles.welcomeIcon}>
                 <Icons.verified />
               </div>
@@ -562,16 +588,16 @@ const App = () => {
           </h2>
           
           {/* Test Molecules Buttons */}
-          <div style={styles.testMoleculesContainer}>
+          <div style={styles.testMoleculesContainer} className={isMobile ? 'mobile-smaller-padding' : ''}>
             <h3 style={styles.testMoleculesTitle}>
               Test Molecules
               <span style={styles.testMoleculesTitleIcon}></span>
             </h3>
-            <div style={styles.testMoleculesButtonContainer}>
+            <div style={styles.testMoleculesButtonContainer} className={isMobile ? 'mobile-stack' : ''}>
               <button 
                 onClick={() => handleTestMoleculeSelect('water')} 
                 style={styles.testMoleculeButton}
-                className="test-molecule-button"
+                className={`test-molecule-button ${isMobile ? 'mobile-full-width mobile-margin-bottom' : ''}`}
               >
                 <span style={styles.testMoleculeIcon}><Icons.molecule /></span>
                 Water (H₂O)
@@ -579,18 +605,17 @@ const App = () => {
               <button 
                 onClick={() => handleTestMoleculeSelect('ibuprofen')} 
                 style={styles.testMoleculeButton}
-                className="test-molecule-button"
+                className={`test-molecule-button ${isMobile ? 'mobile-full-width' : ''}`}
               >
                 <span style={styles.testMoleculeIcon}><Icons.molecule /></span>
                 Ibuprofen (C₁₃H₁₈O₂)
               </button>
             </div>
-
           </div>
           
           {/* File Upload Area */}
           <div 
-            className={`file-upload-area ${isDragActive ? 'file-upload-active' : ''}`}
+            className={`file-upload-area ${isDragActive ? 'file-upload-active' : ''} ${isMobile ? 'mobile-smaller-padding' : ''}`}
             style={{
               ...styles.fileUpload,
               ...(isDragActive ? styles.fileUploadActive : {})
@@ -602,7 +627,9 @@ const App = () => {
             <div style={isDragActive ? { ...styles.fileUploadIcon, ...styles.fileUploadActiveIcon } : styles.fileUploadIcon}>
               <Icons.upload />
             </div>
-            <p style={styles.fileUploadText}>Drag & drop a molecule file here, or click to select a file</p>
+            <p style={styles.fileUploadText}>
+              {isMobile ? 'Upload a molecule file' : 'Drag & drop a molecule file here, or click to select a file'}
+            </p>
             <p style={styles.fileUploadSubtext}>
               Accepted format: JSON structured molecule data
             </p>
@@ -624,9 +651,12 @@ const App = () => {
           {moleculeData && (
             <div className="slide-up" style={styles.contentWrapper}>
               {/* Optimization Method Selection */}
-              <div style={styles.methodSelectionContainer}>
+              <div 
+                style={styles.methodSelectionContainer} 
+                className={isMobile ? "mobile-stack" : ""}
+              >
                 <div 
-                  className={`method-card ${optimizationType === "classical" ? 'classical-active' : ''}`}
+                  className={`method-card ${optimizationType === "classical" ? 'classical-active' : ''} ${isMobile ? 'mobile-full-width mobile-margin-bottom' : ''}`}
                   style={styles.methodSelectionButton(optimizationType === "classical", "classical")}
                   onClick={() => handleOptimizationTypeChange("classical")}
                 >
@@ -647,7 +677,7 @@ const App = () => {
                 </div>
                 
                 <div 
-                  className={`method-card ${optimizationType === "quantum" ? 'quantum-active' : ''}`}
+                  className={`method-card ${optimizationType === "quantum" ? 'quantum-active' : ''} ${isMobile ? 'mobile-full-width' : ''}`}
                   style={styles.methodSelectionButton(optimizationType === "quantum", "quantum")}
                   onClick={() => handleOptimizationTypeChange("quantum")}
                 >
@@ -677,6 +707,7 @@ const App = () => {
                   handleParamChange={handleParamChange}
                   handleResetParams={handleResetParams}
                   setShowAdvancedParams={setShowAdvancedParams}
+                  isMobile={isMobile}
                 />
               ) : (
                 <QuantumParametersConfig 
@@ -686,12 +717,13 @@ const App = () => {
                   handleParamChange={handleParamChange}
                   handleResetParams={handleResetParams}
                   setShowAdvancedParams={setShowAdvancedParams}
+                  isMobile={isMobile}
                 />
               )}
               
               {/* Visualization */}
-              <div style={styles.visualizationContainer} className="glass">
-                <div style={styles.visualizationHeader}>
+              <div style={styles.visualizationContainer} className={`glass ${isMobile ? 'mobile-smaller-padding' : ''}`}>
+                <div style={styles.visualizationHeader} className={isMobile ? 'mobile-stack' : ''}>
                   <div style={styles.visualizationTitle}>
                     <span style={styles.visualizationIcon}><Icons.molecule /></span>
                     {activeView === "original" ? "Original" : 
@@ -699,10 +731,11 @@ const App = () => {
                   </div>
                   
                   {optimizationResult && (
-                    <div style={styles.tabs}>
+                    <div style={styles.tabs} className={isMobile ? 'mobile-full-width' : ''}>
                       <div 
                         style={styles.tab(activeView === "original", "#38bdf8")}
                         onClick={() => setActiveView("original")}
+                        className={isMobile ? 'mobile-smaller-text' : ''}
                       >
                         <Icons.molecule /> Original
                       </div>
@@ -712,6 +745,7 @@ const App = () => {
                           optimizationType === "classical" ? "#10b981" : "#38bdf8"
                         )}
                         onClick={() => setActiveView("optimized")}
+                        className={isMobile ? 'mobile-smaller-text' : ''}
                       >
                         {optimizationType === "classical" ? <Icons.classical /> : <Icons.quantum />}
                         {optimizationType === "classical" ? "Classical" : "Quantum"} Optimized
@@ -720,16 +754,16 @@ const App = () => {
                   )}
                 </div>
                 
-                <MoleculeViewer atoms={getAtoms()} />
+                <MoleculeViewer atoms={getAtoms()} isMobile={isMobile} />
               </div>
               
               {/* Optimize Button */}
-              <div style={styles.optimizeButtonContainer}>
+              <div style={styles.optimizeButtonContainer} className={isMobile ? 'mobile-full-width' : ''}>
                 <button
                   onClick={handleOptimize}
                   disabled={isOptimizeLoading}
                   style={styles.optimizeButton(optimizationType, isOptimizeLoading)}
-                  className={optimizationType === "classical" ? "classical-button" : "quantum-button"}
+                  className={`${optimizationType === "classical" ? "classical-button" : "quantum-button"} ${isMobile ? 'mobile-full-width' : ''}`}
                 >
                   {isOptimizeLoading ? (
                     <>
@@ -747,7 +781,7 @@ const App = () => {
                 </button>
                 
                 {!isSubscribed && (
-                  <div style={styles.freeUserNotice}>
+                  <div style={styles.freeUserNotice} className={isMobile ? 'mobile-smaller-text mobile-text-center' : ''}>
                     Free users are limited to {ITERATION_LIMITS.unsubscribed.classical.toLocaleString()} iterations for classical and {ITERATION_LIMITS.unsubscribed.quantum} for quantum optimizations.
                   </div>
                 )}
@@ -759,6 +793,7 @@ const App = () => {
                   optimizationResult={optimizationResult}
                   optimizationType={optimizationType}
                   handleDownload={handleDownload}
+                  isMobile={isMobile}
                 />
               )}
             </div>
@@ -766,10 +801,80 @@ const App = () => {
         </section>
       </div>
       
+      {/* Mobile Menu Button */}
+      {isMobile && (
+        <button 
+          className="mobile-menu-button" 
+          onClick={toggleMobileMenu}
+        >
+          <Icons.menu />
+        </button>
+      )}
+
+      {/* Mobile Navigation Menu */}
+      {isMobile && isMobileMenuOpen && (
+        <div className="mobile-nav">
+          <button 
+            className={`mobile-nav-button ${moleculeData ? '' : 'active'}`}
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              document.querySelector('.file-upload-area').scrollIntoView({behavior: 'smooth'});
+            }}
+          >
+            <span className="mobile-nav-icon"><Icons.upload /></span>
+            Upload
+          </button>
+          {moleculeData && (
+            <>
+              <button 
+                className={`mobile-nav-button ${optimizationType === 'classical' ? 'active' : ''}`}
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  handleOptimizationTypeChange("classical");
+                }}
+              >
+                <span className="mobile-nav-icon"><Icons.classical /></span>
+                Classical
+              </button>
+              <button 
+                className={`mobile-nav-button ${optimizationType === 'quantum' ? 'active' : ''}`}
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  handleOptimizationTypeChange("quantum");
+                }}
+              >
+                <span className="mobile-nav-icon"><Icons.quantum /></span>
+                Quantum
+              </button>
+              <button 
+                className="mobile-nav-button"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  document.querySelector('.optimize-button-container').scrollIntoView({behavior: 'smooth'});
+                }}
+              >
+                <span className="mobile-nav-icon"><Icons.play /></span>
+                Optimize
+              </button>
+            </>
+          )}
+          <button 
+            className="mobile-nav-button"
+            onClick={handleShowHowToUse}
+          >
+            <span className="mobile-nav-icon"><Icons.book /></span>
+            Help
+          </button>
+        </div>
+      )}
+      
       {/* How To Use Popup */}
       {isHowToUseVisible && (
         <div style={styles.popup} className="popup-overlay">
-          <div style={styles.popupContent} className="popup-content glass">
+          <div 
+            style={styles.popupContent} 
+            className={`popup-content glass ${isMobile ? 'mobile-smaller-padding' : ''}`}
+          >
             <button
               onClick={handleClosePopup}
               style={styles.popupClose}
