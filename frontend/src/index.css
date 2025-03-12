@@ -908,3 +908,248 @@ button:disabled {
     transition: none !important;
   }
 }
+
+/* Mobile layout fixes - General improvements */
+@media (max-width: 768px) {
+  /* Reduce spacing under parameter groups */
+  .parameter-group {
+    margin-bottom: 12px !important;
+  }
+  
+  /* Ensure inputs don't have excess spacing */
+  .parameter-input, 
+  .parameter-select,
+  input[type="number"],
+  input[type="text"],
+  select {
+    margin-bottom: 0 !important;
+  }
+  
+  /* Adjust parameter containers padding */
+  .parameters-container {
+    padding: 16px !important;
+  }
+  
+  /* Fix label spacing */
+  .parameter-label {
+    margin-bottom: 6px !important;
+  }
+  
+  /* Force proper spacing between groups */
+  .parameter-group + .parameter-group {
+    margin-top: 8px !important;
+  }
+  
+  /* Fix for header and documentation button overlap */
+  .top-buttons-container {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 12px;
+    padding-top: 4px;
+    z-index: 10;
+  }
+  
+  /* Reposition documentation button */
+  .howToUseButton,
+  button.float {
+    position: static !important;
+    margin: 0 4px 8px 4px !important;
+    display: inline-flex !important;
+  }
+  
+  /* Ensure header has room */
+  .app-header {
+    padding-top: 40px !important;
+    margin-bottom: 20px !important;
+  }
+  
+  /* Fix the checkbox alignment */
+  input[type="checkbox"] {
+    margin-right: 8px !important;
+  }
+  
+  /* Fix advanced parameter help text alignment */
+  .parameter-help {
+    padding-left: 28px !important;
+    margin-top: 2px !important;
+  }
+  
+  /* Fix the header title font size for better mobile fit */
+  .app-title {
+    font-size: 28px !important;
+  }
+}
+
+/* Extra aggressive mobile spacing fixes */
+@media (max-width: 768px) {
+  /* Fix the overall parameter container */
+  .parameters-container {
+    padding: 12px !important;
+  }
+  
+  /* Target the parameter groups directly */
+  .parameter-group {
+    margin-bottom: 8px !important;
+    padding-bottom: 0 !important;
+    min-height: auto !important;
+  }
+  
+  /* Fix label spacing */
+  .parameter-label {
+    margin-bottom: 2px !important;
+    padding-bottom: 0 !important;
+    font-size: 0.9rem !important;
+  }
+  
+  /* Parameter inputs - remove all extra spacing */
+  .parameter-input, 
+  .parameter-select,
+  input[type="number"],
+  input[type="text"],
+  select {
+    margin: 0 !important;
+    margin-bottom: 0 !important;
+    margin-top: 0 !important;
+    padding: 8px !important;
+    min-height: 36px !important;
+    height: 36px !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Force label and input to be closer */
+  .mobile-stack .parameter-label + input,
+  .mobile-stack .parameter-label + select,
+  .mobile-stack .parameter-label + div {
+    margin-top: 0 !important;
+  }
+  
+  /* Remove any extra divs that might be adding height */
+  .parameter-group > div {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  /* Force checkbox container to stay tight */
+  .parameter-group input[type="checkbox"] {
+    margin: 0 !important;
+    margin-right: 6px !important;
+  }
+  
+  /* Fix any possible grid or flex layouts */
+  .parameter-group {
+    display: flex !important;
+    flex-direction: column !important;
+    row-gap: 2px !important;
+  }
+  
+  /* Remove any bottom margins from the last parameter group */
+  .parameter-group:last-child {
+    margin-bottom: 16px !important;
+  }
+  
+  /* Extra aggressive fix for any hidden padding */
+  * {
+    line-height: normal !important;
+  }
+  
+  /* Parameter help text should be compact */
+  .parameter-help {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    line-height: 1.2 !important;
+    font-size: 0.8rem !important;
+  }
+}
+
+/* Ultra-aggressive parameter spacing fix for mobile */
+@media (max-width: 768px) {
+  /* Target the specific flex container for parameters */
+  .parameter-group.mobile-stack {
+    gap: 0 !important;
+    margin: 0 0 12px 0 !important;
+    padding: 0 !important;
+  }
+  
+  /* Make the parameter label stick directly to its input */
+  .parameter-group.mobile-stack .parameter-label {
+    margin: 0 0 2px 0 !important;
+    padding: 0 !important;
+    line-height: 1.2 !important;
+    font-size: 14px !important;
+  }
+  
+  /* Force input to be right below the label with no gap */
+  .parameter-group.mobile-stack input,
+  .parameter-group.mobile-stack select,
+  .parameter-group.mobile-stack .mobile-full-width {
+    margin-top: 0 !important;
+    margin-bottom: 8px !important;
+    height: 36px !important;
+  }
+  
+  /* Completely remove any spacing inside the parameter container */
+  .parameters-container {
+    padding: 8px !important;
+  }
+  
+  /* Remove any space between the checkbox and its label */
+  .parameter-group.mobile-stack .parameter-help {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  /* Force direct adjacency of elements */
+  .parameter-group * + * {
+    margin-top: 0 !important;
+  }
+  
+  /* Target empty space caused by flexbox */
+  .parameter-group.mobile-stack::before,
+  .parameter-group.mobile-stack::after {
+    display: none !important;
+    content: none !important;
+  }
+}
+
+/* Direct fixes for parameter groups */
+@media (max-width: 768px) {
+  /* Completely flat structure for parameter groups */
+  .parameter-group-wrapper {
+    margin: 0 0 8px 0 !important;
+    padding: 0 !important;
+  }
+  
+  /* Ensure no space between label and input */
+  .parameter-group-wrapper label {
+    display: block !important;
+    margin: 0 0 2px 0 !important; 
+    padding: 0 !important;
+  }
+  
+  /* Parameter inputs right below labels */
+  .parameter-group-wrapper input,
+  .parameter-group-wrapper select {
+    display: block !important;
+    margin: 0 !important;
+    padding: 8px !important;
+    height: 36px !important;
+  }
+  
+  /* Container for all parameters */
+  .parameter-groups-container {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  /* Override any other spacing that might interfere */
+  .parameters-container > * {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+  }
+  
+  /* Remove extra margins and paddings */
+  .parameters-container {
+    padding: 8px !important;
+  }
+}

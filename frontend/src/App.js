@@ -509,20 +509,16 @@ const App = () => {
       <div style={{ ...styles.decorativeLine, top: "85%", animationDelay: "1.5s" }}></div>
       
       <div style={styles.container}>
-        {/* App Header */}
-        <header style={styles.header} className="app-header">
-          <h1 style={styles.headerTitle} className="app-title">Molecular Optimization System</h1>
-          <p style={styles.headerSubtitle} className="app-subtitle">
-            Advanced computational chemistry tools for structure optimization
-          </p>
-        </header>
-        
-        {/* Top Action Buttons - for mobile, move to a container */}
+        {/* Top Action Buttons - Move before header for mobile */}
         <div className="top-buttons-container">
           <button
             onClick={handleShowHowToUse}
-            style={styles.howToUseButton}
-            className="float"
+            style={{
+              ...styles.howToUseButton,
+              position: isMobile ? 'static' : 'absolute',
+              marginRight: isMobile ? '5px' : '0'
+            }}
+            className="float howToUseButton"
           >
             <span style={styles.howToUseIcon}><Icons.book /></span>
             Documentation & Theory
@@ -536,6 +532,8 @@ const App = () => {
                 ...styles.cancelSubscriptionButton,
                 opacity: isCancelLoading ? 0.7 : 1,
                 cursor: isCancelLoading ? "not-allowed" : "pointer",
+                position: isMobile ? 'static' : 'absolute',
+                marginLeft: isMobile ? '5px' : '0'
               }}
             >
               {isCancelLoading ? (
@@ -554,6 +552,14 @@ const App = () => {
             </button>
           )}
         </div>
+        
+        {/* App Header - Now comes after buttons in the DOM */}
+        <header style={styles.header} className="app-header">
+          <h1 style={styles.headerTitle} className="app-title">Molecular Optimization System</h1>
+          <p style={styles.headerSubtitle} className="app-subtitle">
+            Advanced computational chemistry tools for structure optimization
+          </p>
+        </header>
         
         {/* Subscription Form or Welcome Message */}
         <div className="fade-in glass card" style={isSubscribed ? styles.cardWithGlow : styles.card}>
