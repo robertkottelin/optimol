@@ -69,7 +69,9 @@ const App = () => {
     return () => window.removeEventListener('resize', checkIfMobile);
   }, []);
 
-  const apiBaseUrl = "http://localhost:5000";
+  // const apiBaseUrl = "http://localhost:5000";
+  const apiBaseUrl = "http://64.226.88.121:5000";
+
 
   const [howToUseContent, setHowToUseContent] = useState("");
   useEffect(() => {
