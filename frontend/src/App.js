@@ -70,8 +70,8 @@ const App = () => {
   }, []);
 
   // const apiBaseUrl = "http://localhost:5000";
-  const apiBaseUrl = "http://64.226.88.121:5000";
-
+  // const apiBaseUrl = "http://64.226.88.121:5000";
+  const apiBaseUrl = "https://64.226.88.121";
 
   const [howToUseContent, setHowToUseContent] = useState("");
   useEffect(() => {
