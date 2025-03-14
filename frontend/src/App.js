@@ -159,7 +159,7 @@ const App = () => {
 
   const checkSubscriptionStatus = async (email) => {
     try {
-      const response = await axios.post(`/check-subscription`, { email });
+      const response = await axios.post(`${apiBaseUrl}/check-subscription`, { email });
       const userIsSubscribed = response.data.isSubscribed;
       
       setIsSubscribed(userIsSubscribed);
@@ -194,7 +194,7 @@ const App = () => {
     setIsCancelLoading(true);
 
     try {
-      const response = await axios.post(`/cancel-subscription`, {
+      const response = await axios.post(`${apiBaseUrl}/cancel-subscription`, {
         email: userEmail,
       });
 
@@ -372,9 +372,7 @@ const App = () => {
 
       console.log('Optimization payload:', JSON.stringify(payload, null, 2));
     
-      // const response = await axios.post(`${apiBaseUrl}/optimize-molecule`, payload);
-      const response = await axios.post("/optimize-molecule", payload);
-
+      const response = await axios.post(`${apiBaseUrl}/optimize-molecule`, payload);
       
       if (response.data.success) {
         // Clear any previous result for the other optimization type
