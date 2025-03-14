@@ -6,7 +6,7 @@ dependencies:
   - python=3.9
   - flask
   - flask-cors
-  - numpy
+  - numpy=1.24.3
   - pip
   - python-dotenv
   - stripe
@@ -15,4 +15,3 @@ dependencies:
       - openmm
       - gunicorn
       - flask-sqlalchemy
-

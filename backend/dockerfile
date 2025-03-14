@@ -16,19 +16,25 @@ WORKDIR /app
 # Copy the environment.yml file into the container
 COPY environment.yml .
 
-# Create the Conda environment
+# Create the Conda environment with pinned numpy version
 RUN conda env create -f environment.yml && \
     conda clean -afy && \
     echo "source activate optimize-molecule" > ~/.bashrc
 
 ENV PATH /opt/conda/envs/optimize-molecule/bin:$PATH
 
+# Explicitly force NumPy to version 1.24.3 for OpenMM compatibility
+RUN pip install numpy==1.24.3 --force-reinstall
+
 # Copy the application code
 COPY . .
+
+# Fix SQLAlchemy health check
+RUN sed -i "1s/from flask import Flask, jsonify/from flask import Flask, jsonify\nfrom sqlalchemy import text/" app.py && \
+    sed -i "s/db.session.execute('SELECT 1')/db.session.execute(text('SELECT 1'))/" app.py
 
 # Expose the Flask port
 EXPOSE 5000
 
 # Start the Flask application
-# CMD ["python", "app.py"]
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "3", "--timeout", "300", "app:app"]
