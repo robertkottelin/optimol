@@ -73,6 +73,11 @@ const App = () => {
   // const apiBaseUrl = "http://64.226.88.121:5000";
   const apiBaseUrl = "https://64.226.88.121";
 
+  const axiosInstance = axios.create({
+    httpsAgent: new https.Agent({ rejectUnauthorized: false }),
+    headers: { 'Content-Type': 'application/json' }
+  });
+
   const [howToUseContent, setHowToUseContent] = useState("");
   useEffect(() => {
     // Load documentation from public directory
@@ -372,7 +377,27 @@ const App = () => {
 
       console.log('Optimization payload:', JSON.stringify(payload, null, 2));
     
-      const response = await axios.post(`${apiBaseUrl}/optimize-molecule`, payload);
+      // const response = await axios.post(`${apiBaseUrl}/optimize-molecule`, payload);
+
+      try {
+        console.log("Attempting request to:", `${apiBaseUrl}/optimize-molecule`);
+        const response = await axios({
+          method: 'post',
+          url: `${apiBaseUrl}/optimize-molecule`,
+          data: payload,
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        });
+        console.log("Response received:", response);
+      } catch (error) {
+        console.error("Request error details:", {
+          message: error.message,
+          response: error.response,
+          request: error.request
+        });
+      }
       
       if (response.data.success) {
         // Clear any previous result for the other optimization type
