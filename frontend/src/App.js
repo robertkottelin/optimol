@@ -73,10 +73,6 @@ const App = () => {
   // const apiBaseUrl = "http://64.226.88.121:5000";
   const apiBaseUrl = "https://64.226.88.121";
 
-  const axiosInstance = axios.create({
-    httpsAgent: new https.Agent({ rejectUnauthorized: false }),
-    headers: { 'Content-Type': 'application/json' }
-  });
 
   const [howToUseContent, setHowToUseContent] = useState("");
   useEffect(() => {
@@ -332,7 +328,7 @@ const App = () => {
       alert("Please upload or select a molecule first.");
       return;
     }
-
+    
     setIsOptimizeLoading(true);
     
     try {
@@ -342,7 +338,6 @@ const App = () => {
         
       // Apply iteration limits for all users
       if (optimizationType === "classical") {
-        // Apply appropriate limits based on subscription status
         const maxIterations = isSubscribed 
           ? ITERATION_LIMITS.subscribed.classical
           : ITERATION_LIMITS.unsubscribed.classical;
@@ -352,7 +347,6 @@ const App = () => {
           maxIterations
         );
       } else {
-        // Apply appropriate limits based on subscription status
         const maxIterations = isSubscribed 
           ? ITERATION_LIMITS.subscribed.quantum
           : ITERATION_LIMITS.unsubscribed.quantum;
@@ -362,7 +356,6 @@ const App = () => {
           maxIterations
         );
         
-        // Enforce basis set restrictions for non-subscribers only
         if (!isSubscribed && (optimizationParams.basis === "6-311g" || optimizationParams.basis === "cc-pvdz")) {
           optimizationParams.basis = "6-31g";
         }
@@ -374,46 +367,41 @@ const App = () => {
         optimization_type: optimizationType,
         optimization_params: optimizationParams
       };
-
+  
       console.log('Optimization payload:', JSON.stringify(payload, null, 2));
     
-      // const response = await axios.post(`${apiBaseUrl}/optimize-molecule`, payload);
-
-      try {
-        console.log("Attempting request to:", `${apiBaseUrl}/optimize-molecule`);
-        const response = await axios({
-          method: 'post',
-          url: `${apiBaseUrl}/optimize-molecule`,
-          data: payload,
-          headers: { 
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          }
-        });
-        console.log("Response received:", response);
-      } catch (error) {
-        console.error("Request error details:", {
-          message: error.message,
-          response: error.response,
-          request: error.request
-        });
-      }
+      console.log("Attempting request to:", `${apiBaseUrl}/optimize-molecule`);
+      const response = await axios({
+        method: 'post',
+        url: `${apiBaseUrl}/optimize-molecule`,
+        data: payload,
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+      
+      console.log("Response received:", response);
       
       if (response.data.success) {
-        // Clear any previous result for the other optimization type
         setOptimizationResult(response.data);
-        setActiveView("optimized"); // Show optimized results after successful optimization
+        setActiveView("optimized");
       } else {
         alert("Optimization failed. " + (response.data.error || ""));
       }
     } catch (error) {
       console.error("Error optimizing molecule:", error);
+      console.error("Request error details:", {
+        message: error.message,
+        response: error.response,
+        request: error.request
+      });
       alert("Error optimizing molecule: " + (error.response?.data?.error || error.message));
     } finally {
       setIsOptimizeLoading(false);
     }
   };
-
+  
   const handleParamChange = (type, paramName, value) => {
     if (type === "classical") {
       setClassicalParams(prev => ({
