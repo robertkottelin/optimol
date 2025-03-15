@@ -36,5 +36,7 @@ RUN sed -i "1s/from flask import Flask, jsonify/from flask import Flask, jsonify
 # Expose the Flask port
 EXPOSE 5000
 
+COPY .env .
+
 # Start the Flask application
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "3", "--timeout", "300", "app:app"]

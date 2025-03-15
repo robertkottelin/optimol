@@ -1,3 +1,4 @@
+# Modified backend.yml
 name: Backend CI/CD
 
 on:
@@ -21,6 +22,11 @@ jobs:
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Create .env file
+      run: |
+        cd backend
+        echo "STRIPE_SECRET=${{ secrets.STRIPE_SECRET }}" > .env
 
     - name: Build and tag Docker image
       run: |
