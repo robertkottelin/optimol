@@ -2,7 +2,7 @@
     "SQLALCHEMY_DATABASE_URI": "sqlite:///users.db",
     "SQLALCHEMY_TRACK_MODIFICATIONS": false,
     "CORS": {
-        "origins": ["https://robertkottelin.github.io", "http://localhost:3000"],
+        "origins": ["https://robertkottelin.github.io", "https://optimizemolecule.com"],
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"]
     }

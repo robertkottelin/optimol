@@ -43,6 +43,12 @@ from opti import opti_bp
 app.register_blueprint(user_bp)
 app.register_blueprint(opti_bp)
 
+# Initialize database tables during application startup
+# This ensures tables exist regardless of how the app is launched
+with app.app_context():
+    db.create_all()
+    print("Database tables initialized")
+
 @app.route('/')
 def index():
     return "Optimol API"
@@ -60,6 +66,5 @@ def health_check():
         return jsonify({"status": "unhealthy", "error": str(e)}), 500
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()  # Create tables within the app context
+    # No need to create tables here again since we do it at app initialization
     app.run(host="0.0.0.0", port=5000)
