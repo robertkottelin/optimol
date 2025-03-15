@@ -1,8 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import ReactMarkdown from "react-markdown";
+
+// Import authentication context
+import { AuthContext } from './AuthContext';
+import LoginForm from './components/LoginForm';
+import RegisterForm from './components/RegisterForm';
 
 // Import style constants
 import { styles } from './styles/components';
@@ -26,6 +31,9 @@ import OptimizationResults from './components/OptimizationResults';
 // Initialize Stripe
 const stripePromise = loadStripe('pk_test_kbl0ETzPsoiTwU4ZJMvhsYJw006XVnV4Aq');
 
+// Configure axios to include credentials with all requests
+axios.defaults.withCredentials = true;
+
 const App = () => {
   // State for molecule data
   const [moleculeData, setMoleculeData] = useState(null);
@@ -38,9 +46,9 @@ const App = () => {
   const [quantumParams, setQuantumParams] = useState({ ...defaultQuantumParams });
   const [showAdvancedParams, setShowAdvancedParams] = useState(false);
 
-  // User and subscription state
-  const [isSubscribed, setIsSubscribed] = useState(false);
-  const [userEmail, setUserEmail] = useState("");
+  // Authentication and user state from context
+  const { currentUser, isAuthenticated, isLoading, logout } = useContext(AuthContext);
+  const [showLoginForm, setShowLoginForm] = useState(true);
 
   // UI state
   const [isHowToUseVisible, setIsHowToUseVisible] = useState(false);
@@ -70,7 +78,6 @@ const App = () => {
   }, []);
 
   const apiBaseUrl = "https://optimizemolecule.com";
-  // apiBaseUrl = "http://localhost:5000";
   
   const [howToUseContent, setHowToUseContent] = useState("");
   useEffect(() => {
@@ -130,18 +137,12 @@ const App = () => {
     });
   };
 
-  // Check subscription status on page load and apply limits
+  // Apply limits on initial load and whenever subscription status changes
   useEffect(() => {
-    const email = localStorage.getItem("userEmail");
-    if (email) {
-      checkSubscriptionStatus(email);
-    } else {
-      // For non-subscribed users, initialize with default values and apply limits
-      setClassicalParams(defaultClassicalParams);
-      setQuantumParams(defaultQuantumParams);
-      applyIterationLimits(false);
+    if (!isLoading) {
+      applyIterationLimits(currentUser?.isSubscribed || false);
     }
-  }, []);
+  }, [isLoading, currentUser?.isSubscribed]);
 
   const handleShowHowToUse = () => {
     setIsHowToUseVisible(true);
@@ -159,7 +160,6 @@ const App = () => {
   const [serverHealth, setServerHealth] = useState(null);
   const [isCheckingHealth, setIsCheckingHealth] = useState(false);
   const [serverHealthDetails, setServerHealthDetails] = useState(null);
-
 
   const checkServerHealth = async () => {
     setIsCheckingHealth(true);
@@ -197,31 +197,9 @@ const App = () => {
     }
   };
 
-  const checkSubscriptionStatus = async (email) => {
-    try {
-      const response = await axios.post(`${apiBaseUrl}/check-subscription`, { email });
-      const userIsSubscribed = response.data.isSubscribed;
-
-      setIsSubscribed(userIsSubscribed);
-      setUserEmail(email);
-
-      // Apply appropriate limits based on subscription status
-      applyIterationLimits(userIsSubscribed);
-    } catch (error) {
-      console.error("Error checking subscription status:", error);
-      // If there's an error, assume user is not subscribed
-      setIsSubscribed(false);
-      applyIterationLimits(false);
-    }
-  };
-
-  const handleSubscriptionSuccess = (email) => {
-    setIsSubscribed(true);
-    setUserEmail(email);
-    localStorage.setItem("userEmail", email);
-
-    // Apply subscriber limits while preserving current parameter values
-    applyIterationLimits(true);
+  const handleSubscriptionSuccess = () => {
+    // Reload user data from context to update subscription status
+    window.location.reload();
   };
 
   const handleCancelSubscription = async () => {
@@ -234,18 +212,14 @@ const App = () => {
     setIsCancelLoading(true);
 
     try {
-      const response = await axios.post(`${apiBaseUrl}/cancel-subscription`, {
-        email: userEmail,
+      const response = await axios.post(`${apiBaseUrl}/cancel-subscription`, {}, {
+        withCredentials: true
       });
 
       if (response.data.success) {
         alert("Your subscription has been canceled.");
-        setIsSubscribed(false);
-        setUserEmail("");
-        localStorage.removeItem("userEmail");
-
-        // Apply non-subscriber limits while preserving current parameter values
-        applyIterationLimits(false);
+        // Refresh page to update auth context
+        window.location.reload();
       } else {
         alert("Failed to cancel subscription. Please try again.");
       }
@@ -377,7 +351,7 @@ const App = () => {
 
       // Apply iteration limits for all users
       if (optimizationType === "classical") {
-        const maxIterations = isSubscribed
+        const maxIterations = currentUser?.isSubscribed
           ? ITERATION_LIMITS.subscribed.classical
           : ITERATION_LIMITS.unsubscribed.classical;
 
@@ -386,7 +360,7 @@ const App = () => {
           maxIterations
         );
       } else {
-        const maxIterations = isSubscribed
+        const maxIterations = currentUser?.isSubscribed
           ? ITERATION_LIMITS.subscribed.quantum
           : ITERATION_LIMITS.unsubscribed.quantum;
 
@@ -395,13 +369,12 @@ const App = () => {
           maxIterations
         );
 
-        if (!isSubscribed && (optimizationParams.basis === "6-311g" || optimizationParams.basis === "cc-pvdz")) {
+        if (!currentUser?.isSubscribed && (optimizationParams.basis === "6-311g" || optimizationParams.basis === "cc-pvdz")) {
           optimizationParams.basis = "6-31g";
         }
       }
 
       const payload = {
-        email: userEmail || "guest@example.com",
         molecule: moleculeData,
         optimization_type: optimizationType,
         optimization_params: optimizationParams
@@ -417,7 +390,8 @@ const App = () => {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
-        }
+        },
+        withCredentials: true
       });
 
       console.log("Response received:", response);
@@ -465,7 +439,7 @@ const App = () => {
         params.force_iterations = prevParams.force_iterations;
 
         // Always apply appropriate limits based on subscription status
-        const maxIterations = isSubscribed
+        const maxIterations = currentUser?.isSubscribed
           ? ITERATION_LIMITS.subscribed.classical
           : ITERATION_LIMITS.unsubscribed.classical;
 
@@ -482,7 +456,7 @@ const App = () => {
         const params = { ...defaultQuantumParams };
 
         // Always apply appropriate limits based on subscription status
-        const maxIterations = isSubscribed
+        const maxIterations = currentUser?.isSubscribed
           ? ITERATION_LIMITS.subscribed.quantum
           : ITERATION_LIMITS.unsubscribed.quantum;
 
@@ -492,7 +466,7 @@ const App = () => {
         );
 
         // Restrict to simpler basis sets for free users only
-        if (!isSubscribed && (params.basis === "6-311g" || params.basis === "cc-pvdz")) {
+        if (!currentUser?.isSubscribed && (params.basis === "6-311g" || params.basis === "cc-pvdz")) {
           params.basis = "6-31g";
         }
 
@@ -551,7 +525,57 @@ const App = () => {
     return null;
   };
 
-  // Main App render
+  // Display login/register if not authenticated
+  if (!isAuthenticated && !isLoading) {
+    return (
+      <div style={{ ...styles.app, padding: isMobile ? '16px' : styles.app.padding }}>
+        <div style={styles.decorativeBg}></div>
+        <div style={{ ...styles.decorativeLine, top: "15%", animationDelay: "0s" }}></div>
+        <div style={{ ...styles.decorativeLine, top: "35%", animationDelay: "0.5s" }}></div>
+        <div style={{ ...styles.decorativeLine, top: "65%", animationDelay: "1s" }}></div>
+        <div style={{ ...styles.decorativeLine, top: "85%", animationDelay: "1.5s" }}></div>
+        
+        <div style={styles.container}>
+          <header style={styles.header} className="app-header">
+            <h1 style={styles.headerTitle} className="app-title">Molecular Optimization System</h1>
+            <p style={styles.headerSubtitle} className="app-subtitle">
+              Advanced computational chemistry tools for structure optimization
+            </p>
+          </header>
+          
+          <div className="fade-in glass card" style={styles.card}>
+            {showLoginForm ? (
+              <LoginForm toggleForm={() => setShowLoginForm(false)} />
+            ) : (
+              <RegisterForm toggleForm={() => setShowLoginForm(true)} />
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div style={{ ...styles.app, padding: isMobile ? '16px' : styles.app.padding }}>
+        <div style={styles.container}>
+          <header style={styles.header} className="app-header">
+            <h1 style={styles.headerTitle} className="app-title">Molecular Optimization System</h1>
+          </header>
+          <div className="fade-in glass card" style={styles.card}>
+            <div style={{ textAlign: 'center', padding: '40px' }}>
+              <span className="spin" style={{ display: "inline-block", marginRight: "12px" }}>
+                <Icons.spinner />
+              </span>
+              Loading...
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Main App render
   return (
     <div style={{ ...styles.app, padding: isMobile ? '16px' : styles.app.padding }}>
@@ -648,7 +672,28 @@ const App = () => {
             )}
           </button>
 
-          {isSubscribed && (
+          <button
+            onClick={logout}
+            style={{
+              ...styles.button,
+              background: "linear-gradient(145deg, rgba(100, 116, 139, 0.9), rgba(71, 85, 105, 0.9))",
+              color: "white",
+              padding: "4px 12px",
+              borderRadius: "6px",
+              fontSize: "0.75rem",
+              fontWeight: "600",
+              position: 'static',
+              boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+              display: "flex",
+              alignItems: "center",
+              gap: "5px"
+            }}
+          >
+            <Icons.close />
+            Logout
+          </button>
+
+          {currentUser?.isSubscribed && (
             <button
               onClick={handleCancelSubscription}
               disabled={isCancelLoading}
@@ -685,16 +730,12 @@ const App = () => {
         </header>
 
         {/* Subscription Form or Welcome Message */}
-        <div className="fade-in glass card" style={isSubscribed ? styles.cardWithGlow : styles.card}>
-          {!isSubscribed ? (
+        <div className="fade-in glass card" style={currentUser?.isSubscribed ? styles.cardWithGlow : styles.card}>
+          {!currentUser?.isSubscribed ? (
             <div className={`subscription-form ${isMobile ? 'mobile-smaller-padding' : ''}`}>
               <Elements stripe={stripePromise}>
                 <SubscriptionForm
-                  onSuccess={(email) => {
-                    setIsSubscribeLoading(true);
-                    handleSubscriptionSuccess(email);
-                    setIsSubscribeLoading(false);
-                  }}
+                  onSuccess={handleSubscriptionSuccess}
                   isMobile={isMobile}
                 />
               </Elements>
@@ -704,7 +745,7 @@ const App = () => {
               <div style={styles.welcomeIcon}>
                 <Icons.verified />
               </div>
-              <p style={{ margin: 0 }}>Welcome, <strong>{userEmail}</strong>! You have full access to all computational capabilities with your premium subscription.</p>
+              <p style={{ margin: 0 }}>Welcome, <strong>{currentUser.email}</strong>! You have full access to all computational capabilities with your premium subscription.</p>
             </div>
           )}
         </div>
@@ -830,7 +871,7 @@ const App = () => {
               {/* Parameter Configuration */}
               {optimizationType === "classical" ? (
                 <ClassicalParametersConfig
-                  isSubscribed={isSubscribed}
+                  isSubscribed={currentUser?.isSubscribed || false}
                   classicalParams={classicalParams}
                   showAdvancedParams={showAdvancedParams}
                   handleParamChange={handleParamChange}
@@ -840,7 +881,7 @@ const App = () => {
                 />
               ) : (
                 <QuantumParametersConfig
-                  isSubscribed={isSubscribed}
+                  isSubscribed={currentUser?.isSubscribed || false}
                   quantumParams={quantumParams}
                   showAdvancedParams={showAdvancedParams}
                   handleParamChange={handleParamChange}
@@ -903,13 +944,13 @@ const App = () => {
                     </>
                   ) : (
                     <>
-                      {`Run ${optimizationType === "classical" ? "Classical" : "Quantum"} Optimization${!isSubscribed ? " (Limited)" : ""}`}
+                      {`Run ${optimizationType === "classical" ? "Classical" : "Quantum"} Optimization${!currentUser?.isSubscribed ? " (Limited)" : ""}`}
                       <div style={styles.optimizeButtonShine}></div>
                     </>
                   )}
                 </button>
 
-                {!isSubscribed && (
+                {!currentUser?.isSubscribed && (
                   <div style={styles.freeUserNotice} className={isMobile ? 'mobile-smaller-text mobile-text-center' : ''}>
                     Free users are limited to {ITERATION_LIMITS.unsubscribed.classical.toLocaleString()} iterations for classical and {ITERATION_LIMITS.unsubscribed.quantum} for quantum optimizations.
                   </div>

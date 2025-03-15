@@ -5,6 +5,9 @@ import json
 from dotenv import load_dotenv
 from extensions import db
 
+from flask_jwt_extended import JWTManager
+
+
 # Function to load configuration from JSON file
 def load_config(config_file='config.json'):
     try:
@@ -16,6 +19,13 @@ def load_config(config_file='config.json'):
 
 # Initialize Flask app
 app = Flask(__name__)
+
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'dev-key-change-in-production')
+app.config['JWT_TOKEN_LOCATION'] = ['cookies']
+app.config['JWT_COOKIE_SECURE'] = True  # In production
+app.config['JWT_COOKIE_CSRF_PROTECT'] = True
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = 30 * 24 * 60 * 60  # 30 days
+jwt = JWTManager(app)
 
 # Load configuration
 config = load_config()

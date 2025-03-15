@@ -3,6 +3,11 @@ import os
 import stripe
 from datetime import datetime
 from extensions import db
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_jwt_extended import (
+    create_access_token, set_access_cookies, 
+    unset_jwt_cookies, jwt_required, get_jwt_identity
+)
 
 # Create blueprint
 user_bp = Blueprint('user', __name__)
@@ -11,9 +16,16 @@ class User(db.Model):
     """User model for subscription management."""
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(256), nullable=True)
     customer_id = db.Column(db.String(120), nullable=False)
     subscription_id = db.Column(db.String(120), nullable=False)
     subscription_status = db.Column(db.String(50), nullable=False)
+    
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+        
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
     def __repr__(self):
         return f'<User {self.email}>'
@@ -21,26 +33,99 @@ class User(db.Model):
 # Initialize Stripe
 stripe.api_key = os.getenv("STRIPE_SECRET")
 
-@user_bp.route('/subscribe', methods=['POST'])
-def subscribe_user():
-    """Create or update a subscription for a user."""
-    try:
-        data = request.get_json()
+@user_bp.route('/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+    
+    if not email or not password:
+        return jsonify({"error": "Email and password required"}), 400
         
-        if not data or "email" not in data or "paymentMethodId" not in data:
-            return jsonify({"error": "Invalid input: Missing 'email' or 'paymentMethodId'"}), 400
+    existing_user = User.query.filter_by(email=email).first()
+    if existing_user:
+        return jsonify({"error": "Email already registered"}), 409
+    
+    # Create unsubscribed user
+    user = User(
+        email=email,
+        customer_id="unsubscribed",
+        subscription_id="none",
+        subscription_status="inactive"
+    )
+    user.set_password(password)
+    db.session.add(user)
+    db.session.commit()
+    
+    # Create token and set cookie
+    access_token = create_access_token(identity=user.id)
+    resp = jsonify({"success": True, "user": {"email": user.email, "isSubscribed": False}})
+    set_access_cookies(resp, access_token)
+    return resp, 201
 
-        email = data["email"]
-        payment_method_id = data["paymentMethodId"]
+@user_bp.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+    
+    user = User.query.filter_by(email=email).first()
+    if not user or not user.check_password(password):
+        return jsonify({"error": "Invalid email or password"}), 401
+    
+    access_token = create_access_token(identity=user.id)
+    resp = jsonify({
+        "success": True, 
+        "user": {
+            "email": user.email, 
+            "isSubscribed": user.subscription_status == "active"
+        }
+    })
+    set_access_cookies(resp, access_token)
+    return resp
+
+@user_bp.route('/logout', methods=['POST'])
+def logout():
+    resp = jsonify({"success": True})
+    unset_jwt_cookies(resp)
+    return resp
+
+@user_bp.route('/me', methods=['GET'])
+@jwt_required()
+def get_current_user():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+        
+    return jsonify({
+        "email": user.email,
+        "isSubscribed": user.subscription_status == "active"
+    })
+
+@user_bp.route('/subscribe', methods=['POST'])
+@jwt_required()
+def subscribe_user():
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        data = request.get_json()
+        payment_method_id = data.get("paymentMethodId")
+        
         price_id = "price_1QYNn9JQZaUHxA2Ld9rV2MPd"
 
-        # Check for existing customers
-        customers = stripe.Customer.list(email=email).data
+        # Check for existing customers using authenticated user's email
+        customers = stripe.Customer.list(email=user.email).data
         
         if customers:
             customer = customers[0]  # Use the existing customer
         else:
-            customer = stripe.Customer.create(email=email)
+            customer = stripe.Customer.create(email=user.email)
 
         # Attach payment method
         stripe.PaymentMethod.attach(payment_method_id, customer=customer.id)
@@ -57,20 +142,10 @@ def subscribe_user():
             expand=["latest_invoice.payment_intent"],
         )
 
-        # Save user and subscription data in the database
-        existing_user = User.query.filter_by(email=email).first()
-        if existing_user:
-            existing_user.customer_id = customer.id
-            existing_user.subscription_id = subscription.id
-            existing_user.subscription_status = "active"
-        else:
-            new_user = User(
-                email=email,
-                customer_id=customer.id,
-                subscription_id=subscription.id,
-                subscription_status="active"
-            )
-            db.session.add(new_user)
+        # Update authenticated user with subscription data
+        user.customer_id = customer.id
+        user.subscription_id = subscription.id
+        user.subscription_status = "active"
         db.session.commit()
 
         return jsonify({
@@ -83,31 +158,26 @@ def subscribe_user():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@user_bp.route('/check-subscription', methods=['POST'])
+@user_bp.route('/check-subscription', methods=['GET'])
+@jwt_required()
 def check_subscription():
     """Check if a user has an active subscription."""
-    data = request.get_json()
-    email = data.get("email")
-
-    if not email:
-        return jsonify({"error": "Email is required"}), 400
-
-    user = User.query.filter_by(email=email).first()
-    if user and user.subscription_status == "active":
-        return jsonify({"isSubscribed": True}), 200
-    return jsonify({"isSubscribed": False}), 200
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+        
+    return jsonify({"isSubscribed": user.subscription_status == "active"}), 200
 
 @user_bp.route('/cancel-subscription', methods=['POST'])
+@jwt_required()
 def cancel_subscription():
     """Cancel a user's subscription."""
     try:
-        data = request.get_json()
-        email = data.get("email")
-
-        if not email:
-            return jsonify({"error": "Email is required"}), 400
-
-        user = User.query.filter_by(email=email).first()
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
         if not user:
             return jsonify({"error": "User not found"}), 404
 

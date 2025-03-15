@@ -1,19 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { useStripe, useElements, CardElement } from "@stripe/react-stripe-js";
 import axios from "axios";
+import { AuthContext } from "../AuthContext";
 
 // SVG icons for enhanced UI
 const LockIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="2"/>
     <path d="M8 11V7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7V11" stroke="currentColor" strokeWidth="2"/>
-  </svg>
-);
-
-const EmailIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" strokeWidth="2"/>
-    <path d="M22 7L13.03 12.7C12.7213 12.8934 12.3643 13 12 13C11.6357 13 11.2787 12.8934 10.97 12.7L2 7" stroke="currentColor" strokeWidth="2"/>
   </svg>
 );
 
@@ -39,63 +33,63 @@ const SparkleIcon = () => (
 const SubscriptionForm = ({ onSuccess, isMobile }) => {
   const stripe = useStripe();
   const elements = useElements();
-  const [email, setEmail] = useState("");
   const [isSubscribeLoading, setIsSubscribeLoading] = useState(false);
+  const [error, setError] = useState("");
+  const { currentUser } = useContext(AuthContext);
+  
+  const apiBaseUrl = "https://optimizemolecule.com";
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
     const cardElement = elements.getElement(CardElement);
 
-    if (!email) {
-      alert("Please enter your email.");
+    if (!cardElement) {
+      setError("Card element not found");
       return;
     }
 
     setIsSubscribeLoading(true);
+    setError("");
 
     try {
-      // Create payment method
-      const { error, paymentMethod } = await stripe.createPaymentMethod({
+      // Create payment method with Stripe
+      const { error: stripeError, paymentMethod } = await stripe.createPaymentMethod({
         type: "card",
         card: cardElement,
-        billing_details: { email },
       });
 
-      if (error) {
-        console.error("Payment method error:", error);
-        alert(`Payment error: ${error.message}`);
+      if (stripeError) {
+        setError(`Payment method error: ${stripeError.message}`);
+        setIsSubscribeLoading(false);
         return;
       }
 
-      // Send to backend
-      const response = await axios.post("https://optimizemolecule.com/subscribe", {
-        email,
-        paymentMethodId: paymentMethod.id,
-      });
+      // Send to backend with JWT auth
+      const response = await axios.post(
+        `${apiBaseUrl}/subscribe`, 
+        { paymentMethodId: paymentMethod.id },
+        { withCredentials: true }  // Include cookies for JWT auth
+      );
 
       if (response.data.success) {
         const { clientSecret } = response.data;
 
-        // Confirm subscription
-        const { error: confirmError } = await stripe.confirmCardPayment(
-          clientSecret
-        );
+        // Confirm subscription with Stripe
+        const { error: confirmError } = await stripe.confirmCardPayment(clientSecret);
 
-        if (!confirmError) {
-          console.log("Subscription successful");
-          onSuccess(email);
+        if (confirmError) {
+          setError(`Subscription error: ${confirmError.message}`);
         } else {
-          console.error("Error confirming subscription:", confirmError);
-          alert(`Subscription error: ${confirmError.message}`);
+          console.log("Subscription successful");
+          onSuccess();  // Notify parent component
         }
       } else {
-        console.error("Subscription error:", response.data.error);
-        alert(`Subscription error: ${response.data.error}`);
+        setError(`Subscription error: ${response.data.error || "Unknown error"}`);
       }
     } catch (err) {
       console.error("Error in subscription process:", err);
-      alert("An unexpected error occurred. Please try again.");
+      setError(`Subscription error: ${err.response?.data?.error || err.message || "Unknown error"}`);
     } finally {
       setIsSubscribeLoading(false);
     }
@@ -125,17 +119,9 @@ const SubscriptionForm = ({ onSuccess, isMobile }) => {
       
       <form onSubmit={handleSubmit}>
         <div className="input-group">
-          <div className="input-icon">
-            <EmailIcon />
-          </div>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter your email"
-            required
-            className="email-input"
-          />
+          <p className={isMobile ? 'mobile-smaller-text' : ''} style={{ marginBottom: '8px' }}>
+            Subscribing as: <strong>{currentUser?.email}</strong>
+          </p>
         </div>
         
         <div className="card-element-container">
@@ -160,6 +146,20 @@ const SubscriptionForm = ({ onSuccess, isMobile }) => {
             className="stripe-element"
           />
         </div>
+        
+        {error && (
+          <div style={{ 
+            color: "#f43f5e", 
+            marginBottom: "10px", 
+            padding: "8px", 
+            borderRadius: "6px",
+            backgroundColor: "rgba(244, 63, 94, 0.1)",
+            border: "1px solid rgba(244, 63, 94, 0.2)",
+            fontSize: isMobile ? "12px" : "14px"
+          }}>
+            {error}
+          </div>
+        )}
         
         <div className={`secure-badge ${isMobile ? 'mobile-smaller-text' : ''}`}>
           <LockIcon /> Secure payment - $10/month
