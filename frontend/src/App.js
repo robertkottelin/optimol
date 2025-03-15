@@ -6,9 +6,9 @@ import ReactMarkdown from "react-markdown";
 
 // Import style constants
 import { styles } from './styles/components';
-import { 
-  ITERATION_LIMITS, 
-  defaultClassicalParams, 
+import {
+  ITERATION_LIMITS,
+  defaultClassicalParams,
   defaultQuantumParams,
   TEST_MOLECULES
 } from './styles/constants';
@@ -17,9 +17,9 @@ import {
 import { Icons } from './components/Icons';
 import SubscriptionForm from './components/SubscriptionForm';
 import MoleculeViewer from './components/MoleculeViewer';
-import { 
-  ClassicalParametersConfig, 
-  QuantumParametersConfig 
+import {
+  ClassicalParametersConfig,
+  QuantumParametersConfig
 } from './components/ParameterConfig';
 import OptimizationResults from './components/OptimizationResults';
 
@@ -32,21 +32,21 @@ const App = () => {
   const [optimizationResult, setOptimizationResult] = useState(null);
   const [activeView, setActiveView] = useState("original"); // original, optimized
   const [optimizationType, setOptimizationType] = useState("classical"); // classical or quantum
-  
+
   // Optimization parameters state
-  const [classicalParams, setClassicalParams] = useState({...defaultClassicalParams});
-  const [quantumParams, setQuantumParams] = useState({...defaultQuantumParams});
+  const [classicalParams, setClassicalParams] = useState({ ...defaultClassicalParams });
+  const [quantumParams, setQuantumParams] = useState({ ...defaultQuantumParams });
   const [showAdvancedParams, setShowAdvancedParams] = useState(false);
-  
+
   // User and subscription state
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [userEmail, setUserEmail] = useState("");
-  
+
   // UI state
   const [isHowToUseVisible, setIsHowToUseVisible] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
+
   // Loading states
   const [isSubscribeLoading, setIsSubscribeLoading] = useState(false);
   const [isCancelLoading, setIsCancelLoading] = useState(false);
@@ -58,13 +58,13 @@ const App = () => {
     const checkIfMobile = () => {
       setIsMobile(window.innerWidth <= 768);
     };
-    
+
     // Initial check
     checkIfMobile();
-    
+
     // Add event listener for window resize
     window.addEventListener('resize', checkIfMobile);
-    
+
     // Cleanup
     return () => window.removeEventListener('resize', checkIfMobile);
   }, []);
@@ -96,35 +96,35 @@ const App = () => {
   const applyIterationLimits = (isUserSubscribed) => {
     // Apply limits to classical parameters - preserving existing values
     setClassicalParams(prevParams => {
-      const classicalMaxIterations = isUserSubscribed 
+      const classicalMaxIterations = isUserSubscribed
         ? ITERATION_LIMITS.subscribed.classical
         : ITERATION_LIMITS.unsubscribed.classical;
-        
+
       return {
         ...prevParams, // Preserve existing params including force_iterations
         max_iterations: Math.min(
-          prevParams.max_iterations, 
+          prevParams.max_iterations,
           classicalMaxIterations
         )
       };
     });
-    
+
     // Apply limits to quantum parameters - preserving existing values
     setQuantumParams(prevParams => {
-      const quantumMaxIterations = isUserSubscribed 
+      const quantumMaxIterations = isUserSubscribed
         ? ITERATION_LIMITS.subscribed.quantum
         : ITERATION_LIMITS.unsubscribed.quantum;
-      
+
       // Apply basis set restrictions for non-subscribers
       let updatedBasis = prevParams.basis;
       if (!isUserSubscribed && (updatedBasis === "6-311g" || updatedBasis === "cc-pvdz")) {
         updatedBasis = "6-31g";
       }
-      
+
       return {
         ...prevParams, // Preserve existing params
         max_iterations: Math.min(
-          prevParams.max_iterations, 
+          prevParams.max_iterations,
           quantumMaxIterations
         ),
         basis: updatedBasis
@@ -158,14 +158,55 @@ const App = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
+  const [serverHealth, setServerHealth] = useState(null);
+  const [isCheckingHealth, setIsCheckingHealth] = useState(false);
+  const [serverHealthDetails, setServerHealthDetails] = useState(null);
+
+
+  const checkServerHealth = async () => {
+    setIsCheckingHealth(true);
+    setServerHealthDetails(null);
+
+    try {
+      const response = await axios.get(`${apiBaseUrl}/health`);
+      setServerHealth(response.data.status === "healthy");
+      setServerHealthDetails({
+        status: response.status,
+        statusText: response.statusText,
+        data: response.data
+      });
+      setTimeout(() => {
+        setServerHealth(null);
+        setServerHealthDetails(null);
+      }, 5000); // Extended display time to 5 seconds for better readability
+    } catch (error) {
+      console.error("Error checking server health:", error);
+      setServerHealth(false);
+
+      // Capture detailed error information
+      setServerHealthDetails({
+        status: error.response?.status || 'Network Error',
+        statusText: error.response?.statusText || error.message,
+        data: error.response?.data || {}
+      });
+
+      setTimeout(() => {
+        setServerHealth(null);
+        setServerHealthDetails(null);
+      }, 5000);
+    } finally {
+      setIsCheckingHealth(false);
+    }
+  };
+
   const checkSubscriptionStatus = async (email) => {
     try {
       const response = await axios.post(`${apiBaseUrl}/check-subscription`, { email });
       const userIsSubscribed = response.data.isSubscribed;
-      
+
       setIsSubscribed(userIsSubscribed);
       setUserEmail(email);
-      
+
       // Apply appropriate limits based on subscription status
       applyIterationLimits(userIsSubscribed);
     } catch (error) {
@@ -180,7 +221,7 @@ const App = () => {
     setIsSubscribed(true);
     setUserEmail(email);
     localStorage.setItem("userEmail", email);
-    
+
     // Apply subscriber limits while preserving current parameter values
     applyIterationLimits(true);
   };
@@ -204,7 +245,7 @@ const App = () => {
         setIsSubscribed(false);
         setUserEmail("");
         localStorage.removeItem("userEmail");
-        
+
         // Apply non-subscriber limits while preserving current parameter values
         applyIterationLimits(false);
       } else {
@@ -237,7 +278,7 @@ const App = () => {
           alert("Invalid molecule JSON format.");
           return;
         }
-        
+
         setMoleculeData(parsedData);
         setOptimizationResult(null);
         setActiveView("original");
@@ -262,21 +303,21 @@ const App = () => {
   const handleFileDrop = (e) => {
     e.preventDefault();
     setIsDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0];
-      
+
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
           const fileContent = e.target.result;
           const parsedData = JSON.parse(fileContent);
-  
+
           if (!validateMoleculeJSON(parsedData)) {
             alert("Invalid molecule JSON format.");
             return;
           }
-          
+
           setMoleculeData(parsedData);
           setOptimizationResult(null);
           setActiveView("original");
@@ -285,7 +326,7 @@ const App = () => {
           alert("Error processing the file. Check the console for details.");
         }
       };
-  
+
       reader.readAsText(file);
     }
   };
@@ -319,7 +360,7 @@ const App = () => {
     if (newType !== optimizationType) {
       setActiveView("original");
     }
-    
+
     setOptimizationType(newType);
   };
 
@@ -328,61 +369,61 @@ const App = () => {
       alert("Please upload or select a molecule first.");
       return;
     }
-    
+
     setIsOptimizeLoading(true);
-    
+
     try {
       // Get the correct parameters based on selected optimization type
-      const optimizationParams = 
-        optimizationType === "classical" ? {...classicalParams} : {...quantumParams};
-        
+      const optimizationParams =
+        optimizationType === "classical" ? { ...classicalParams } : { ...quantumParams };
+
       // Apply iteration limits for all users
       if (optimizationType === "classical") {
-        const maxIterations = isSubscribed 
+        const maxIterations = isSubscribed
           ? ITERATION_LIMITS.subscribed.classical
           : ITERATION_LIMITS.unsubscribed.classical;
-          
+
         optimizationParams.max_iterations = Math.min(
-          optimizationParams.max_iterations, 
+          optimizationParams.max_iterations,
           maxIterations
         );
       } else {
-        const maxIterations = isSubscribed 
+        const maxIterations = isSubscribed
           ? ITERATION_LIMITS.subscribed.quantum
           : ITERATION_LIMITS.unsubscribed.quantum;
-          
+
         optimizationParams.max_iterations = Math.min(
-          optimizationParams.max_iterations, 
+          optimizationParams.max_iterations,
           maxIterations
         );
-        
+
         if (!isSubscribed && (optimizationParams.basis === "6-311g" || optimizationParams.basis === "cc-pvdz")) {
           optimizationParams.basis = "6-31g";
         }
       }
-      
+
       const payload = {
         email: userEmail || "guest@example.com",
         molecule: moleculeData,
         optimization_type: optimizationType,
         optimization_params: optimizationParams
       };
-  
+
       console.log('Optimization payload:', JSON.stringify(payload, null, 2));
-    
+
       console.log("Attempting request to:", `${apiBaseUrl}/optimize-molecule`);
       const response = await axios({
         method: 'post',
         url: `${apiBaseUrl}/optimize-molecule`,
         data: payload,
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         }
       });
-      
+
       console.log("Response received:", response);
-      
+
       if (response.data.success) {
         setOptimizationResult(response.data);
         setActiveView("optimized");
@@ -401,7 +442,7 @@ const App = () => {
       setIsOptimizeLoading(false);
     }
   };
-  
+
   const handleParamChange = (type, paramName, value) => {
     if (type === "classical") {
       setClassicalParams(prev => ({
@@ -420,48 +461,48 @@ const App = () => {
     if (type === "classical") {
       // Keep current force_iterations setting when resetting other parameters
       setClassicalParams(prevParams => {
-        const params = {...defaultClassicalParams};
-        
+        const params = { ...defaultClassicalParams };
+
         // Preserve force_iterations setting
         params.force_iterations = prevParams.force_iterations;
-        
+
         // Always apply appropriate limits based on subscription status
-        const maxIterations = isSubscribed 
+        const maxIterations = isSubscribed
           ? ITERATION_LIMITS.subscribed.classical
           : ITERATION_LIMITS.unsubscribed.classical;
-          
+
         params.max_iterations = Math.min(
-          params.max_iterations, 
+          params.max_iterations,
           maxIterations
         );
-        
+
         return params;
       });
     } else {
       // For quantum parameters - apply subscription-based limits
       setQuantumParams(prevParams => {
-        const params = {...defaultQuantumParams};
-        
+        const params = { ...defaultQuantumParams };
+
         // Always apply appropriate limits based on subscription status
-        const maxIterations = isSubscribed 
+        const maxIterations = isSubscribed
           ? ITERATION_LIMITS.subscribed.quantum
           : ITERATION_LIMITS.unsubscribed.quantum;
-          
+
         params.max_iterations = Math.min(
-          params.max_iterations, 
+          params.max_iterations,
           maxIterations
         );
-        
+
         // Restrict to simpler basis sets for free users only
         if (!isSubscribed && (params.basis === "6-311g" || params.basis === "cc-pvdz")) {
           params.basis = "6-31g";
         }
-        
+
         return params;
       });
     }
   };
-  
+
   // Handle test molecule selection
   const handleTestMoleculeSelect = (moleculeKey) => {
     if (TEST_MOLECULES[moleculeKey]) {
@@ -483,9 +524,9 @@ const App = () => {
         metadata: optimizationResult.result.metadata
       }
     };
-    
+
     const filename = `${optimizationType}_optimized_molecule.json`;
-    
+
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
 
@@ -493,7 +534,7 @@ const App = () => {
     link.href = url;
     link.download = filename;
     link.click();
-    
+
     URL.revokeObjectURL(url);
   };
 
@@ -513,32 +554,102 @@ const App = () => {
   };
 
   // Main App render
+  // Main App render
   return (
-    <div style={{...styles.app, padding: isMobile ? '16px' : styles.app.padding}}>
+    <div style={{ ...styles.app, padding: isMobile ? '16px' : styles.app.padding }}>
       <div style={styles.decorativeBg}></div>
-      
+
       {/* Decorative animated lines for cyberpunk effect */}
       <div style={{ ...styles.decorativeLine, top: "15%", animationDelay: "0s" }}></div>
       <div style={{ ...styles.decorativeLine, top: "35%", animationDelay: "0.5s" }}></div>
       <div style={{ ...styles.decorativeLine, top: "65%", animationDelay: "1s" }}></div>
       <div style={{ ...styles.decorativeLine, top: "85%", animationDelay: "1.5s" }}></div>
-      
+
       <div style={styles.container}>
         {/* Top Action Buttons - Move before header for mobile */}
-        <div className="top-buttons-container">
+        <div className="top-buttons-container" style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '10px',
+          justifyContent: isMobile ? 'center' : 'flex-start',
+          position: 'relative',
+          zIndex: 10,
+          marginBottom: '20px'
+        }}>
           <button
             onClick={handleShowHowToUse}
             style={{
               ...styles.howToUseButton,
-              position: isMobile ? 'static' : 'absolute',
-              marginRight: isMobile ? '5px' : '0'
+              position: 'static',
+              marginRight: '5px'
             }}
             className="float howToUseButton"
           >
             <span style={styles.howToUseIcon}><Icons.book /></span>
             Documentation & Theory
           </button>
-          
+
+          <button
+            onClick={checkServerHealth}
+            disabled={isCheckingHealth}
+            style={{
+              ...styles.button,
+              background: serverHealth === null
+                ? "linear-gradient(145deg, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.9))"
+                : serverHealth
+                  ? "linear-gradient(145deg, rgba(16, 185, 129, 0.9), rgba(5, 150, 105, 0.9))"
+                  : "linear-gradient(145deg, rgba(244, 63, 94, 0.9), rgba(225, 29, 72, 0.9))",
+              color: "white",
+              padding: "4px 12px",
+              borderRadius: "6px",
+              fontSize: "0.75rem",
+              fontWeight: "600",
+              position: 'static',
+              boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+              display: "flex",
+              alignItems: "center",
+              gap: "5px",
+              flexDirection: serverHealthDetails ? "column" : "row",
+              alignItems: serverHealthDetails ? "flex-start" : "center",
+              minWidth: serverHealthDetails ? "180px" : "auto"
+            }}
+            className="health-check-button"
+          >
+            {isCheckingHealth ? (
+              <>
+                <span className="spin" style={{ display: "inline-block" }}>
+                  <Icons.spinner />
+                </span>
+                Checking...
+              </>
+            ) : (
+              <>
+                <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                  {serverHealth === true && <span><Icons.checkmark /></span>}
+                  {serverHealth === false && <span><Icons.warning /></span>}
+                  {serverHealth === null && <span><Icons.info /></span>}
+                  Server Health
+                </div>
+
+                {serverHealthDetails && (
+                  <div style={{
+                    fontSize: "0.7rem",
+                    marginTop: "4px",
+                    backgroundColor: "rgba(0,0,0,0.2)",
+                    padding: "3px 6px",
+                    borderRadius: "4px",
+                    width: "100%"
+                  }}>
+                    <div>Status: {serverHealthDetails.status}</div>
+                    <div style={{ wordBreak: "break-word" }}>
+                      {serverHealthDetails.statusText}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </button>
+
           {isSubscribed && (
             <button
               onClick={handleCancelSubscription}
@@ -547,8 +658,7 @@ const App = () => {
                 ...styles.cancelSubscriptionButton,
                 opacity: isCancelLoading ? 0.7 : 1,
                 cursor: isCancelLoading ? "not-allowed" : "pointer",
-                position: isMobile ? 'static' : 'absolute',
-                marginLeft: isMobile ? '5px' : '0'
+                position: 'static'
               }}
             >
               {isCancelLoading ? (
@@ -567,7 +677,7 @@ const App = () => {
             </button>
           )}
         </div>
-        
+
         {/* App Header - Now comes after buttons in the DOM */}
         <header style={styles.header} className="app-header">
           <h1 style={styles.headerTitle} className="app-title">Molecular Optimization System</h1>
@@ -575,7 +685,7 @@ const App = () => {
             Advanced computational chemistry tools for structure optimization
           </p>
         </header>
-        
+
         {/* Subscription Form or Welcome Message */}
         <div className="fade-in glass card" style={isSubscribed ? styles.cardWithGlow : styles.card}>
           {!isSubscribed ? (
@@ -600,14 +710,14 @@ const App = () => {
             </div>
           )}
         </div>
-        
+
         {/* Main Optimization Section */}
         <section style={styles.section}>
           <h2 style={styles.sectionTitle}>
             Molecule Optimization
             <span style={styles.sectionTitleUnderline}></span>
           </h2>
-          
+
           {/* Test Molecules Buttons */}
           <div style={styles.testMoleculesContainer} className={isMobile ? 'mobile-smaller-padding' : ''}>
             <h3 style={styles.testMoleculesTitle}>
@@ -615,16 +725,16 @@ const App = () => {
               <span style={styles.testMoleculesTitleIcon}></span>
             </h3>
             <div style={styles.testMoleculesButtonContainer} className={isMobile ? 'mobile-stack' : ''}>
-              <button 
-                onClick={() => handleTestMoleculeSelect('water')} 
+              <button
+                onClick={() => handleTestMoleculeSelect('water')}
                 style={styles.testMoleculeButton}
                 className={`test-molecule-button ${isMobile ? 'mobile-full-width mobile-margin-bottom' : ''}`}
               >
                 <span style={styles.testMoleculeIcon}><Icons.molecule /></span>
                 Water (H₂O)
               </button>
-              <button 
-                onClick={() => handleTestMoleculeSelect('ibuprofen')} 
+              <button
+                onClick={() => handleTestMoleculeSelect('ibuprofen')}
                 style={styles.testMoleculeButton}
                 className={`test-molecule-button ${isMobile ? 'mobile-full-width' : ''}`}
               >
@@ -633,9 +743,9 @@ const App = () => {
               </button>
             </div>
           </div>
-          
+
           {/* File Upload Area */}
-          <div 
+          <div
             className={`file-upload-area ${isDragActive ? 'file-upload-active' : ''} ${isMobile ? 'mobile-smaller-padding' : ''}`}
             style={{
               ...styles.fileUpload,
@@ -657,26 +767,26 @@ const App = () => {
             <input
               type="file"
               onChange={handleFileUpload}
-              style={{ 
-                position: "absolute", 
-                top: 0, 
-                left: 0, 
-                width: "100%", 
-                height: "100%", 
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
                 opacity: 0,
-                cursor: "pointer" 
+                cursor: "pointer"
               }}
             />
           </div>
-          
+
           {moleculeData && (
             <div className="slide-up" style={styles.contentWrapper}>
               {/* Optimization Method Selection */}
-              <div 
-                style={styles.methodSelectionContainer} 
+              <div
+                style={styles.methodSelectionContainer}
                 className={isMobile ? "mobile-stack" : ""}
               >
-                <div 
+                <div
                   className={`method-card ${optimizationType === "classical" ? 'classical-active' : ''} ${isMobile ? 'mobile-full-width mobile-margin-bottom' : ''}`}
                   style={styles.methodSelectionButton(optimizationType === "classical", "classical")}
                   onClick={() => handleOptimizationTypeChange("classical")}
@@ -696,8 +806,8 @@ const App = () => {
                     Molecular mechanics optimization using empirical force fields. Faster calculations suitable for larger molecular systems.
                   </div>
                 </div>
-                
-                <div 
+
+                <div
                   className={`method-card ${optimizationType === "quantum" ? 'quantum-active' : ''} ${isMobile ? 'mobile-full-width' : ''}`}
                   style={styles.methodSelectionButton(optimizationType === "quantum", "quantum")}
                   onClick={() => handleOptimizationTypeChange("quantum")}
@@ -718,10 +828,10 @@ const App = () => {
                   </div>
                 </div>
               </div>
-              
+
               {/* Parameter Configuration */}
               {optimizationType === "classical" ? (
-                <ClassicalParametersConfig 
+                <ClassicalParametersConfig
                   isSubscribed={isSubscribed}
                   classicalParams={classicalParams}
                   showAdvancedParams={showAdvancedParams}
@@ -731,7 +841,7 @@ const App = () => {
                   isMobile={isMobile}
                 />
               ) : (
-                <QuantumParametersConfig 
+                <QuantumParametersConfig
                   isSubscribed={isSubscribed}
                   quantumParams={quantumParams}
                   showAdvancedParams={showAdvancedParams}
@@ -741,28 +851,28 @@ const App = () => {
                   isMobile={isMobile}
                 />
               )}
-              
+
               {/* Visualization */}
               <div style={styles.visualizationContainer} className={`glass ${isMobile ? 'mobile-smaller-padding' : ''}`}>
                 <div style={styles.visualizationHeader} className={isMobile ? 'mobile-stack' : ''}>
                   <div style={styles.visualizationTitle}>
                     <span style={styles.visualizationIcon}><Icons.molecule /></span>
-                    {activeView === "original" ? "Original" : 
-                     (optimizationType === "classical" ? "Classical" : "Quantum") + " Optimized"} Structure
+                    {activeView === "original" ? "Original" :
+                      (optimizationType === "classical" ? "Classical" : "Quantum") + " Optimized"} Structure
                   </div>
-                  
+
                   {optimizationResult && (
                     <div style={styles.tabs} className={isMobile ? 'mobile-full-width' : ''}>
-                      <div 
+                      <div
                         style={styles.tab(activeView === "original", "#38bdf8")}
                         onClick={() => setActiveView("original")}
                         className={isMobile ? 'mobile-smaller-text' : ''}
                       >
                         <Icons.molecule /> Original
                       </div>
-                      <div 
+                      <div
                         style={styles.tab(
-                          activeView === "optimized", 
+                          activeView === "optimized",
                           optimizationType === "classical" ? "#10b981" : "#38bdf8"
                         )}
                         onClick={() => setActiveView("optimized")}
@@ -774,10 +884,10 @@ const App = () => {
                     </div>
                   )}
                 </div>
-                
+
                 <MoleculeViewer atoms={getAtoms()} isMobile={isMobile} />
               </div>
-              
+
               {/* Optimize Button */}
               <div style={styles.optimizeButtonContainer} className={isMobile ? 'mobile-full-width' : ''}>
                 <button
@@ -800,17 +910,17 @@ const App = () => {
                     </>
                   )}
                 </button>
-                
+
                 {!isSubscribed && (
                   <div style={styles.freeUserNotice} className={isMobile ? 'mobile-smaller-text mobile-text-center' : ''}>
                     Free users are limited to {ITERATION_LIMITS.unsubscribed.classical.toLocaleString()} iterations for classical and {ITERATION_LIMITS.unsubscribed.quantum} for quantum optimizations.
                   </div>
                 )}
               </div>
-              
+
               {/* Optimization Results */}
               {optimizationResult && (
-                <OptimizationResults 
+                <OptimizationResults
                   optimizationResult={optimizationResult}
                   optimizationType={optimizationType}
                   handleDownload={handleDownload}
@@ -821,11 +931,11 @@ const App = () => {
           )}
         </section>
       </div>
-      
+
       {/* Mobile Menu Button */}
       {isMobile && (
-        <button 
-          className="mobile-menu-button" 
+        <button
+          className="mobile-menu-button"
           onClick={toggleMobileMenu}
         >
           <Icons.menu />
@@ -835,11 +945,11 @@ const App = () => {
       {/* Mobile Navigation Menu */}
       {isMobile && isMobileMenuOpen && (
         <div className="mobile-nav">
-          <button 
+          <button
             className={`mobile-nav-button ${moleculeData ? '' : 'active'}`}
             onClick={() => {
               setIsMobileMenuOpen(false);
-              document.querySelector('.file-upload-area').scrollIntoView({behavior: 'smooth'});
+              document.querySelector('.file-upload-area').scrollIntoView({ behavior: 'smooth' });
             }}
           >
             <span className="mobile-nav-icon"><Icons.upload /></span>
@@ -847,7 +957,7 @@ const App = () => {
           </button>
           {moleculeData && (
             <>
-              <button 
+              <button
                 className={`mobile-nav-button ${optimizationType === 'classical' ? 'active' : ''}`}
                 onClick={() => {
                   setIsMobileMenuOpen(false);
@@ -857,7 +967,7 @@ const App = () => {
                 <span className="mobile-nav-icon"><Icons.classical /></span>
                 Classical
               </button>
-              <button 
+              <button
                 className={`mobile-nav-button ${optimizationType === 'quantum' ? 'active' : ''}`}
                 onClick={() => {
                   setIsMobileMenuOpen(false);
@@ -867,11 +977,11 @@ const App = () => {
                 <span className="mobile-nav-icon"><Icons.quantum /></span>
                 Quantum
               </button>
-              <button 
+              <button
                 className="mobile-nav-button"
                 onClick={() => {
                   setIsMobileMenuOpen(false);
-                  document.querySelector('.optimize-button-container').scrollIntoView({behavior: 'smooth'});
+                  document.querySelector('.optimize-button-container').scrollIntoView({ behavior: 'smooth' });
                 }}
               >
                 <span className="mobile-nav-icon"><Icons.play /></span>
@@ -879,21 +989,54 @@ const App = () => {
               </button>
             </>
           )}
-          <button 
+          <button
             className="mobile-nav-button"
             onClick={handleShowHowToUse}
           >
             <span className="mobile-nav-icon"><Icons.book /></span>
             Help
           </button>
+          <button
+            className="mobile-nav-button"
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              checkServerHealth();
+            }}
+            disabled={isCheckingHealth}
+            style={{
+              position: 'relative'
+            }}
+          >
+            <span className="mobile-nav-icon">
+              {isCheckingHealth ? <Icons.spinner /> :
+                (serverHealth === true ? <Icons.checkmark /> :
+                  (serverHealth === false ? <Icons.warning /> : <Icons.info />))}
+            </span>
+            Health
+            {serverHealthDetails && (
+              <div style={{
+                position: 'absolute',
+                top: '-35px',
+                left: '0',
+                backgroundColor: 'rgba(0,0,0,0.8)',
+                padding: '3px 6px',
+                borderRadius: '4px',
+                fontSize: '0.6rem',
+                whiteSpace: 'nowrap',
+                zIndex: 100
+              }}>
+                {serverHealthDetails.status}: {serverHealthDetails.statusText}
+              </div>
+            )}
+          </button>
         </div>
       )}
-      
+
       {/* How To Use Popup */}
       {isHowToUseVisible && (
         <div style={styles.popup} className="popup-overlay">
-          <div 
-            style={styles.popupContent} 
+          <div
+            style={styles.popupContent}
             className={`popup-content glass ${isMobile ? 'mobile-smaller-padding' : ''}`}
           >
             <button
@@ -902,7 +1045,7 @@ const App = () => {
             >
               <Icons.close />
             </button>
-            
+
             <div style={styles.popupScroll}>
               <ReactMarkdown>
                 {howToUseContent}
