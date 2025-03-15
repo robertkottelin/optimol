@@ -1,23 +1,19 @@
 import React, { useState, useContext } from "react";
 import { AuthContext } from "../AuthContext";
-import { styles } from "../styles/components";
 import { Icons } from "./Icons";
 
 const LoginForm = ({ toggleForm }) => {
-  // Form state
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Auth context for login method
   const { login } = useContext(AuthContext);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     
-    // Basic validation
     if (!email || !password) {
       setError("Please enter both email and password");
       return;
@@ -174,15 +170,7 @@ const LoginForm = ({ toggleForm }) => {
         >
           {isLoading ? (
             <>
-              <span className="spinner" style={{ 
-                width: "18px", 
-                height: "18px", 
-                border: "2px solid rgba(255, 255, 255, 0.3)", 
-                borderTopColor: "white", 
-                borderRadius: "50%", 
-                animation: "spin 1s linear infinite", 
-                display: "inline-block" 
-              }}></span>
+              <span className="spinner"></span>
               Signing In...
             </>
           ) : (
@@ -212,13 +200,5 @@ const LoginForm = ({ toggleForm }) => {
     </div>
   );
 };
-
-// Add this component to IconSet if not already present
-const lock = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="1.5"/>
-    <path d="M8 11V7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7V11" stroke="currentColor" strokeWidth="1.5"/>
-  </svg>
-);
 
 export default LoginForm;

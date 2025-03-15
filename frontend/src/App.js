@@ -35,6 +35,10 @@ const stripePromise = loadStripe('pk_test_kbl0ETzPsoiTwU4ZJMvhsYJw006XVnV4Aq');
 axios.defaults.withCredentials = true;
 
 const App = () => {
+  // Authentication context
+  const { currentUser, isAuthenticated, isSubscribed, isLoading, logout } = useContext(AuthContext);
+  const [showLoginForm, setShowLoginForm] = useState(true);
+
   // State for molecule data
   const [moleculeData, setMoleculeData] = useState(null);
   const [optimizationResult, setOptimizationResult] = useState(null);
@@ -45,10 +49,6 @@ const App = () => {
   const [classicalParams, setClassicalParams] = useState({ ...defaultClassicalParams });
   const [quantumParams, setQuantumParams] = useState({ ...defaultQuantumParams });
   const [showAdvancedParams, setShowAdvancedParams] = useState(false);
-
-  // Authentication and user state from context
-  const { currentUser, isAuthenticated, isLoading, logout } = useContext(AuthContext);
-  const [showLoginForm, setShowLoginForm] = useState(true);
 
   // UI state
   const [isHowToUseVisible, setIsHowToUseVisible] = useState(false);
@@ -78,6 +78,33 @@ const App = () => {
   }, []);
 
   const apiBaseUrl = "https://optimizemolecule.com";
+  
+  // Show loading indicator while auth state is determined
+  if (isLoading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        backgroundColor: '#0c1021',
+        color: '#f0f4f8'
+      }}>
+        <div>
+          <div className="spinner" style={{ 
+            width: '40px', 
+            height: '40px', 
+            border: '3px solid rgba(56, 189, 248, 0.3)',
+            borderTopColor: '#38bdf8',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 20px auto'
+          }} />
+          <div>Loading authentication...</div>
+        </div>
+      </div>
+    );
+  }
   
   const [howToUseContent, setHowToUseContent] = useState("");
   useEffect(() => {
@@ -140,9 +167,9 @@ const App = () => {
   // Apply limits on initial load and whenever subscription status changes
   useEffect(() => {
     if (!isLoading) {
-      applyIterationLimits(currentUser?.isSubscribed || false);
+      applyIterationLimits(isSubscribed);
     }
-  }, [isLoading, currentUser?.isSubscribed]);
+  }, [isLoading, isSubscribed]);
 
   const handleShowHowToUse = () => {
     setIsHowToUseVisible(true);
@@ -351,7 +378,7 @@ const App = () => {
 
       // Apply iteration limits for all users
       if (optimizationType === "classical") {
-        const maxIterations = currentUser?.isSubscribed
+        const maxIterations = isSubscribed
           ? ITERATION_LIMITS.subscribed.classical
           : ITERATION_LIMITS.unsubscribed.classical;
 
@@ -360,7 +387,7 @@ const App = () => {
           maxIterations
         );
       } else {
-        const maxIterations = currentUser?.isSubscribed
+        const maxIterations = isSubscribed
           ? ITERATION_LIMITS.subscribed.quantum
           : ITERATION_LIMITS.unsubscribed.quantum;
 
@@ -369,7 +396,7 @@ const App = () => {
           maxIterations
         );
 
-        if (!currentUser?.isSubscribed && (optimizationParams.basis === "6-311g" || optimizationParams.basis === "cc-pvdz")) {
+        if (!isSubscribed && (optimizationParams.basis === "6-311g" || optimizationParams.basis === "cc-pvdz")) {
           optimizationParams.basis = "6-31g";
         }
       }
@@ -439,7 +466,7 @@ const App = () => {
         params.force_iterations = prevParams.force_iterations;
 
         // Always apply appropriate limits based on subscription status
-        const maxIterations = currentUser?.isSubscribed
+        const maxIterations = isSubscribed
           ? ITERATION_LIMITS.subscribed.classical
           : ITERATION_LIMITS.unsubscribed.classical;
 
@@ -456,7 +483,7 @@ const App = () => {
         const params = { ...defaultQuantumParams };
 
         // Always apply appropriate limits based on subscription status
-        const maxIterations = currentUser?.isSubscribed
+        const maxIterations = isSubscribed
           ? ITERATION_LIMITS.subscribed.quantum
           : ITERATION_LIMITS.unsubscribed.quantum;
 
@@ -466,7 +493,7 @@ const App = () => {
         );
 
         // Restrict to simpler basis sets for free users only
-        if (!currentUser?.isSubscribed && (params.basis === "6-311g" || params.basis === "cc-pvdz")) {
+        if (!isSubscribed && (params.basis === "6-311g" || params.basis === "cc-pvdz")) {
           params.basis = "6-31g";
         }
 
@@ -526,7 +553,7 @@ const App = () => {
   };
 
   // Display login/register if not authenticated
-  if (!isAuthenticated && !isLoading) {
+  if (!isAuthenticated) {
     return (
       <div style={{ ...styles.app, padding: isMobile ? '16px' : styles.app.padding }}>
         <div style={styles.decorativeBg}></div>
@@ -549,27 +576,6 @@ const App = () => {
             ) : (
               <RegisterForm toggleForm={() => setShowLoginForm(true)} />
             )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show loading state
-  if (isLoading) {
-    return (
-      <div style={{ ...styles.app, padding: isMobile ? '16px' : styles.app.padding }}>
-        <div style={styles.container}>
-          <header style={styles.header} className="app-header">
-            <h1 style={styles.headerTitle} className="app-title">Molecular Optimization System</h1>
-          </header>
-          <div className="fade-in glass card" style={styles.card}>
-            <div style={{ textAlign: 'center', padding: '40px' }}>
-              <span className="spin" style={{ display: "inline-block", marginRight: "12px" }}>
-                <Icons.spinner />
-              </span>
-              Loading...
-            </div>
           </div>
         </div>
       </div>
@@ -693,7 +699,7 @@ const App = () => {
             Logout
           </button>
 
-          {currentUser?.isSubscribed && (
+          {isSubscribed && (
             <button
               onClick={handleCancelSubscription}
               disabled={isCancelLoading}
@@ -730,8 +736,8 @@ const App = () => {
         </header>
 
         {/* Subscription Form or Welcome Message */}
-        <div className="fade-in glass card" style={currentUser?.isSubscribed ? styles.cardWithGlow : styles.card}>
-          {!currentUser?.isSubscribed ? (
+        <div className="fade-in glass card" style={isSubscribed ? styles.cardWithGlow : styles.card}>
+          {!isSubscribed ? (
             <div className={`subscription-form ${isMobile ? 'mobile-smaller-padding' : ''}`}>
               <Elements stripe={stripePromise}>
                 <SubscriptionForm
@@ -871,7 +877,7 @@ const App = () => {
               {/* Parameter Configuration */}
               {optimizationType === "classical" ? (
                 <ClassicalParametersConfig
-                  isSubscribed={currentUser?.isSubscribed || false}
+                  isSubscribed={isSubscribed}
                   classicalParams={classicalParams}
                   showAdvancedParams={showAdvancedParams}
                   handleParamChange={handleParamChange}
@@ -881,7 +887,7 @@ const App = () => {
                 />
               ) : (
                 <QuantumParametersConfig
-                  isSubscribed={currentUser?.isSubscribed || false}
+                  isSubscribed={isSubscribed}
                   quantumParams={quantumParams}
                   showAdvancedParams={showAdvancedParams}
                   handleParamChange={handleParamChange}
@@ -944,13 +950,13 @@ const App = () => {
                     </>
                   ) : (
                     <>
-                      {`Run ${optimizationType === "classical" ? "Classical" : "Quantum"} Optimization${!currentUser?.isSubscribed ? " (Limited)" : ""}`}
+                      {`Run ${optimizationType === "classical" ? "Classical" : "Quantum"} Optimization${!isSubscribed ? " (Limited)" : ""}`}
                       <div style={styles.optimizeButtonShine}></div>
                     </>
                   )}
                 </button>
 
-                {!currentUser?.isSubscribed && (
+                {!isSubscribed && (
                   <div style={styles.freeUserNotice} className={isMobile ? 'mobile-smaller-text mobile-text-center' : ''}>
                     Free users are limited to {ITERATION_LIMITS.unsubscribed.classical.toLocaleString()} iterations for classical and {ITERATION_LIMITS.unsubscribed.quantum} for quantum optimizations.
                   </div>

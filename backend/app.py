@@ -1,12 +1,10 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 import os
 import json
 from dotenv import load_dotenv
 from extensions import db
-
 from flask_jwt_extended import JWTManager
-
 
 # Function to load configuration from JSON file
 def load_config(config_file='config.json'):
@@ -20,13 +18,6 @@ def load_config(config_file='config.json'):
 # Initialize Flask app
 app = Flask(__name__)
 
-app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'dev-key-change-in-production')
-app.config['JWT_TOKEN_LOCATION'] = ['cookies']
-app.config['JWT_COOKIE_SECURE'] = True  # In production
-app.config['JWT_COOKIE_CSRF_PROTECT'] = True
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = 30 * 24 * 60 * 60  # 30 days
-jwt = JWTManager(app)
-
 # Load configuration
 config = load_config()
 
@@ -34,17 +25,61 @@ config = load_config()
 app.config['SQLALCHEMY_DATABASE_URI'] = config.get('SQLALCHEMY_DATABASE_URI', 'sqlite:///users.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = config.get('SQLALCHEMY_TRACK_MODIFICATIONS', False)
 
+# JWT Configuration
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'dev-key-change-in-production')
+app.config['JWT_TOKEN_LOCATION'] = ['cookies']
+app.config['JWT_COOKIE_SECURE'] = True  # For HTTPS
+app.config['JWT_COOKIE_CSRF_PROTECT'] = False  # Disable for cross-domain
+app.config['JWT_COOKIE_SAMESITE'] = 'None'  # Required for cross-site cookies
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = 30 * 24 * 60 * 60  # 30 days
+jwt = JWTManager(app)
+
 # Initialize extensions
 db.init_app(app)
 load_dotenv()
 
-# Configure CORS with settings from config
-cors_config = config.get('CORS', {})
+# CORS Configuration
+CORS_CONFIG = {
+    'origins': config.get('CORS', {}).get('origins', ["https://robertkottelin.github.io", "https://optimizemolecule.com"]),
+    'methods': config.get('CORS', {}).get('methods', ["GET", "POST", "OPTIONS"]),
+    'allow_headers': config.get('CORS', {}).get('allow_headers', ["Content-Type", "Authorization"]),
+    'supports_credentials': True,
+    'expose_headers': ['Content-Type', 'Authorization'],
+    'max_age': 600  # Cache preflight for 10 minutes
+}
+
+# Initialize CORS with explicit configurations
 CORS(app, 
-     origins=cors_config.get('origins'), 
-     methods=cors_config.get('methods'), 
-     allow_headers=cors_config.get('allow_headers'),
-     supports_credentials=True)
+     origins=CORS_CONFIG['origins'],
+     methods=CORS_CONFIG['methods'], 
+     allow_headers=CORS_CONFIG['allow_headers'],
+     supports_credentials=True,
+     expose_headers=CORS_CONFIG['expose_headers'])
+
+# Global after_request handler to ensure CORS headers
+@app.after_request
+def after_request(response):
+    origin = request.headers.get('Origin')
+    if origin and origin in CORS_CONFIG['origins']:
+        response.headers.set('Access-Control-Allow-Origin', origin)
+        response.headers.set('Access-Control-Allow-Headers', ', '.join(CORS_CONFIG['allow_headers']))
+        response.headers.set('Access-Control-Allow-Methods', ', '.join(CORS_CONFIG['methods']))
+        response.headers.set('Access-Control-Allow-Credentials', 'true')
+    return response
+
+# Route to handle preflight OPTIONS requests
+@app.route('/me', methods=['OPTIONS'])
+@app.route('/login', methods=['OPTIONS'])
+@app.route('/register', methods=['OPTIONS'])
+@app.route('/logout', methods=['OPTIONS']) 
+@app.route('/subscribe', methods=['OPTIONS'])
+@app.route('/check-subscription', methods=['OPTIONS'])
+@app.route('/cancel-subscription', methods=['OPTIONS'])
+@app.route('/optimize-molecule', methods=['OPTIONS'])
+def handle_cors_preflight():
+    response = jsonify({})
+    # CORS headers will be added by after_request
+    return response, 200
 
 # Import blueprints after app creation
 from user import user_bp
@@ -55,7 +90,6 @@ app.register_blueprint(user_bp)
 app.register_blueprint(opti_bp)
 
 # Initialize database tables during application startup
-# This ensures tables exist regardless of how the app is launched
 with app.app_context():
     db.create_all()
     print("Database tables initialized")
@@ -76,15 +110,5 @@ def health_check():
     except Exception as e:
         return jsonify({"status": "unhealthy", "error": str(e)}), 500
 
-@app.route('/me', methods=['OPTIONS'])
-def handle_me_preflight():
-    response = jsonify({})
-    response.headers.add('Access-Control-Allow-Origin', ', '.join(cors_config.get('origins')))
-    response.headers.add('Access-Control-Allow-Methods', 'GET')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-    response.headers.add('Access-Control-Allow-Credentials', 'true')
-    return response
-
 if __name__ == '__main__':
-    # No need to create tables here again since we do it at app initialization
     app.run(host="0.0.0.0", port=5000)

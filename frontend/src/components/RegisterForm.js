@@ -1,4 +1,3 @@
-// RegisterForm.js
 import React, { useState, useContext } from "react";
 import { AuthContext } from "../AuthContext";
 import { Icons } from "./Icons";
@@ -86,23 +85,34 @@ const RegisterForm = ({ toggleForm }) => {
           >
             Email Address
           </label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={{ 
-              width: "100%", 
-              padding: "12px 12px 12px 36px", 
-              backgroundColor: "rgba(15, 23, 42, 0.7)", 
-              border: "1px solid rgba(255, 255, 255, 0.1)", 
-              borderRadius: "6px", 
-              color: "#f0f4f8", 
-              fontSize: "14px" 
-            }}
-            placeholder="your@email.com"
-            required
-          />
+          <div style={{ position: "relative" }}>
+            <span style={{ 
+              position: "absolute", 
+              left: "12px", 
+              top: "50%", 
+              transform: "translateY(-50%)", 
+              color: "#94a3b8" 
+            }}>
+              <Icons.info />
+            </span>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={{ 
+                width: "100%", 
+                padding: "12px 12px 12px 36px", 
+                backgroundColor: "rgba(15, 23, 42, 0.7)", 
+                border: "1px solid rgba(255, 255, 255, 0.1)", 
+                borderRadius: "6px", 
+                color: "#f0f4f8", 
+                fontSize: "14px" 
+              }}
+              placeholder="your@email.com"
+              required
+            />
+          </div>
         </div>
 
         <div style={{ marginBottom: "15px" }}>
@@ -118,23 +128,34 @@ const RegisterForm = ({ toggleForm }) => {
           >
             Password
           </label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={{ 
-              width: "100%", 
-              padding: "12px 12px 12px 36px", 
-              backgroundColor: "rgba(15, 23, 42, 0.7)", 
-              border: "1px solid rgba(255, 255, 255, 0.1)", 
-              borderRadius: "6px", 
-              color: "#f0f4f8", 
-              fontSize: "14px" 
-            }}
-            placeholder="••••••••"
-            required
-          />
+          <div style={{ position: "relative" }}>
+            <span style={{ 
+              position: "absolute", 
+              left: "12px", 
+              top: "50%", 
+              transform: "translateY(-50%)", 
+              color: "#94a3b8" 
+            }}>
+              <Icons.lock />
+            </span>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={{ 
+                width: "100%", 
+                padding: "12px 12px 12px 36px", 
+                backgroundColor: "rgba(15, 23, 42, 0.7)", 
+                border: "1px solid rgba(255, 255, 255, 0.1)", 
+                borderRadius: "6px", 
+                color: "#f0f4f8", 
+                fontSize: "14px" 
+              }}
+              placeholder="••••••••"
+              required
+            />
+          </div>
         </div>
 
         <div style={{ marginBottom: "20px" }}>
@@ -150,23 +171,34 @@ const RegisterForm = ({ toggleForm }) => {
           >
             Confirm Password
           </label>
-          <input
-            id="confirmPassword"
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            style={{ 
-              width: "100%", 
-              padding: "12px 12px 12px 36px", 
-              backgroundColor: "rgba(15, 23, 42, 0.7)", 
-              border: "1px solid rgba(255, 255, 255, 0.1)", 
-              borderRadius: "6px", 
-              color: "#f0f4f8", 
-              fontSize: "14px" 
-            }}
-            placeholder="••••••••"
-            required
-          />
+          <div style={{ position: "relative" }}>
+            <span style={{ 
+              position: "absolute", 
+              left: "12px", 
+              top: "50%", 
+              transform: "translateY(-50%)", 
+              color: "#94a3b8" 
+            }}>
+              <Icons.lock />
+            </span>
+            <input
+              id="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              style={{ 
+                width: "100%", 
+                padding: "12px 12px 12px 36px", 
+                backgroundColor: "rgba(15, 23, 42, 0.7)", 
+                border: "1px solid rgba(255, 255, 255, 0.1)", 
+                borderRadius: "6px", 
+                color: "#f0f4f8", 
+                fontSize: "14px" 
+              }}
+              placeholder="••••••••"
+              required
+            />
+          </div>
         </div>
 
         <button
