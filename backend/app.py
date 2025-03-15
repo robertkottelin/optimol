@@ -50,11 +50,14 @@ CORS_CONFIG = {
 
 # Initialize CORS with explicit configurations
 CORS(app, 
-     origins=CORS_CONFIG['origins'],
-     methods=CORS_CONFIG['methods'], 
-     allow_headers=CORS_CONFIG['allow_headers'],
-     supports_credentials=True,
-     expose_headers=CORS_CONFIG['expose_headers'])
+     resources={r"/*": {
+         "origins": CORS_CONFIG['origins'],
+         "methods": CORS_CONFIG['methods'], 
+         "allow_headers": CORS_CONFIG['allow_headers'],
+         "supports_credentials": True,
+         "expose_headers": CORS_CONFIG['expose_headers']
+     }},
+     supports_credentials=True)
 
 # Global after_request handler to ensure CORS headers
 @app.after_request
@@ -65,6 +68,7 @@ def after_request(response):
         response.headers.set('Access-Control-Allow-Headers', ', '.join(CORS_CONFIG['allow_headers']))
         response.headers.set('Access-Control-Allow-Methods', ', '.join(CORS_CONFIG['methods']))
         response.headers.set('Access-Control-Allow-Credentials', 'true')
+        response.headers.set('Access-Control-Max-Age', str(CORS_CONFIG['max_age']))
     return response
 
 # Route to handle preflight OPTIONS requests
@@ -78,7 +82,13 @@ def after_request(response):
 @app.route('/optimize-molecule', methods=['OPTIONS'])
 def handle_cors_preflight():
     response = jsonify({})
-    # CORS headers will be added by after_request
+    origin = request.headers.get('Origin')
+    if origin and origin in CORS_CONFIG['origins']:
+        response.headers.set('Access-Control-Allow-Origin', origin)
+        response.headers.set('Access-Control-Allow-Headers', ', '.join(CORS_CONFIG['allow_headers']))
+        response.headers.set('Access-Control-Allow-Methods', ', '.join(CORS_CONFIG['methods']))
+        response.headers.set('Access-Control-Allow-Credentials', 'true')
+        response.headers.set('Access-Control-Max-Age', str(CORS_CONFIG['max_age']))
     return response, 200
 
 # Import blueprints after app creation
