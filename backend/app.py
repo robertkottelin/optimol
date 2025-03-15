@@ -43,12 +43,11 @@ CORS_CONFIG = {
     'origins': config.get('CORS', {}).get('origins', ["https://robertkottelin.github.io", "https://optimizemolecule.com"]),
     'methods': config.get('CORS', {}).get('methods', ["GET", "POST", "OPTIONS"]),
     'allow_headers': config.get('CORS', {}).get('allow_headers', ["Content-Type", "Authorization"]),
-    'supports_credentials': True,
     'expose_headers': ['Content-Type', 'Authorization'],
     'max_age': 600  # Cache preflight for 10 minutes
 }
 
-# Initialize CORS with explicit configurations
+# Initialize CORS with resource pattern matching
 CORS(app, 
      resources={r"/*": {
          "origins": CORS_CONFIG['origins'],
@@ -56,10 +55,9 @@ CORS(app,
          "allow_headers": CORS_CONFIG['allow_headers'],
          "supports_credentials": True,
          "expose_headers": CORS_CONFIG['expose_headers']
-     }},
-     supports_credentials=True)
+     }})
 
-# Global after_request handler to ensure CORS headers
+# Global after_request handler for CORS
 @app.after_request
 def after_request(response):
     origin = request.headers.get('Origin')
@@ -71,7 +69,7 @@ def after_request(response):
         response.headers.set('Access-Control-Max-Age', str(CORS_CONFIG['max_age']))
     return response
 
-# Route to handle preflight OPTIONS requests
+# Route to handle specific preflight OPTIONS requests
 @app.route('/me', methods=['OPTIONS'])
 @app.route('/login', methods=['OPTIONS'])
 @app.route('/register', methods=['OPTIONS'])
@@ -81,6 +79,19 @@ def after_request(response):
 @app.route('/cancel-subscription', methods=['OPTIONS'])
 @app.route('/optimize-molecule', methods=['OPTIONS'])
 def handle_cors_preflight():
+    response = jsonify({})
+    origin = request.headers.get('Origin')
+    if origin and origin in CORS_CONFIG['origins']:
+        response.headers.set('Access-Control-Allow-Origin', origin)
+        response.headers.set('Access-Control-Allow-Headers', ', '.join(CORS_CONFIG['allow_headers']))
+        response.headers.set('Access-Control-Allow-Methods', ', '.join(CORS_CONFIG['methods']))
+        response.headers.set('Access-Control-Allow-Credentials', 'true')
+        response.headers.set('Access-Control-Max-Age', str(CORS_CONFIG['max_age']))
+    return response, 200
+
+# Global OPTIONS handler for all routes
+@app.route('/<path:path>', methods=['OPTIONS'])
+def handle_all_options(path):
     response = jsonify({})
     origin = request.headers.get('Origin')
     if origin and origin in CORS_CONFIG['origins']:
