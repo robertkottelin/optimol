@@ -19,7 +19,7 @@ opti_bp = Blueprint('opti', __name__)
 class Optimization(db.Model):
     """Optimization record model for tracking molecular optimizations."""
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # Modified to allow null for non-subscribers
     optimization_type = db.Column(db.String(50), nullable=False)  # 'classical' or 'quantum'
     parameters = db.Column(db.Text, nullable=False)  # JSON string of parameters
     result = db.Column(db.Text, nullable=True)  # JSON string of the result
@@ -294,6 +294,7 @@ def optimize_classical(atoms, params=None):
                 "status": "failed"
             }
         }         
+
 def optimize_quantum(atoms, params=None):
     """
     Optimize molecule using quantum chemistry with PySCF.
@@ -426,11 +427,13 @@ def optimize_quantum(atoms, params=None):
             }
         }
 
+from constants import ITERATION_LIMITS  # Import iteration limits
+
 @opti_bp.route('/optimize-molecule', methods=['POST'])
 def optimize_molecule():
     """
     Endpoint to optimize molecular structures using either classical or quantum methods.
-    Requires an active subscription.
+    Now supports both subscribed and non-subscribed users with appropriate limits.
     
     Expected request format:
     {
@@ -461,7 +464,6 @@ def optimize_molecule():
     }
     """
     try:
-        # Check if user is authenticated and subscribed
         data = request.get_json()
         if not data:
             return jsonify({"error": "Invalid input: No data provided"}), 400
@@ -476,12 +478,18 @@ def optimize_molecule():
             
         if not optimization_type or optimization_type not in ["classical", "quantum"]:
             return jsonify({"error": "Invalid input: Missing or invalid 'optimization_type' (must be 'classical' or 'quantum')"}), 400
-            
-        # Verify subscription status
-        user = User.query.filter_by(email=email).first()
-        if not user or user.subscription_status != "active":
-            return jsonify({"error": "Active subscription required for molecule optimization"}), 403
-            
+        
+        # Determine user subscription status - default to unsubscribed
+        is_subscribed = False
+        user_id = None
+        
+        # Check if it's a genuine user email (not the guest one)
+        if email != "guest@example.com":
+            user = User.query.filter_by(email=email).first()
+            if user and user.subscription_status == "active":
+                is_subscribed = True
+                user_id = user.id
+        
         # Extract atoms from molecule data
         try:
             # Handle structure from example file format
@@ -497,6 +505,27 @@ def optimize_molecule():
                 return jsonify({"error": "Invalid molecule data: No atoms found"}), 400
         except Exception as e:
             return jsonify({"error": f"Error parsing molecule data: {str(e)}"}), 400
+        
+        # Apply subscription-based limits to parameters
+        if optimization_type == "classical":
+            max_iterations_limit = ITERATION_LIMITS['subscribed' if is_subscribed else 'unsubscribed']['classical']
+            # Cap max_iterations to the appropriate limit
+            optimization_params['max_iterations'] = min(
+                optimization_params.get('max_iterations', 1000), 
+                max_iterations_limit
+            )
+        
+        elif optimization_type == "quantum":
+            max_iterations_limit = ITERATION_LIMITS['subscribed' if is_subscribed else 'unsubscribed']['quantum']
+            # Cap max_iterations to the appropriate limit
+            optimization_params['max_iterations'] = min(
+                optimization_params.get('max_iterations', 10), 
+                max_iterations_limit
+            )
+            
+            # Restrict advanced basis sets for non-subscribers
+            if not is_subscribed and optimization_params.get('basis') in ["6-311g", "cc-pvdz"]:
+                optimization_params['basis'] = "6-31g"
             
         # Perform requested optimization with parameters
         result = None
@@ -505,9 +534,9 @@ def optimize_molecule():
         elif optimization_type == "quantum":
             result = optimize_quantum(atoms, optimization_params)
         
-        # Store optimization results in database
+        # Store optimization results in database - now with nullable user_id
         optimization = Optimization(
-            user_id=user.id,
+            user_id=user_id,  # This can be None for non-subscribers
             optimization_type=optimization_type,
             parameters=json.dumps({
                 "molecule": molecule_data,
