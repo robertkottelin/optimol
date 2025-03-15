@@ -71,7 +71,7 @@ const App = () => {
 
   // const apiBaseUrl = "http://localhost:5000";
   // const apiBaseUrl = "http://64.226.88.121:5000";
-  const apiBaseUrl = "https://134.209.226.93";
+  const apiBaseUrl = "http://134.209.226.93";
 
 
   const [howToUseContent, setHowToUseContent] = useState("");
