@@ -69,7 +69,7 @@ const SubscriptionForm = ({ onSuccess, isMobile }) => {
       }
 
       // Send to backend
-      const response = await axios.post("https://optimizemolecule.com:5000/subscribe", {
+      const response = await axios.post("https://optimizemolecule.com/subscribe", {
         email,
         paymentMethodId: paymentMethod.id,
       });
