@@ -70,6 +70,7 @@ const App = () => {
   }, []);
 
   const apiBaseUrl = "https://optimizemolecule.com";
+  // apiBaseUrl = "http://localhost:5000";
   
   const [howToUseContent, setHowToUseContent] = useState("");
   useEffect(() => {
