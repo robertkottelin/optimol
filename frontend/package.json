@@ -33,6 +33,5 @@
   },
   "devDependencies": {
     "raw-loader": "^4.0.2"
-  },
-  "proxy": "https://159.89.103.28"
+  }
 }
