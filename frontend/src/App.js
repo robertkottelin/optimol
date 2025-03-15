@@ -69,9 +69,8 @@ const App = () => {
     return () => window.removeEventListener('resize', checkIfMobile);
   }, []);
 
-  // const apiBaseUrl = "http://134.209.226.93";
-  const apiBaseUrl = "https://robertkottelin.github.io/optimol/api";
-
+  const apiBaseUrl = "https://optimizemolecule.com";
+  
   const [howToUseContent, setHowToUseContent] = useState("");
   useEffect(() => {
     // Load documentation from public directory
