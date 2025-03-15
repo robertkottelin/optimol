@@ -43,7 +43,8 @@ cors_config = config.get('CORS', {})
 CORS(app, 
      origins=cors_config.get('origins'), 
      methods=cors_config.get('methods'), 
-     allow_headers=cors_config.get('allow_headers'))
+     allow_headers=cors_config.get('allow_headers'),
+     supports_credentials=True)
 
 # Import blueprints after app creation
 from user import user_bp
@@ -74,6 +75,15 @@ def health_check():
         return jsonify({"status": "healthy"}), 200
     except Exception as e:
         return jsonify({"status": "unhealthy", "error": str(e)}), 500
+
+@app.route('/me', methods=['OPTIONS'])
+def handle_me_preflight():
+    response = jsonify({})
+    response.headers.add('Access-Control-Allow-Origin', ', '.join(cors_config.get('origins')))
+    response.headers.add('Access-Control-Allow-Methods', 'GET')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
 
 if __name__ == '__main__':
     # No need to create tables here again since we do it at app initialization

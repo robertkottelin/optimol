@@ -7,9 +7,9 @@ export const AuthContext = createContext({
   isAuthenticated: false,
   isSubscribed: false,
   isLoading: true,
-  login: () => {},
-  register: () => {},
-  logout: () => {}
+  login: () => Promise.resolve({ success: false }),
+  register: () => Promise.resolve({ success: false }),
+  logout: () => Promise.resolve({ success: false })
 });
 
 export const AuthProvider = ({ children }) => {
@@ -20,22 +20,24 @@ export const AuthProvider = ({ children }) => {
   // Configure axios to include credentials with all requests
   axios.defaults.withCredentials = true;
 
-  // Check if user is already logged in on mount
   useEffect(() => {
+    let isMounted = true;
     const checkAuthStatus = async () => {
       try {
         const response = await axios.get(`${apiBaseUrl}/me`);
-        setCurrentUser(response.data);
+        if (isMounted) setCurrentUser(response.data);
       } catch (error) {
-        console.log("User not authenticated");
-        setCurrentUser(null);
+        console.log("User not authenticated", error);
+        if (isMounted) setCurrentUser(null);
       } finally {
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
       }
     };
 
     checkAuthStatus();
+    return () => { isMounted = false; };
   }, []);
+
 
   // Login function
   const login = async (email, password) => {
