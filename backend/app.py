@@ -33,6 +33,8 @@ app.config['JWT_COOKIE_SECURE'] = True  # For HTTPS
 app.config['JWT_COOKIE_CSRF_PROTECT'] = False  # Disable for cross-domain
 app.config['JWT_COOKIE_SAMESITE'] = 'None'  # Required for cross-site cookies
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = 30 * 24 * 60 * 60  # 30 days
+app.config['JWT_COOKIE_DOMAIN'] = None  # Let Flask-JWT-Extended set the domain automatically
+app.config['JWT_COOKIE_PATH'] = '/'  # Explicit path for cookie
 jwt = JWTManager(app)
 
 # Initialize extensions
@@ -43,8 +45,8 @@ load_dotenv()
 CORS_CONFIG = {
     'origins': config.get('CORS', {}).get('origins', ["https://robertkottelin.github.io", "https://optimizemolecule.com"]),
     'methods': config.get('CORS', {}).get('methods', ["GET", "POST", "OPTIONS"]),
-    'allow_headers': config.get('CORS', {}).get('allow_headers', ["Content-Type", "Authorization"]),
-    'expose_headers': ['Content-Type', 'Authorization'],
+    'allow_headers': config.get('CORS', {}).get('allow_headers', ["Content-Type", "Authorization", "X-Requested-With"]),
+    'expose_headers': ['Content-Type', 'Authorization', 'Set-Cookie'],
     'max_age': 600  # Cache preflight for 10 minutes
 }
 
@@ -58,7 +60,7 @@ CORS(app,
          "expose_headers": CORS_CONFIG['expose_headers']
      }})
 
-# Global after_request handler for CORS
+# Global after_request handler for CORS and cookie configuration
 @app.after_request
 def after_request(response):
     origin = request.headers.get('Origin')
@@ -68,6 +70,17 @@ def after_request(response):
         response.headers.set('Access-Control-Allow-Methods', ', '.join(CORS_CONFIG['methods']))
         response.headers.set('Access-Control-Allow-Credentials', 'true')
         response.headers.set('Access-Control-Max-Age', str(CORS_CONFIG['max_age']))
+        response.headers.set('Access-Control-Expose-Headers', ', '.join(CORS_CONFIG['expose_headers']))
+    
+    # Enforce proper attributes for all cookies
+    if response.headers.get('Set-Cookie'):
+        cookies = response.headers.getlist('Set-Cookie')
+        response.headers.pop('Set-Cookie')
+        for cookie in cookies:
+            if 'SameSite=None' not in cookie:
+                cookie += '; SameSite=None; Secure'
+            response.headers.add('Set-Cookie', cookie)
+    
     return response
 
 # Route to handle specific preflight OPTIONS requests
@@ -103,6 +116,13 @@ def handle_all_options(path):
         response.headers.set('Access-Control-Max-Age', str(CORS_CONFIG['max_age']))
     return response, 200
 
+# Test endpoint for cookie verification
+@app.route('/test-cookie')
+def test_cookie():
+    resp = jsonify({"testing": True})
+    resp.set_cookie('test_cookie', 'test_value', samesite='None', secure=True, httponly=False)
+    return resp
+
 # Import blueprints after app creation
 from user import user_bp
 from opti import opti_bp
@@ -127,7 +147,7 @@ def optimize_test():
 @app.route('/health')
 def health_check():
     try:
-        db.session.execute('SELECT 1')
+        db.session.execute(text('SELECT 1'))
         return jsonify({"status": "healthy"}), 200
     except Exception as e:
         return jsonify({"status": "unhealthy", "error": str(e)}), 500
