@@ -18,6 +18,9 @@ ssh root@134.209.226.93
 # Navigate to application directory
 cd /opt/optimize-molecule
 
+# prune af if needed 
+docker image prune -af
+
 # Pull latest images from Docker Hub
 docker-compose pull
 
