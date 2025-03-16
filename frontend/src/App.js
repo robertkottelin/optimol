@@ -37,31 +37,32 @@ axios.defaults.withCredentials = true;
 const App = () => {
   // Authentication context
   const { currentUser, isAuthenticated, isSubscribed, isLoading, logout, token } = useContext(AuthContext);
+  
+  // FIXED: Moved all useState declarations to component top level
   const [showLoginForm, setShowLoginForm] = useState(true);
-
-  // State for molecule data
   const [moleculeData, setMoleculeData] = useState(null);
   const [optimizationResult, setOptimizationResult] = useState(null);
   const [activeView, setActiveView] = useState("original"); // original, optimized
   const [optimizationType, setOptimizationType] = useState("classical"); // classical or quantum
-
-  // Optimization parameters state
   const [classicalParams, setClassicalParams] = useState({ ...defaultClassicalParams });
   const [quantumParams, setQuantumParams] = useState({ ...defaultQuantumParams });
   const [showAdvancedParams, setShowAdvancedParams] = useState(false);
-
-  // UI state
   const [isHowToUseVisible, setIsHowToUseVisible] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  // Loading states
   const [isSubscribeLoading, setIsSubscribeLoading] = useState(false);
   const [isCancelLoading, setIsCancelLoading] = useState(false);
   const [isOptimizeLoading, setIsOptimizeLoading] = useState(false);
-
-  // Check for mobile viewport
   const [isMobile, setIsMobile] = useState(false);
+  const [serverHealth, setServerHealth] = useState(null);
+  const [isCheckingHealth, setIsCheckingHealth] = useState(false);
+  const [serverHealthDetails, setServerHealthDetails] = useState(null);
+  // FIXED: Moved howToUseContent useState before conditional return
+  const [howToUseContent, setHowToUseContent] = useState("");
+
+  const apiBaseUrl = "https://optimizemolecule.com";
+  
+  // Group all useEffect hooks together
   useEffect(() => {
     const checkIfMobile = () => {
       setIsMobile(window.innerWidth <= 768);
@@ -76,37 +77,7 @@ const App = () => {
     // Cleanup
     return () => window.removeEventListener('resize', checkIfMobile);
   }, []);
-
-  const apiBaseUrl = "https://optimizemolecule.com";
   
-  // Show loading indicator while auth state is determined
-  if (isLoading) {
-    return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        backgroundColor: '#0c1021',
-        color: '#f0f4f8'
-      }}>
-        <div>
-          <div className="spinner" style={{ 
-            width: '40px', 
-            height: '40px', 
-            border: '3px solid rgba(56, 189, 248, 0.3)',
-            borderTopColor: '#38bdf8',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto 20px auto'
-          }} />
-          <div>Loading authentication...</div>
-        </div>
-      </div>
-    );
-  }
-  
-  const [howToUseContent, setHowToUseContent] = useState("");
   useEffect(() => {
     // Load documentation from public directory
     fetch(`${process.env.PUBLIC_URL}/how-to-use.md`)
@@ -123,6 +94,13 @@ const App = () => {
         setHowToUseContent("# Molecular Optimization System\n\nDocumentation is currently unavailable.");
       });
   }, []);
+
+  // Apply limits on initial load and whenever subscription status changes
+  useEffect(() => {
+    if (!isLoading) {
+      applyIterationLimits(isSubscribed);
+    }
+  }, [isLoading, isSubscribed]);
 
   // Helper function to consistently apply iteration limits
   const applyIterationLimits = (isUserSubscribed) => {
@@ -164,13 +142,6 @@ const App = () => {
     });
   };
 
-  // Apply limits on initial load and whenever subscription status changes
-  useEffect(() => {
-    if (!isLoading) {
-      applyIterationLimits(isSubscribed);
-    }
-  }, [isLoading, isSubscribed]);
-
   const handleShowHowToUse = () => {
     setIsHowToUseVisible(true);
     setIsMobileMenuOpen(false);
@@ -183,10 +154,6 @@ const App = () => {
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
-
-  const [serverHealth, setServerHealth] = useState(null);
-  const [isCheckingHealth, setIsCheckingHealth] = useState(false);
-  const [serverHealthDetails, setServerHealthDetails] = useState(null);
 
   const checkServerHealth = async () => {
     setIsCheckingHealth(true);
@@ -551,6 +518,34 @@ const App = () => {
     }
     return null;
   };
+
+  // FIXED: Now safe to use conditional returns after all hooks are declared
+  // Display loading indicator while auth state is determined
+  if (isLoading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        backgroundColor: '#0c1021',
+        color: '#f0f4f8'
+      }}>
+        <div>
+          <div className="spinner" style={{ 
+            width: '40px', 
+            height: '40px', 
+            border: '3px solid rgba(56, 189, 248, 0.3)',
+            borderTopColor: '#38bdf8',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 20px auto'
+          }} />
+          <div>Loading authentication...</div>
+        </div>
+      </div>
+    );
+  }
 
   // Display login/register if not authenticated
   if (!isAuthenticated) {
