@@ -81,8 +81,8 @@ export const AuthProvider = ({ children }) => {
       } catch (error) {
         if (!mounted) return;
         
-        // Expected error for unauthenticated users - not a failure case
-        if (error.response?.status === 401) {
+        // Handle both 401 (Unauthorized) and 422 (Unprocessable Entity) - both indicate token issues
+        if (error.response?.status === 401 || error.response?.status === 422) {
           // Clear invalid token
           localStorage.removeItem('access_token');
           
