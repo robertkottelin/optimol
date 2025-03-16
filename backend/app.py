@@ -1,6 +1,5 @@
 from flask import Flask, jsonify, request
 from sqlalchemy import text
-# Preserve remaining imports from original app.py
 from flask_cors import CORS
 import os
 import json
