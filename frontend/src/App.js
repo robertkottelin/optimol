@@ -28,7 +28,7 @@ import {
 } from './components/ParameterConfig';
 import OptimizationResults from './components/OptimizationResults';
 
-// Initialize Stripe
+// Initialize Stripe with public key
 const stripePromise = loadStripe('pk_test_kbl0ETzPsoiTwU4ZJMvhsYJw006XVnV4Aq');
 
 // Configure axios to include credentials with all requests

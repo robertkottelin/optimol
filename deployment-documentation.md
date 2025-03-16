@@ -238,6 +238,11 @@ docker logs optimol-backend
 
 # Test the API endpoint
 curl -k https://optimizemolecule.com/health
+
+# List images
+docker images
+# Prune af if needed 
+docker image prune -af
 ```
 
 The `docker pull` command forces Docker to check the registry and download any updates to the image, even if the tag remains `backend-latest`.
@@ -262,6 +267,15 @@ sqlite3 /app/instance/users.db <<EOF
 .mode column
 .headers on
 SELECT * FROM user;
+EOF
+```
+
+```bash
+# Query using SQLite3 CLI
+sqlite3 /app/instance/users.db <<EOF
+.mode column
+.headers on
+SELECT * FROM optimization;
 EOF
 ```
 

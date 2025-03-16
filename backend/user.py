@@ -145,7 +145,7 @@ def register_and_subscribe():
         )
         
         # Create subscription
-        price_id = "price_1QYNn9JQZaUHxA2Ld9rV2MPd"
+        price_id = os.getenv("PRICE_ID")
         subscription = stripe.Subscription.create(
             customer=customer.id,
             items=[{"price": price_id}],
@@ -197,8 +197,8 @@ def subscribe_user():
         data = request.get_json()
         payment_method_id = data.get("paymentMethodId")
         
-        price_id = "price_1QYNn9JQZaUHxA2Ld9rV2MPd"
-
+        price_id = os.getenv("PRICE_ID")
+        
         # Check for existing customers using authenticated user's email
         customers = stripe.Customer.list(email=user.email).data
         
