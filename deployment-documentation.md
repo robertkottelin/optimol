@@ -242,55 +242,60 @@ curl -k https://optimizemolecule.com/health
 
 The `docker pull` command forces Docker to check the registry and download any updates to the image, even if the tag remains `backend-latest`.
 
-## Create a deployment script for future updates:
+## Accessing SQLite Database Inside Docker Container
+To query the SQLite database inside your Docker container, execute the following commands:
 
 ```bash
-cat > /opt/deploy.sh << 'EOF'
-#!/bin/bash
-set -e
+# Access bash shell inside the running container
+docker exec -it optimol-backend bash
 
-# Pull the latest image
-docker pull robertkottelin/optimize-molecule:backend-latest
+# Navigate to the mounted volume directory
+cd /app/instance
 
-# Stop and remove the existing container
-docker stop optimol-backend || true
-docker rm optimol-backend || true
-
-# Run the new container
-docker run -d \
-  --name optimol-backend \
-  --restart unless-stopped \
-  -p 5000:5000 \
-  -v /opt/optimol/.env:/app/.env \
-  -v optimol_data:/app/instance \
-  robertkottelin/optimize-molecule:backend-latest
-
-# Clean up unused images
-docker image prune -af
-EOF
-
-chmod +x /opt/deploy.sh
+# List files to locate the SQLite database
+ls -la
 ```
 
-## Monitoring and Logging
-
-Set up basic monitoring:
-
 ```bash
-# Install monitoring tools
-apt install -y htop glances
-
-# Set up log rotation for Docker
-cat > /etc/logrotate.d/docker << 'EOF'
-/var/lib/docker/containers/*/*.log {
-    rotate 7
-    daily
-    compress
-    missingok
-    delaycompress
-    copytruncate
-}
+# Query using SQLite3 CLI
+sqlite3 /app/instance/users.db <<EOF
+.mode column
+.headers on
+SELECT * FROM user;
 EOF
 ```
 
-The setup is now complete. Your Digital Ocean droplet is configured to run your containerized backend application with proper SSL certificates, reverse proxy, and CORS settings for your GitHub Pages frontend.
+Alternatively, execute a Python script directly inside the container:
+
+```bash
+# Execute Python script in the container
+docker exec -it optimol-backend python3 -c "
+from flask import Flask
+from extensions import db
+from user import User
+
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///instance/users.db'
+db.init_app(app)
+
+with app.app_context():
+    users = User.query.all()
+    print('ID | Email | Subscription Status')
+    print('-' * 50)
+    for user in users:
+        print(f'{user.id} | {user.email} | {user.subscription_status}')
+"
+```
+
+If the database isn't in the expected location, search for it:
+
+```bash
+docker exec -it optimol-backend find / -name "*.db" 2>/dev/null
+```
+
+To extract the database file for external examination:
+
+```bash
+# Copy database from container to host
+docker cp optimol-backend:/app/instance/users.db ./users.db
+```
