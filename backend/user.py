@@ -111,14 +111,15 @@ def login():
             "isSubscribed": user.subscription_status == "active"
         }
     })
-    
-    # Override default cookie settings for cross-origin functionality
+    # Explicitly set SameSite=None
     set_access_cookies(resp, access_token)
-    
-    # Explicitly set cookie attributes for cross-origin
+    # Force cookie attributes
     for cookie in resp.headers.getlist('Set-Cookie'):
         if 'access_token_cookie' in cookie:
-            resp.headers.add('Set-Cookie', cookie.replace('HttpOnly;', 'HttpOnly; SameSite=None;'))
+            cookie_parts = cookie.split('; ')
+            value_part = cookie_parts[0]
+            new_cookie = f"{value_part}; Domain=optimizemolecule.com; Path=/; SameSite=None; Secure; HttpOnly"
+            resp.headers.set('Set-Cookie', new_cookie)
     
     return resp
 

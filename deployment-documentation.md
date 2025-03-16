@@ -70,6 +70,9 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_cookie_path / "/; SameSite=None; Secure";
+        proxy_cookie_domain localhost optimizemolecule.com;
         
         # Critical CORS headers for cross-origin cookie transmission
         add_header 'Access-Control-Allow-Origin' 'https://robertkottelin.github.io' always;
