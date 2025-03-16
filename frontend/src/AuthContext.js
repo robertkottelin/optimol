@@ -1,6 +1,15 @@
 import React, { createContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
+// JWT validation utility function
+const isValidJWT = (token) => {
+  if (!token) return false;
+  
+  // Basic JWT format validation (header.payload.signature)
+  const tokenParts = token.split('.');
+  return tokenParts.length === 3;
+};
+
 export const AuthContext = createContext({
   currentUser: null,
   isAuthenticated: false,
@@ -50,11 +59,14 @@ export const AuthProvider = ({ children }) => {
     let mounted = true;
     
     const checkAuth = async () => {
-      if (!state.token) {
+      // Validate token format before attempting to use it
+      if (!state.token || !isValidJWT(state.token)) {
+        localStorage.removeItem('access_token');
         setState(prev => ({
           ...prev,
-          isLoading: false,
-          isAuthenticated: false
+          token: null,
+          isAuthenticated: false,
+          isLoading: false
         }));
         return;
       }
