@@ -116,6 +116,73 @@ def get_current_user():
         "isSubscribed": user.subscription_status == "active"
     })
 
+@user_bp.route('/register-and-subscribe', methods=['POST'])
+def register_and_subscribe():
+    """Combined endpoint to register a new user and create subscription in one step."""
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        password = data.get('password')
+        payment_method_id = data.get('paymentMethodId')
+        
+        if not email or not password or not payment_method_id:
+            return jsonify({"error": "Email, password, and payment method required"}), 400
+            
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user:
+            return jsonify({"error": "Email already registered"}), 409
+        
+        # Create Stripe customer
+        customer = stripe.Customer.create(email=email)
+        
+        # Attach payment method to customer
+        stripe.PaymentMethod.attach(payment_method_id, customer=customer.id)
+        
+        # Set as default payment method
+        stripe.Customer.modify(
+            customer.id,
+            invoice_settings={"default_payment_method": payment_method_id}
+        )
+        
+        # Create subscription
+        price_id = "price_1QYNn9JQZaUHxA2Ld9rV2MPd"
+        subscription = stripe.Subscription.create(
+            customer=customer.id,
+            items=[{"price": price_id}],
+            expand=["latest_invoice.payment_intent"],
+        )
+        
+        # Create user with subscription already active
+        user = User(
+            email=email,
+            customer_id=customer.id,
+            subscription_id=subscription.id,
+            subscription_status="active"
+        )
+        user.set_password(password)
+        
+        db.session.add(user)
+        db.session.commit()
+        
+        # Create token
+        access_token = create_access_token(identity=str(user.id))
+        
+        return jsonify({
+            "success": True,
+            "token": access_token,
+            "subscriptionId": subscription.id,
+            "clientSecret": subscription.latest_invoice.payment_intent.client_secret,
+            "user": {
+                "email": user.email,
+                "isSubscribed": True
+            }
+        }), 201
+        
+    except stripe.error.StripeError as e:
+        return jsonify({"error": str(e)}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @user_bp.route('/subscribe', methods=['POST'])
 @jwt_required()
 def subscribe_user():

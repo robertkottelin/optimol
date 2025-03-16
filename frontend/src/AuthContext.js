@@ -32,6 +32,7 @@ export const AuthContext = createContext({
   token: null,
   login: () => Promise.resolve({ success: false }),
   register: () => Promise.resolve({ success: false }),
+  registerAndSubscribe: () => Promise.resolve({ success: false }),
   logout: () => Promise.resolve({ success: false })
 });
 
@@ -243,6 +244,75 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // New function: Register and subscribe in one step
+  const registerAndSubscribe = async (email, password, paymentMethodId) => {
+    try {
+      setState(prev => ({ ...prev, isLoading: true }));
+      
+      // Step 1: Register the user
+      const registerResponse = await axios({
+        method: 'post',
+        url: `${apiBaseUrl}/register`,
+        data: { email, password },
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (!registerResponse.data.token) {
+        throw new Error("Registration successful but no token received");
+      }
+      
+      // Store token and update auth state
+      const token = registerResponse.data.token;
+      localStorage.setItem('access_token', token);
+      
+      // Step 2: Subscribe with the new account
+      const subscribeResponse = await axios.post(
+        `${apiBaseUrl}/subscribe`, 
+        { paymentMethodId },
+        { 
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+      
+      if (!subscribeResponse.data.success) {
+        throw new Error(subscribeResponse.data.error || "Subscription failed");
+      }
+      
+      // Update auth state with the registered and subscribed user
+      setState(prev => ({
+        ...prev,
+        token: token,
+        currentUser: registerResponse.data.user,
+        isAuthenticated: true,
+        isSubscribed: true,
+        isLoading: false,
+        error: null
+      }));
+      
+      return { 
+        success: true, 
+        clientSecret: subscribeResponse.data.clientSecret 
+      };
+    } catch (error) {
+      setState(prev => ({ 
+        ...prev, 
+        isLoading: false,
+        error: error.response?.data?.error || error.message || "Registration and subscription failed"
+      }));
+      
+      return { 
+        success: false, 
+        error: error.response?.data?.error || error.message || "Registration and subscription failed"
+      };
+    }
+  };
+
   // Logout function
   const logout = async () => {
     try {
@@ -281,6 +351,7 @@ export const AuthProvider = ({ children }) => {
       ...state,
       login,
       register,
+      registerAndSubscribe,
       logout
     }}>
       {children}

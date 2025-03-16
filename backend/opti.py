@@ -13,6 +13,9 @@ from openmm import unit
 # Quantum optimization imports
 from pyscf import gto, scf, grad
 
+from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
+from constants import ITERATION_LIMITS
+
 # Create blueprint
 opti_bp = Blueprint('opti', __name__)
 
@@ -433,11 +436,10 @@ from constants import ITERATION_LIMITS  # Import iteration limits
 def optimize_molecule():
     """
     Endpoint to optimize molecular structures using either classical or quantum methods.
-    Now supports both subscribed and non-subscribed users with appropriate limits.
+    Now supports both authenticated and non-authenticated users with appropriate limits.
     
     Expected request format:
     {
-        "email": "user@example.com",
         "optimization_type": "classical" or "quantum",
         "optimization_params": {
             // For classical:
@@ -468,13 +470,12 @@ def optimize_molecule():
         if not data:
             return jsonify({"error": "Invalid input: No data provided"}), 400
             
-        email = data.get("email")
         molecule_data = data.get("molecule")
         optimization_type = data.get("optimization_type")
         optimization_params = data.get("optimization_params", {})
         
-        if not email or not molecule_data:
-            return jsonify({"error": "Invalid input: Missing 'email' or 'molecule' data"}), 400
+        if not molecule_data:
+            return jsonify({"error": "Invalid input: Missing 'molecule' data"}), 400
             
         if not optimization_type or optimization_type not in ["classical", "quantum"]:
             return jsonify({"error": "Invalid input: Missing or invalid 'optimization_type' (must be 'classical' or 'quantum')"}), 400
@@ -483,12 +484,21 @@ def optimize_molecule():
         is_subscribed = False
         user_id = None
         
-        # Check if it's a genuine user email (not the guest one)
-        if email != "guest@example.com":
-            user = User.query.filter_by(email=email).first()
-            if user and user.subscription_status == "active":
-                is_subscribed = True
-                user_id = user.id
+        # Try to verify JWT token without raising an exception if missing
+        try:
+            verify_jwt_in_request(optional=True)
+            # If we have a valid token, get the user
+            user_identity = get_jwt_identity()
+            if user_identity:
+                # Convert string user_id back to integer for database query
+                user = User.query.get(int(user_identity))
+                if user and user.subscription_status == "active":
+                    is_subscribed = True
+                    user_id = user.id
+        except Exception as e:
+            # If token verification fails, proceed as unauthenticated
+            print(f"JWT verification error (proceeding as unauthenticated): {str(e)}")
+            pass
         
         # Extract atoms from molecule data
         try:

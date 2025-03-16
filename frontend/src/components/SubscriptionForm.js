@@ -30,12 +30,17 @@ const SparkleIcon = () => (
   </svg>
 );
 
-const SubscriptionForm = ({ onSuccess, isMobile }) => {
+const SubscriptionForm = ({ onSuccess, isMobile, isAuthenticated }) => {
   const stripe = useStripe();
   const elements = useElements();
   const [isSubscribeLoading, setIsSubscribeLoading] = useState(false);
   const [error, setError] = useState("");
-  const { currentUser, token } = useContext(AuthContext);
+  const { currentUser, token, registerAndSubscribe } = useContext(AuthContext);
+  
+  // Form states for guest registration
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   
   const apiBaseUrl = "https://optimizemolecule.com";
 
@@ -47,6 +52,24 @@ const SubscriptionForm = ({ onSuccess, isMobile }) => {
     if (!cardElement) {
       setError("Card element not found");
       return;
+    }
+
+    // For guest users, validate registration fields
+    if (!isAuthenticated) {
+      if (!email || !password || !confirmPassword) {
+        setError("All fields are required");
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        setError("Passwords do not match");
+        return;
+      }
+
+      if (password.length < 8) {
+        setError("Password must be at least 8 characters long");
+        return;
+      }
     }
 
     setIsSubscribeLoading(true);
@@ -65,33 +88,53 @@ const SubscriptionForm = ({ onSuccess, isMobile }) => {
         return;
       }
 
-      // Send to backend with JWT auth via Authorization header
-      const response = await axios.post(
-        `${apiBaseUrl}/subscribe`, 
-        { paymentMethodId: paymentMethod.id },
-        { 
-          withCredentials: true,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': token ? `Bearer ${token}` : ''
+      // Different handling based on authentication status
+      if (isAuthenticated) {
+        // User is already authenticated, use regular subscription flow
+        const response = await axios.post(
+          `${apiBaseUrl}/subscribe`, 
+          { paymentMethodId: paymentMethod.id },
+          { 
+            withCredentials: true,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': token ? `Bearer ${token}` : ''
+            }
           }
-        }
-      );
+        );
 
-      if (response.data.success) {
-        const { clientSecret } = response.data;
+        if (response.data.success) {
+          const { clientSecret } = response.data;
 
-        // Confirm subscription with Stripe
-        const { error: confirmError } = await stripe.confirmCardPayment(clientSecret);
+          // Confirm subscription with Stripe
+          const { error: confirmError } = await stripe.confirmCardPayment(clientSecret);
 
-        if (confirmError) {
-          setError(`Subscription error: ${confirmError.message}`);
+          if (confirmError) {
+            setError(`Subscription error: ${confirmError.message}`);
+          } else {
+            console.log("Subscription successful");
+            onSuccess();  // Notify parent component
+          }
         } else {
-          console.log("Subscription successful");
-          onSuccess();  // Notify parent component
+          setError(`Subscription error: ${response.data.error || "Unknown error"}`);
         }
       } else {
-        setError(`Subscription error: ${response.data.error || "Unknown error"}`);
+        // User is not authenticated, use register-and-subscribe flow
+        const result = await registerAndSubscribe(email, password, paymentMethod.id);
+        
+        if (result.success) {
+          // Confirm subscription with Stripe
+          const { error: confirmError } = await stripe.confirmCardPayment(result.clientSecret);
+
+          if (confirmError) {
+            setError(`Subscription error: ${confirmError.message}`);
+          } else {
+            console.log("Registration and subscription successful");
+            onSuccess();  // Notify parent component
+          }
+        } else {
+          setError(result.error);
+        }
       }
     } catch (err) {
       console.error("Error in subscription process:", err);
@@ -124,11 +167,105 @@ const SubscriptionForm = ({ onSuccess, isMobile }) => {
       </div>
       
       <form onSubmit={handleSubmit}>
-        <div className="input-group">
-          <p className={isMobile ? 'mobile-smaller-text' : ''} style={{ marginBottom: '8px' }}>
-            Subscribing as: <strong>{currentUser?.email}</strong>
-          </p>
-        </div>
+        {isAuthenticated ? (
+          // For authenticated users, just show their email
+          <div className="input-group">
+            <p className={isMobile ? 'mobile-smaller-text' : ''} style={{ marginBottom: '8px' }}>
+              Subscribing as: <strong>{currentUser?.email}</strong>
+            </p>
+          </div>
+        ) : (
+          // For guest users, show registration form
+          <>
+            <div className="input-group">
+              <label 
+                htmlFor="email" 
+                style={{ 
+                  display: "block", 
+                  marginBottom: "5px", 
+                  fontSize: "14px", 
+                  fontWeight: "500", 
+                  color: "#94a3b8" 
+                }}
+              >
+                Email Address
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="email-input"
+                placeholder="your@email.com"
+                required
+              />
+            </div>
+
+            <div className="input-group">
+              <label 
+                htmlFor="password" 
+                style={{ 
+                  display: "block", 
+                  marginBottom: "5px", 
+                  fontSize: "14px", 
+                  fontWeight: "500", 
+                  color: "#94a3b8" 
+                }}
+              >
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                style={{ 
+                  width: "100%", 
+                  padding: "12px 12px 12px 12px", 
+                  backgroundColor: "rgba(15, 23, 42, 0.7)", 
+                  border: "1px solid rgba(255, 255, 255, 0.1)", 
+                  borderRadius: "6px", 
+                  color: "#f0f4f8", 
+                  fontSize: "14px" 
+                }}
+                placeholder="••••••••"
+                required
+              />
+            </div>
+
+            <div className="input-group">
+              <label 
+                htmlFor="confirmPassword" 
+                style={{ 
+                  display: "block", 
+                  marginBottom: "5px", 
+                  fontSize: "14px", 
+                  fontWeight: "500", 
+                  color: "#94a3b8" 
+                }}
+              >
+                Confirm Password
+              </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                style={{ 
+                  width: "100%", 
+                  padding: "12px 12px 12px 12px", 
+                  backgroundColor: "rgba(15, 23, 42, 0.7)", 
+                  border: "1px solid rgba(255, 255, 255, 0.1)", 
+                  borderRadius: "6px", 
+                  color: "#f0f4f8", 
+                  fontSize: "14px" 
+                }}
+                placeholder="••••••••"
+                required
+              />
+            </div>
+          </>
+        )}
         
         <div className="card-element-container">
           <div className="card-element-icon">
@@ -182,7 +319,7 @@ const SubscriptionForm = ({ onSuccess, isMobile }) => {
               Processing...
             </>
           ) : (
-            "Subscribe Now"
+            isAuthenticated ? "Subscribe Now" : "Register & Subscribe"
           )}
         </button>
         

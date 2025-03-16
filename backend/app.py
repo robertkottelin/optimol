@@ -81,6 +81,7 @@ def after_request(response):
 @app.route('/me', methods=['OPTIONS'])
 @app.route('/login', methods=['OPTIONS'])
 @app.route('/register', methods=['OPTIONS'])
+@app.route('/register-and-subscribe', methods=['OPTIONS'])  # Add new combined endpoint
 @app.route('/logout', methods=['OPTIONS']) 
 @app.route('/subscribe', methods=['OPTIONS'])
 @app.route('/check-subscription', methods=['OPTIONS'])

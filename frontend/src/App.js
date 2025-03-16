@@ -19,7 +19,6 @@ import {
 } from './styles/constants';
 
 // Import components 
-
 import { Icons } from './components/Icons';
 import SubscriptionForm from './components/SubscriptionForm';
 import MoleculeViewer from './components/MoleculeViewer';
@@ -40,6 +39,7 @@ const App = () => {
   const { currentUser, isAuthenticated, isSubscribed, isLoading, logout, token } = useContext(AuthContext);
   
   // FIXED: Moved all useState declarations to component top level
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [showLoginForm, setShowLoginForm] = useState(true);
   const [moleculeData, setMoleculeData] = useState(null);
   const [optimizationResult, setOptimizationResult] = useState(null);
@@ -378,15 +378,22 @@ const App = () => {
 
       console.log("Attempting request to:", `${apiBaseUrl}/optimize-molecule`);
       
-      // Token is handled by axios interceptor in AuthContext
+      // Token is handled by axios interceptor in AuthContext if user is authenticated
+      const headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      };
+      
+      // Add Authorization token only if authenticated
+      if (isAuthenticated && token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
       const response = await axios({
         method: 'post',
         url: `${apiBaseUrl}/optimize-molecule`,
         data: payload,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
+        headers: headers
       });
 
       console.log("Response received:", response);
@@ -520,6 +527,11 @@ const App = () => {
     return null;
   };
 
+  // Toggle auth modal visibility
+  const toggleAuthModal = () => {
+    setShowAuthModal(!showAuthModal);
+  };
+
   // FIXED: Now safe to use conditional returns after all hooks are declared
   // Display loading indicator while auth state is determined
   if (isLoading) {
@@ -542,43 +554,13 @@ const App = () => {
             animation: 'spin 1s linear infinite',
             margin: '0 auto 20px auto'
           }} />
-          <div>Loading authentication...</div>
+          <div>Loading...</div>
         </div>
       </div>
     );
   }
 
-  // Display login/register if not authenticated
-  if (!isAuthenticated) {
-    return (
-      <div style={{ ...styles.app, padding: isMobile ? '16px' : styles.app.padding }}>
-        <div style={styles.decorativeBg}></div>
-        <div style={{ ...styles.decorativeLine, top: "15%", animationDelay: "0s" }}></div>
-        <div style={{ ...styles.decorativeLine, top: "35%", animationDelay: "0.5s" }}></div>
-        <div style={{ ...styles.decorativeLine, top: "65%", animationDelay: "1s" }}></div>
-        <div style={{ ...styles.decorativeLine, top: "85%", animationDelay: "1.5s" }}></div>
-        
-        <div style={styles.container}>
-          <header style={styles.header} className="app-header">
-            <h1 style={styles.headerTitle} className="app-title">Molecular Optimization System</h1>
-            <p style={styles.headerSubtitle} className="app-subtitle">
-              Advanced computational chemistry tools for structure optimization
-            </p>
-          </header>
-          
-          <div className="fade-in glass card" style={styles.card}>
-            {showLoginForm ? (
-              <LoginForm toggleForm={() => setShowLoginForm(false)} />
-            ) : (
-              <RegisterForm toggleForm={() => setShowLoginForm(true)} />
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Main App render
+  // Main App render - works for both authenticated and guest users
   return (
     <div style={{ ...styles.app, padding: isMobile ? '16px' : styles.app.padding }}>
       <div style={styles.decorativeBg}></div>
@@ -674,26 +656,50 @@ const App = () => {
             )}
           </button>
 
-          <button
-            onClick={logout}
-            style={{
-              ...styles.button,
-              background: "linear-gradient(145deg, rgba(100, 116, 139, 0.9), rgba(71, 85, 105, 0.9))",
-              color: "white",
-              padding: "4px 12px",
-              borderRadius: "6px",
-              fontSize: "0.75rem",
-              fontWeight: "600",
-              position: 'static',
-              boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-              display: "flex",
-              alignItems: "center",
-              gap: "5px"
-            }}
-          >
-            <Icons.close />
-            Logout
-          </button>
+          {/* Conditional login/logout buttons */}
+          {isAuthenticated ? (
+            <button
+              onClick={logout}
+              style={{
+                ...styles.button,
+                background: "linear-gradient(145deg, rgba(100, 116, 139, 0.9), rgba(71, 85, 105, 0.9))",
+                color: "white",
+                padding: "4px 12px",
+                borderRadius: "6px",
+                fontSize: "0.75rem",
+                fontWeight: "600",
+                position: 'static',
+                boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+                display: "flex",
+                alignItems: "center",
+                gap: "5px"
+              }}
+            >
+              <Icons.close />
+              Logout
+            </button>
+          ) : (
+            <button
+              onClick={toggleAuthModal}
+              style={{
+                ...styles.button,
+                background: "linear-gradient(145deg, rgba(56, 189, 248, 0.9), rgba(37, 99, 235, 0.9))",
+                color: "white",
+                padding: "4px 12px",
+                borderRadius: "6px",
+                fontSize: "0.75rem",
+                fontWeight: "600",
+                position: 'static',
+                boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+                display: "flex",
+                alignItems: "center",
+                gap: "5px"
+              }}
+            >
+              <Icons.verified />
+              Login / Register
+            </button>
+          )}
 
           {isSubscribed && (
             <button
@@ -739,6 +745,7 @@ const App = () => {
                 <SubscriptionForm
                   onSuccess={handleSubscriptionSuccess}
                   isMobile={isMobile}
+                  isAuthenticated={isAuthenticated}
                 />
               </Elements>
             </div>
@@ -1070,6 +1077,31 @@ const App = () => {
               </div>
             )}
           </button>
+        </div>
+      )}
+
+      {/* Authentication Modal for Login/Register */}
+      {showAuthModal && (
+        <div style={styles.popup} className="popup-overlay">
+          <div
+            style={styles.popupContent}
+            className={`popup-content glass ${isMobile ? 'mobile-smaller-padding' : ''}`}
+          >
+            <button
+              onClick={toggleAuthModal}
+              style={styles.popupClose}
+            >
+              <Icons.close />
+            </button>
+
+            <div style={styles.popupScroll}>
+              {showLoginForm ? (
+                <LoginForm toggleForm={() => setShowLoginForm(false)} />
+              ) : (
+                <RegisterForm toggleForm={() => setShowLoginForm(true)} />
+              )}
+            </div>
+          </div>
         </div>
       )}
 
