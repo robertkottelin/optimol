@@ -1,13 +1,26 @@
 import React, { createContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
-// JWT validation utility function
+// Enhanced JWT validation utility function
 const isValidJWT = (token) => {
   if (!token) return false;
   
-  // Basic JWT format validation (header.payload.signature)
-  const tokenParts = token.split('.');
-  return tokenParts.length === 3;
+  try {
+    // Basic format validation
+    const tokenParts = token.split('.');
+    if (tokenParts.length !== 3) return false;
+    
+    // Decode payload (won't validate signature - server handles that)
+    const base64Url = tokenParts[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(window.atob(base64));
+    
+    // We don't validate sub type here - we'll let server rejection handle it
+    return true;
+  } catch (e) {
+    console.error("JWT validation error:", e);
+    return false;
+  }
 };
 
 export const AuthContext = createContext({
@@ -92,6 +105,21 @@ export const AuthProvider = ({ children }) => {
         }));
       } catch (error) {
         if (!mounted) return;
+        
+        // Specific handling for "Subject must be a string" error
+        if (error.response?.data?.msg === "Subject must be a string") {
+          localStorage.removeItem('access_token');
+          setState(prev => ({
+            ...prev,
+            token: null,
+            currentUser: null,
+            isAuthenticated: false,
+            isSubscribed: false,
+            isLoading: false,
+            error: null
+          }));
+          return;
+        }
         
         // Handle both 401 (Unauthorized) and 422 (Unprocessable Entity) - both indicate token issues
         if (error.response?.status === 401 || error.response?.status === 422) {

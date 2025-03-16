@@ -58,7 +58,8 @@ def register():
     db.session.commit()
     
     # Create token without setting cookie
-    access_token = create_access_token(identity=user.id)
+    # FIXED: Convert user.id to string for JWT subject
+    access_token = create_access_token(identity=str(user.id))
     
     # Return token in response body
     return jsonify({
@@ -81,7 +82,8 @@ def login():
         return jsonify({"error": "Invalid email or password"}), 401
     
     # Create token without setting cookie
-    access_token = create_access_token(identity=user.id)
+    # FIXED: Convert user.id to string for JWT subject
+    access_token = create_access_token(identity=str(user.id))
     
     # Return token in response body
     return jsonify({
@@ -101,8 +103,10 @@ def logout():
 @user_bp.route('/me', methods=['GET'])
 @jwt_required()
 def get_current_user():
+    # get_jwt_identity() returns the identity from the JWT which is now a string
     user_id = get_jwt_identity()
-    user = User.query.get(user_id)
+    # Convert string user_id back to integer for database query
+    user = User.query.get(int(user_id))
     
     if not user:
         return jsonify({"error": "User not found"}), 404
@@ -116,8 +120,9 @@ def get_current_user():
 @jwt_required()
 def subscribe_user():
     try:
+        # Convert string user_id back to integer for database query
         user_id = get_jwt_identity()
-        user = User.query.get(user_id)
+        user = User.query.get(int(user_id))
         
         if not user:
             return jsonify({"error": "User not found"}), 404
@@ -170,8 +175,9 @@ def subscribe_user():
 @jwt_required()
 def check_subscription():
     """Check if a user has an active subscription."""
+    # Convert string user_id back to integer for database query
     user_id = get_jwt_identity()
-    user = User.query.get(user_id)
+    user = User.query.get(int(user_id))
     
     if not user:
         return jsonify({"error": "User not found"}), 404
@@ -183,8 +189,9 @@ def check_subscription():
 def cancel_subscription():
     """Cancel a user's subscription."""
     try:
+        # Convert string user_id back to integer for database query
         user_id = get_jwt_identity()
-        user = User.query.get(user_id)
+        user = User.query.get(int(user_id))
         
         if not user:
             return jsonify({"error": "User not found"}), 404
