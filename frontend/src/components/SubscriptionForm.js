@@ -35,7 +35,7 @@ const SubscriptionForm = ({ onSuccess, isMobile }) => {
   const elements = useElements();
   const [isSubscribeLoading, setIsSubscribeLoading] = useState(false);
   const [error, setError] = useState("");
-  const { currentUser } = useContext(AuthContext);
+  const { currentUser, token } = useContext(AuthContext);
   
   const apiBaseUrl = "https://optimizemolecule.com";
 
@@ -65,11 +65,17 @@ const SubscriptionForm = ({ onSuccess, isMobile }) => {
         return;
       }
 
-      // Send to backend with JWT auth
+      // Send to backend with JWT auth via Authorization header
       const response = await axios.post(
         `${apiBaseUrl}/subscribe`, 
         { paymentMethodId: paymentMethod.id },
-        { withCredentials: true }  // Include cookies for JWT auth
+        { 
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token ? `Bearer ${token}` : ''
+          }
+        }
       );
 
       if (response.data.success) {

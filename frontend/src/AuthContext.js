@@ -7,6 +7,7 @@ export const AuthContext = createContext({
   isSubscribed: false,
   isLoading: true,
   error: null,
+  token: null,
   login: () => Promise.resolve({ success: false }),
   register: () => Promise.resolve({ success: false }),
   logout: () => Promise.resolve({ success: false })
@@ -18,29 +19,54 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: false,
     isSubscribed: false,
     isLoading: true,
-    error: null
+    error: null,
+    token: localStorage.getItem('access_token') || null
   });
   
   const apiBaseUrl = "https://optimizemolecule.com";
 
   // Configure axios defaults
-  axios.defaults.withCredentials = true;
-  axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+  useEffect(() => {
+    // Configure axios defaults
+    axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+    
+    // Add token to headers via interceptor
+    const interceptor = axios.interceptors.request.use(
+      config => {
+        if (state.token) {
+          config.headers['Authorization'] = `Bearer ${state.token}`;
+        }
+        return config;
+      },
+      error => Promise.reject(error)
+    );
+    
+    // Cleanup interceptor on unmount
+    return () => axios.interceptors.request.eject(interceptor);
+  }, [state.token]);
 
   // Handle authentication status check
   useEffect(() => {
     let mounted = true;
     
     const checkAuth = async () => {
+      if (!state.token) {
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          isAuthenticated: false
+        }));
+        return;
+      }
+      
       try {
         const response = await axios({
           method: 'get',
           url: `${apiBaseUrl}/me`,
-          withCredentials: true,
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
-          }    
+          }
         });
         
         if (!mounted) return;
@@ -57,8 +83,12 @@ export const AuthProvider = ({ children }) => {
         
         // Expected error for unauthenticated users - not a failure case
         if (error.response?.status === 401) {
+          // Clear invalid token
+          localStorage.removeItem('access_token');
+          
           setState(prev => ({
             ...prev,
+            token: null,
             currentUser: null,
             isAuthenticated: false,
             isSubscribed: false,
@@ -83,7 +113,7 @@ export const AuthProvider = ({ children }) => {
 
     checkAuth();
     return () => { mounted = false; };
-  }, []);
+  }, [state.token, apiBaseUrl]);
 
   // Login function
   const login = async (email, password) => {
@@ -93,14 +123,28 @@ export const AuthProvider = ({ children }) => {
         method: 'post',
         url: `${apiBaseUrl}/login`,
         data: { email, password },
-        withCredentials: true,
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         }
       });
       
-      // Rest of the function as before
+      // Store token in localStorage
+      if (response.data.token) {
+        localStorage.setItem('access_token', response.data.token);
+      }
+      
+      setState(prev => ({
+        ...prev,
+        token: response.data.token,
+        currentUser: response.data.user,
+        isAuthenticated: true,
+        isSubscribed: response.data.user.isSubscribed || false,
+        isLoading: false,
+        error: null
+      }));
+      
+      return { success: true };
     } catch (error) {  
       setState(prev => ({ 
         ...prev, 
@@ -119,10 +163,24 @@ export const AuthProvider = ({ children }) => {
   const register = async (email, password) => {
     try {
       setState(prev => ({ ...prev, isLoading: true }));
-      const response = await axios.post(`${apiBaseUrl}/register`, { email, password });
+      const response = await axios({
+        method: 'post',
+        url: `${apiBaseUrl}/register`,
+        data: { email, password },
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+      
+      // Store token in localStorage
+      if (response.data.token) {
+        localStorage.setItem('access_token', response.data.token);
+      }
       
       setState(prev => ({
         ...prev,
+        token: response.data.token,
         currentUser: response.data.user,
         isAuthenticated: true,
         isSubscribed: response.data.user.isSubscribed || false,
@@ -151,12 +209,16 @@ export const AuthProvider = ({ children }) => {
       setState(prev => ({ ...prev, isLoading: true }));
       await axios.post(`${apiBaseUrl}/logout`);
       
+      // Remove token from localStorage
+      localStorage.removeItem('access_token');
+      
       setState({
         currentUser: null,
         isAuthenticated: false,
         isSubscribed: false,
         isLoading: false,
-        error: null
+        error: null,
+        token: null
       });
       
       return { success: true };

@@ -36,7 +36,7 @@ axios.defaults.withCredentials = true;
 
 const App = () => {
   // Authentication context
-  const { currentUser, isAuthenticated, isSubscribed, isLoading, logout } = useContext(AuthContext);
+  const { currentUser, isAuthenticated, isSubscribed, isLoading, logout, token } = useContext(AuthContext);
   const [showLoginForm, setShowLoginForm] = useState(true);
 
   // State for molecule data
@@ -239,9 +239,8 @@ const App = () => {
     setIsCancelLoading(true);
 
     try {
-      const response = await axios.post(`${apiBaseUrl}/cancel-subscription`, {}, {
-        withCredentials: true
-      });
+      // Token is handled by axios interceptor in AuthContext
+      const response = await axios.post(`${apiBaseUrl}/cancel-subscription`, {});
 
       if (response.data.success) {
         alert("Your subscription has been canceled.");
@@ -410,6 +409,8 @@ const App = () => {
       console.log('Optimization payload:', JSON.stringify(payload, null, 2));
 
       console.log("Attempting request to:", `${apiBaseUrl}/optimize-molecule`);
+      
+      // Token is handled by axios interceptor in AuthContext
       const response = await axios({
         method: 'post',
         url: `${apiBaseUrl}/optimize-molecule`,
@@ -417,8 +418,7 @@ const App = () => {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
-        },
-        withCredentials: true
+        }
       });
 
       console.log("Response received:", response);

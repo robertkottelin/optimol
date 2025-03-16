@@ -232,6 +232,12 @@ docker run -d \
 
 # Restart Nginx
 systemctl restart nginx
+
+# Check container logs
+docker logs optimol-backend
+
+# Test the API endpoint
+curl -k https://optimizemolecule.com/health
 ```
 
 The `docker pull` command forces Docker to check the registry and download any updates to the image, even if the tag remains `backend-latest`.
