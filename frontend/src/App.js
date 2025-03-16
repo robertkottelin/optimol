@@ -37,7 +37,7 @@ axios.defaults.withCredentials = true;
 const App = () => {
   // Authentication context
   const { currentUser, isAuthenticated, isSubscribed, isLoading, logout, token } = useContext(AuthContext);
-  
+
   // FIXED: Moved all useState declarations to component top level
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showLoginForm, setShowLoginForm] = useState(true);
@@ -62,7 +62,7 @@ const App = () => {
   const [howToUseContent, setHowToUseContent] = useState("");
 
   const apiBaseUrl = "https://optimizemolecule.com";
-  
+
   // Group all useEffect hooks together
   useEffect(() => {
     const checkIfMobile = () => {
@@ -78,7 +78,7 @@ const App = () => {
     // Cleanup
     return () => window.removeEventListener('resize', checkIfMobile);
   }, []);
-  
+
   useEffect(() => {
     // Load documentation from public directory
     fetch(`${process.env.PUBLIC_URL}/how-to-use.md`)
@@ -377,18 +377,18 @@ const App = () => {
       console.log('Optimization payload:', JSON.stringify(payload, null, 2));
 
       console.log("Attempting request to:", `${apiBaseUrl}/optimize-molecule`);
-      
+
       // Token is handled by axios interceptor in AuthContext if user is authenticated
       const headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       };
-      
+
       // Add Authorization token only if authenticated
       if (isAuthenticated && token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-      
+
       const response = await axios({
         method: 'post',
         url: `${apiBaseUrl}/optimize-molecule`,
@@ -536,18 +536,18 @@ const App = () => {
   // Display loading indicator while auth state is determined
   if (isLoading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         height: '100vh',
         backgroundColor: '#0c1021',
         color: '#f0f4f8'
       }}>
         <div>
-          <div className="spinner" style={{ 
-            width: '40px', 
-            height: '40px', 
+          <div className="spinner" style={{
+            width: '40px',
+            height: '40px',
             border: '3px solid rgba(56, 189, 248, 0.3)',
             borderTopColor: '#38bdf8',
             borderRadius: '50%',
@@ -1096,9 +1096,15 @@ const App = () => {
 
             <div style={styles.popupScroll}>
               {showLoginForm ? (
-                <LoginForm toggleForm={() => setShowLoginForm(false)} />
+                <LoginForm
+                  toggleForm={() => setShowLoginForm(false)}
+                  onAuthSuccess={toggleAuthModal} // Add this callback
+                />
               ) : (
-                <RegisterForm toggleForm={() => setShowLoginForm(true)} />
+                <RegisterForm
+                  toggleForm={() => setShowLoginForm(true)}
+                  onAuthSuccess={toggleAuthModal} // Add this callback
+                />
               )}
             </div>
           </div>

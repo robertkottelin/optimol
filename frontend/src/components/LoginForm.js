@@ -2,7 +2,7 @@ import React, { useState, useContext } from "react";
 import { AuthContext } from "../AuthContext";
 import { Icons } from "./Icons";
 
-const LoginForm = ({ toggleForm }) => {
+const LoginForm = ({ toggleForm, onAuthSuccess }) => { // Add onAuthSuccess parameter
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -25,6 +25,11 @@ const LoginForm = ({ toggleForm }) => {
       const result = await login(email, password);
       if (!result.success) {
         setError(result.error);
+      } else {
+        // Call onAuthSuccess if authentication was successful
+        if (onAuthSuccess) {
+          onAuthSuccess();
+        }
       }
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");
