@@ -18,7 +18,8 @@ import {
   TEST_MOLECULES
 } from './styles/constants';
 
-// Import components
+// Import components 
+
 import { Icons } from './components/Icons';
 import SubscriptionForm from './components/SubscriptionForm';
 import MoleculeViewer from './components/MoleculeViewer';
