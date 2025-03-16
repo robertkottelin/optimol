@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 import os
 import stripe
 from datetime import datetime
@@ -33,6 +33,21 @@ class User(db.Model):
 # Initialize Stripe
 stripe.api_key = os.getenv("STRIPE_SECRET")
 
+# Helper function to configure cookies properly for cross-domain
+def configure_cors_headers(response):
+    """Add necessary CORS headers for cross-domain cookie transmission."""
+    origin = request.headers.get('Origin', '')
+    allowed_origins = current_app.config.get('CORS', {}).get('origins', ["https://robertkottelin.github.io", "https://optimizemolecule.com"])
+    
+    if origin in allowed_origins:
+        response.headers.set('Access-Control-Allow-Origin', origin)
+        response.headers.set('Access-Control-Allow-Credentials', 'true')
+        response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials, x-requested-with')
+        response.headers.set('Access-Control-Expose-Headers', 'Set-Cookie')
+    
+    return response
+
 @user_bp.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
@@ -60,7 +75,22 @@ def register():
     # Create token and set cookie
     access_token = create_access_token(identity=user.id)
     resp = jsonify({"success": True, "user": {"email": user.email, "isSubscribed": False}})
+    
+    # Set cookie with explicit cross-domain settings
     set_access_cookies(resp, access_token)
+    
+    # Ensure SameSite attribute is set properly for cross-domain
+    for cookie in resp.headers.getlist('Set-Cookie'):
+        if 'access_token_cookie' in cookie:
+            resp.headers.remove('Set-Cookie')
+            cookie = cookie.replace('SameSite=Lax', 'SameSite=None')
+            if 'Secure' not in cookie:
+                cookie = cookie + '; Secure'
+            resp.headers.add('Set-Cookie', cookie)
+    
+    # Add CORS headers
+    resp = configure_cors_headers(resp)
+    
     return resp, 201
 
 @user_bp.route('/login', methods=['POST'])
@@ -81,13 +111,41 @@ def login():
             "isSubscribed": user.subscription_status == "active"
         }
     })
+    
+    # Set cookie with explicit cross-domain settings
     set_access_cookies(resp, access_token)
+    
+    # Ensure SameSite attribute is set properly for cross-domain
+    for cookie in resp.headers.getlist('Set-Cookie'):
+        if 'access_token_cookie' in cookie:
+            resp.headers.remove('Set-Cookie')
+            cookie = cookie.replace('SameSite=Lax', 'SameSite=None')
+            if 'Secure' not in cookie:
+                cookie = cookie + '; Secure'
+            resp.headers.add('Set-Cookie', cookie)
+    
+    # Add CORS headers
+    resp = configure_cors_headers(resp)
+    
     return resp
 
 @user_bp.route('/logout', methods=['POST'])
 def logout():
     resp = jsonify({"success": True})
     unset_jwt_cookies(resp)
+    
+    # Ensure SameSite attribute is set properly for cross-domain
+    for cookie in resp.headers.getlist('Set-Cookie'):
+        if 'access_token_cookie' in cookie:
+            resp.headers.remove('Set-Cookie')
+            cookie = cookie.replace('SameSite=Lax', 'SameSite=None')
+            if 'Secure' not in cookie:
+                cookie = cookie + '; Secure'
+            resp.headers.add('Set-Cookie', cookie)
+    
+    # Add CORS headers
+    resp = configure_cors_headers(resp)
+    
     return resp
 
 @user_bp.route('/me', methods=['GET'])
@@ -99,10 +157,15 @@ def get_current_user():
     if not user:
         return jsonify({"error": "User not found"}), 404
         
-    return jsonify({
+    resp = jsonify({
         "email": user.email,
         "isSubscribed": user.subscription_status == "active"
     })
+    
+    # Add CORS headers
+    resp = configure_cors_headers(resp)
+    
+    return resp
 
 @user_bp.route('/subscribe', methods=['POST'])
 @jwt_required()
@@ -148,11 +211,17 @@ def subscribe_user():
         user.subscription_status = "active"
         db.session.commit()
 
-        return jsonify({
+        resp = jsonify({
             "success": True,
             "subscriptionId": subscription.id,
             "clientSecret": subscription.latest_invoice.payment_intent.client_secret,
         })
+        
+        # Add CORS headers
+        resp = configure_cors_headers(resp)
+        
+        return resp
+        
     except stripe.error.StripeError as e:
         return jsonify({"error": str(e)}), 500
     except Exception as e:
@@ -167,8 +236,13 @@ def check_subscription():
     
     if not user:
         return jsonify({"error": "User not found"}), 404
-        
-    return jsonify({"isSubscribed": user.subscription_status == "active"}), 200
+    
+    resp = jsonify({"isSubscribed": user.subscription_status == "active"})
+    
+    # Add CORS headers
+    resp = configure_cors_headers(resp)
+    
+    return resp
 
 @user_bp.route('/cancel-subscription', methods=['POST'])
 @jwt_required()
@@ -188,7 +262,13 @@ def cancel_subscription():
         user.subscription_status = "canceled"
         db.session.commit()
 
-        return jsonify({"success": True, "message": "Subscription canceled successfully."}), 200
+        resp = jsonify({"success": True, "message": "Subscription canceled successfully."})
+        
+        # Add CORS headers
+        resp = configure_cors_headers(resp)
+        
+        return resp
+        
     except stripe.error.StripeError as e:
         return jsonify({"error": str(e)}), 500
     except Exception as e:

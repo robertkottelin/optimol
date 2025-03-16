@@ -1,360 +1,244 @@
-# Molecular Optimization Backend Deployment Documentation
+# Digital Ocean Droplet Setup for Docker Backend Deployment
 
-## Environment Specifications
+## Initial Server Configuration
 
-- **Host**: DigitalOcean Droplet
-- **IP**: 134.209.226.93
-- **Domain**: optimizemolecule.com
-- **Backend Image**: robertkottelin/optimize-molecule:backend-latest
-- **Frontend Repository**: https://github.com/robertkottelin/optimol
-- **Frontend Host**: GitHub Pages (https://robertkottelin.github.io/optimol/)
-
-## 1. Initial Server Configuration
-
-SSH into the Digital Ocean droplet:
+Log into your Digital Ocean droplet and perform initial setup:
 
 ```bash
-ssh root@134.209.226.93
+# Update package lists and install essential packages
+apt update && apt upgrade -y
+apt install -y ca-certificates curl gnupg lsb-release vim
+
+# Configure proper hostname
+hostnamectl set-hostname optimizemolecule
+echo "64.227.122.193 optimizemolecule.com" >> /etc/hosts
 ```
 
-Install Docker and dependencies:
+## Docker Installation
+
+Install Docker Engine:
 
 ```bash
-apt update
-apt install -y apt-transport-https ca-certificates curl software-properties-common
+# Add Docker's official GPG key
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Add Docker repository
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Install Docker Engine
 apt update
 apt install -y docker-ce docker-ce-cli containerd.io
-```
 
-Verify Docker installation:
-
-```bash
+# Verify Docker installation
 docker --version
 ```
 
-## 2. Docker Image Management
+## Nginx Installation and Configuration
 
-Pull the Docker image directly from Docker Hub:
-
-```bash
-docker pull robertkottelin/optimize-molecule:backend-latest
-```
-
-Test running the container directly:
+Install and configure Nginx as a reverse proxy:
 
 ```bash
-docker run -d \
-  --name optimize-molecule \
-  -p 5000:5000 \
-  --restart unless-stopped \
-  robertkottelin/optimize-molecule:backend-latest
-```
-
-## 3. Initial Nginx Configuration (System-level)
-
-Install and configure Nginx system service:
-
-```bash
+# Install Nginx
 apt install -y nginx
-```
 
-Generate self-signed certificate for initial testing:
-
-```bash
-mkdir -p /etc/nginx/ssl
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout /etc/nginx/ssl/nginx.key \
-  -out /etc/nginx/ssl/nginx.crt \
-  -subj "/C=US/ST=State/L=City/O=Organization/CN=134.209.226.93"
-```
-
-Create Nginx configuration:
-
-```bash
-cat > /etc/nginx/sites-available/optimize-molecule << 'EOF'
+# Create Nginx configuration for the domain
+cat > /etc/nginx/sites-available/optimizemolecule.com << 'EOF'
 server {
     listen 80;
-    server_name 134.209.226.93;
-    
-    location / {
-        return 301 https://$host$request_uri;
-    }
-}
+    server_name optimizemolecule.com www.optimizemolecule.com;
 
-server {
-    listen 443 ssl;
-    server_name 134.209.226.93;
-    
-    ssl_certificate /etc/nginx/ssl/nginx.crt;
-    ssl_certificate_key /etc/nginx/ssl/nginx.key;
-    
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_prefer_server_ciphers on;
-    ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384;
-    
-    add_header 'Access-Control-Allow-Origin' 'https://robertkottelin.github.io' always;
-    add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
-    add_header 'Access-Control-Allow-Headers' 'Content-Type, Authorization' always;
-    
     location / {
-        if ($request_method = 'OPTIONS') {
-            add_header 'Access-Control-Allow-Origin' 'https://robertkottelin.github.io' always;
-            add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
-            add_header 'Access-Control-Allow-Headers' 'Content-Type, Authorization' always;
-            add_header 'Access-Control-Max-Age' 1728000;
-            add_header 'Content-Type' 'text/plain charset=UTF-8';
-            add_header 'Content-Length' 0;
-            return 204;
-        }
-        
         proxy_pass http://localhost:5000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_read_timeout 90;
+        
+        # CORS headers
+        add_header 'Access-Control-Allow-Origin' 'https://robertkottelin.github.io' always;
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+        add_header 'Access-Control-Allow-Headers' 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cookie, Set-Cookie, x-requested-with' always;
+        add_header 'Access-Control-Allow-Credentials' 'true' always;
+        add_header 'Access-Control-Expose-Headers' 'Set-Cookie' always;
+
+        # Handle preflight requests
+        if ($request_method = 'OPTIONS') {
+            add_header 'Access-Control-Allow-Origin' 'https://robertkottelin.github.io' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+            add_header 'Access-Control-Allow-Headers' 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cookie, Set-Cookie, x-requested-with' always;
+            add_header 'Access-Control-Allow-Credentials' 'true' always;
+            add_header 'Access-Control-Expose-Headers' 'Set-Cookie' always;
+            add_header 'Access-Control-Max-Age' '600' always;
+            add_header 'Content-Type' 'text/plain charset=UTF-8';
+            add_header 'Content-Length' '0';
+            return 204;
+        }
     }
 }
 EOF
 
-ln -s /etc/nginx/sites-available/optimize-molecule /etc/nginx/sites-enabled/
+# Enable the site configuration
+ln -s /etc/nginx/sites-available/optimizemolecule.com /etc/nginx/sites-enabled/
+rm -f /etc/nginx/sites-enabled/default
+
+# Test Nginx configuration
 nginx -t
+
+# Restart Nginx
 systemctl restart nginx
 ```
 
-## 4. DNS and Domain Configuration
+## SSL Certificate Configuration with Certbot
 
-After acquiring optimizemolecule.com domain through Cloudflare:
-
-1. Configured A record in Cloudflare:
-   - Type: A
-   - Name: @
-   - Content: 134.209.226.93
-   - Proxy status: Proxied
-
-2. Configured CNAME for www subdomain:
-   - Type: CNAME
-   - Name: www
-   - Content: optimizemolecule.com
-   - Proxy status: Proxied
-
-3. Configured SSL/TLS in Cloudflare:
-   - Set Encryption mode to "Full"
-   - Enabled Always Use HTTPS
-   - Created Origin Certificate for the server
-
-## 5. Docker Compose Implementation
-
-Created Docker Compose structure:
+Install Certbot and obtain SSL certificates:
 
 ```bash
-mkdir -p /opt/optimize-molecule
-cd /opt/optimize-molecule
+# Install Certbot
+apt install -y certbot python3-certbot-nginx
 
-# Create docker-compose.yml
-cat > docker-compose.yml << 'EOF'
-version: '3'
+# Obtain SSL certificates
+certbot --nginx -d optimizemolecule.com -d www.optimizemolecule.com --non-interactive --agree-tos --email your-email@example.com
 
-services:
-  backend:
-    image: robertkottelin/optimize-molecule:backend-latest
-    container_name: optimize-molecule
-    restart: unless-stopped
-    ports:
-      - "5000:5000"
-    volumes:
-      - ./data:/app/data
-      - ./config:/app/config
+# Verify auto-renewal
+certbot renew --dry-run
+```
 
-  nginx:
-    image: nginx:1.25
-    container_name: nginx-proxy
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/conf:/etc/nginx/conf.d
-      - ./nginx/ssl:/etc/nginx/ssl
-      - ./nginx/www:/var/www/html
-    depends_on:
-      - backend
+## Environment Variables Setup
+
+Create a `.env` file for the application:
+
+```bash
+mkdir -p /opt/optimol
+cat > /opt/optimol/.env << 'EOF'
+STRIPE_SECRET=your_stripe_secret_key
+JWT_SECRET_KEY=a_random_secure_key_for_jwt_tokens
+FLASK_ENV=production
 EOF
 
-# Create required directories
-mkdir -p data config nginx/conf nginx/ssl nginx/www
+# Set proper permissions
+chmod 600 /opt/optimol/.env
 ```
 
-## 6. Nginx Configuration for Production Domain
+## Docker Image Deployment
 
-Created Nginx configuration for Docker-based implementation:
+Pull and run the Docker image:
 
 ```bash
-cat > /opt/optimize-molecule/nginx/conf/default.conf << 'EOF'
-server {
-    listen 80;
-    server_name optimizemolecule.com www.optimizemolecule.com;
-    
-    location / {
-        return 301 https://$host$request_uri;
-    }
-}
+# Pull the latest image
+docker pull robertkottelin/optimize-molecule:backend-latest
 
-server {
-    listen 443 ssl;
-    server_name optimizemolecule.com www.optimizemolecule.com;
-    
-    ssl_certificate /etc/nginx/ssl/origin.pem;
-    ssl_certificate_key /etc/nginx/ssl/origin.key;
-    
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_prefer_server_ciphers on;
-    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256;
-    
-    real_ip_header CF-Connecting-IP;
-    
-    location / {
-        proxy_pass http://backend:5000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_read_timeout 90;
-    }
+# Run the container with proper configuration
+docker run -d \
+  --name optimol-backend \
+  --restart unless-stopped \
+  -p 5000:5000 \
+  -v /opt/optimol/.env:/app/.env \
+  -v optimol_data:/app/instance \
+  robertkottelin/optimize-molecule:backend-latest
+```
+
+## Firewall Configuration
+
+Configure UFW (Uncomplicated Firewall):
+
+```bash
+# Install UFW if not already installed
+apt install -y ufw
+
+# Set default policies
+ufw default deny incoming
+ufw default allow outgoing
+
+# Allow SSH, HTTP, and HTTPS
+ufw allow ssh
+ufw allow http
+ufw allow https
+
+# Enable the firewall
+ufw --force enable
+
+# Verify the firewall status
+ufw status
+```
+
+## Verify the Setup
+
+Test that your API is accessible:
+
+```bash
+# Check container logs
+docker logs optimol-backend
+
+# Test the API endpoint
+curl -k https://optimizemolecule.com/health
+```
+
+## Configure Cloudflare
+
+Ensure Cloudflare is correctly set up:
+
+1. Confirm DNS records are correct:
+   - A record for optimizemolecule.com pointing to 64.227.122.193
+   - CNAME record for www pointing to optimizemolecule.com
+
+2. Configure SSL/TLS settings:
+   - Set SSL/TLS mode to "Full (strict)" in Cloudflare dashboard
+   - Enable "Always Use HTTPS" option
+
+3. Verify CORS settings:
+   - Confirm Page Rules or Transform Rules allowing cross-origin requests from GitHub Pages
+
+## Deploying Updates
+
+Create a deployment script for future updates:
+
+```bash
+cat > /opt/deploy.sh << 'EOF'
+#!/bin/bash
+set -e
+
+# Pull the latest image
+docker pull robertkottelin/optimize-molecule:backend-latest
+
+# Stop and remove the existing container
+docker stop optimol-backend || true
+docker rm optimol-backend || true
+
+# Run the new container
+docker run -d \
+  --name optimol-backend \
+  --restart unless-stopped \
+  -p 5000:5000 \
+  -v /opt/optimol/.env:/app/.env \
+  -v optimol_data:/app/instance \
+  robertkottelin/optimize-molecule:backend-latest
+
+# Clean up unused images
+docker image prune -af
+EOF
+
+chmod +x /opt/deploy.sh
+```
+
+## Monitoring and Logging
+
+Set up basic monitoring:
+
+```bash
+# Install monitoring tools
+apt install -y htop glances
+
+# Set up log rotation for Docker
+cat > /etc/logrotate.d/docker << 'EOF'
+/var/lib/docker/containers/*/*.log {
+    rotate 7
+    daily
+    compress
+    missingok
+    delaycompress
+    copytruncate
 }
 EOF
 ```
 
-## 7. SSL Certificate Implementation
-
-Added Cloudflare Origin Certificate to Docker container:
-
-```bash
-# Transfer certificate files to server
-cd /opt/optimize-molecule/nginx/ssl
-
-# Created certificate files with appropriate content (user adds content manually)
-touch origin.pem
-touch origin.key
-chmod 644 origin.pem
-chmod 600 origin.key
-```
-
-## 8. Port Conflict Resolution
-
-Stopped and disabled system Nginx to free ports for Docker services:
-
-```bash
-systemctl stop nginx
-systemctl disable nginx
-```
-
-Verified no port conflicts:
-
-```bash
-netstat -tlpn | grep -E ':80|:443'
-```
-
-## 9. Container Launch and Validation
-
-Started the container stack:
-
-```bash
-cd /opt/optimize-molecule
-docker-compose up -d
-```
-
-Verified container status:
-
-```bash
-docker-compose ps
-```
-
-Expected output:
-```
-      Name                     Command               State                             Ports
-----------------------------------------------------------------------------------------------------------------------
-nginx-proxy         /docker-entrypoint.sh ngin ...   Up      0.0.0.0:443->443/tcp,:::443->443/tcp,
-                                                             0.0.0.0:80->80/tcp,:::80->80/tcp
-optimize-molecule   gunicorn --bind 0.0.0.0:50 ...   Up      0.0.0.0:5000->5000/tcp,:::5000->5000/tcp
-```
-
-Tested the configuration:
-
-```bash
-# Test HTTP redirect
-curl -I http://localhost:80
-
-# Test HTTPS functionality
-curl -I https://localhost:443 -k
-```
-
-## 10. Backend CORS Configuration
-
-Updated CORS configuration in the API application:
-
-```bash
-docker exec -it optimize-molecule bash -c "cat > /app/config.json << 'EOF'
-{
-    \"SQLALCHEMY_DATABASE_URI\": \"sqlite:///users.db\",
-    \"SQLALCHEMY_TRACK_MODIFICATIONS\": false,
-    \"CORS\": {
-        \"origins\": [\"https://robertkottelin.github.io\", \"https://optimizemolecule.com\"],
-        \"methods\": [\"GET\", \"POST\", \"OPTIONS\"],
-        \"allow_headers\": [\"Content-Type\", \"Authorization\"]
-    }
-}
-EOF"
-```
-
-## 11. Frontend Configuration
-
-Updated the frontend to use the domain-based API endpoint:
-
-```javascript
-// In App.js
-const apiBaseUrl = "https://optimizemolecule.com";
-```
-
-## 12. Validation & Troubleshooting
-
-Testing API endpoints:
-
-```bash
-# Health check
-curl -I https://optimizemolecule.com/health
-
-# CORS pre-flight verification
-curl -H "Origin: https://robertkottelin.github.io" \
-     -H "Access-Control-Request-Method: POST" \
-     -H "Access-Control-Request-Headers: Content-Type" \
-     -X OPTIONS \
-     -I https://optimizemolecule.com/health
-```
-
-## Security Considerations
-
-1. **Firewall Configuration**: Implemented minimal port exposure (80, 443, 22)
-2. **SSL/TLS**: Enforced TLS 1.2+ and strong cipher suites
-3. **Cloudflare Protection**: Added edge security via Cloudflare proxying
-4. **Docker Isolation**: Used container segmentation for application components
-
-## Maintenance Procedures
-
-1. **Certificate Renewal**: Cloudflare Origin Certificates have 15-year validity
-2. **Container Updates**:
-   ```bash
-   cd /opt/optimize-molecule
-   docker-compose pull
-   docker-compose down
-   docker-compose up -d
-   ```
-3. **Configuration Updates**:
-   ```bash
-   docker exec -it optimize-molecule bash
-   # Edit configuration files as needed
-   exit
-   docker restart optimize-molecule
-   ```
+The setup is now complete. Your Digital Ocean droplet is configured to run your containerized backend application with proper SSL certificates, reverse proxy, and CORS settings for your GitHub Pages frontend.

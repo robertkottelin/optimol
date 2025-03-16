@@ -33,6 +33,10 @@ app.config['JWT_COOKIE_SECURE'] = True
 app.config['JWT_COOKIE_CSRF_PROTECT'] = False
 app.config['JWT_COOKIE_SAMESITE'] = 'None'
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = 30 * 24 * 60 * 60  # 30 days
+app.config['JWT_COOKIE_DOMAIN'] = '.optimizemolecule.com'  # Notice the leading dot
+app.config['JWT_COOKIE_PATH'] = '/'
+app.config['JWT_ACCESS_COOKIE_NAME'] = 'access_token_cookie'
+app.config['JWT_REFRESH_COOKIE_NAME'] = 'refresh_token_cookie'
 jwt = JWTManager(app)
 
 # Initialize extensions
@@ -106,8 +110,16 @@ def handle_all_options(path):
 # Test endpoint for cookie verification
 @app.route('/test-cookie')
 def test_cookie():
-    resp = jsonify({"testing": True})
-    resp.set_cookie('test_cookie', 'test_value', samesite='None', secure=True)
+    resp = jsonify({"success": True})
+    resp.set_cookie(
+        'test_cookie', 
+        value='test_value',
+        secure=True,
+        httponly=False,
+        samesite='None',
+        path='/',
+        max_age=3600
+    )
     return resp
 
 # Import blueprints after app creation

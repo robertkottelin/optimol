@@ -13,7 +13,7 @@
 
 ```bash
 # SSH into droplet
-ssh root@134.209.226.93
+ssh root@64.227.122.193
 
 # Navigate to application directory
 cd /opt/optimize-molecule
