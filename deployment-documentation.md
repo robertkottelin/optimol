@@ -45,37 +45,55 @@ apt install -y nginx
 cat > /etc/nginx/sites-available/optimizemolecule.com << 'EOF'
 server {
     listen 80;
+    listen 443 ssl;
     server_name optimizemolecule.com www.optimizemolecule.com;
+
+    # SSL configuration
+    ssl_certificate /etc/letsencrypt/live/optimizemolecule.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/optimizemolecule.com/privkey.pem;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    ssl_ciphers "EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH";
+
+    # Redirect non-https traffic to https
+    if ($scheme != "https") {
+        return 301 https://$host$request_uri;
+    }
 
     location / {
         proxy_pass http://localhost:5000;
+        
+        # Standard proxy headers
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         
-        # CORS headers
+        # Critical CORS headers for cross-origin cookie transmission
         add_header 'Access-Control-Allow-Origin' 'https://robertkottelin.github.io' always;
-        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
-        add_header 'Access-Control-Allow-Headers' 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cookie, Set-Cookie, x-requested-with' always;
         add_header 'Access-Control-Allow-Credentials' 'true' always;
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+        add_header 'Access-Control-Allow-Headers' 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cookie, Set-Cookie' always;
         add_header 'Access-Control-Expose-Headers' 'Set-Cookie' always;
-
-        # Handle preflight requests
+        
+        # Specific handling for OPTIONS preflight requests
         if ($request_method = 'OPTIONS') {
             add_header 'Access-Control-Allow-Origin' 'https://robertkottelin.github.io' always;
-            add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
-            add_header 'Access-Control-Allow-Headers' 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cookie, Set-Cookie, x-requested-with' always;
             add_header 'Access-Control-Allow-Credentials' 'true' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+            add_header 'Access-Control-Allow-Headers' 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cookie, Set-Cookie' always;
             add_header 'Access-Control-Expose-Headers' 'Set-Cookie' always;
-            add_header 'Access-Control-Max-Age' '600' always;
-            add_header 'Content-Type' 'text/plain charset=UTF-8';
-            add_header 'Content-Length' '0';
+            add_header 'Access-Control-Max-Age' '1728000' always;
+            add_header 'Content-Type' 'text/plain charset=UTF-8' always;
+            add_header 'Content-Length' '0' always;
             return 204;
         }
     }
 }
 EOF
+
 
 # Enable the site configuration
 ln -s /etc/nginx/sites-available/optimizemolecule.com /etc/nginx/sites-enabled/
@@ -190,7 +208,32 @@ Ensure Cloudflare is correctly set up:
 
 ## Deploying Updates
 
-Create a deployment script for future updates:
+To ensure you're deploying the most recent image version, you need to explicitly pull the image before running the container:
+
+```bash
+# Pull latest image from DockerHub
+docker pull robertkottelin/optimize-molecule:backend-latest
+
+# Stop and remove existing container
+docker stop optimol-backend
+docker rm optimol-backend
+
+# Deploy with updated configuration
+docker run -d \
+  --name optimol-backend \
+  --restart unless-stopped \
+  -p 5000:5000 \
+  -v /opt/optimol/.env:/app/.env \
+  -v optimol_data:/app/instance \
+  robertkottelin/optimize-molecule:backend-latest
+
+# Restart Nginx
+systemctl restart nginx
+```
+
+The `docker pull` command forces Docker to check the registry and download any updates to the image, even if the tag remains `backend-latest`.
+
+## Create a deployment script for future updates:
 
 ```bash
 cat > /opt/deploy.sh << 'EOF'

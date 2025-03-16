@@ -38,8 +38,9 @@ export const AuthProvider = ({ children }) => {
           url: `${apiBaseUrl}/me`,
           withCredentials: true,
           headers: {
-            'Accept': 'application/json'
-          }
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }    
         });
         
         if (!mounted) return;

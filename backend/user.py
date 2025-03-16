@@ -112,20 +112,13 @@ def login():
         }
     })
     
-    # Set cookie with explicit cross-domain settings
+    # Override default cookie settings for cross-origin functionality
     set_access_cookies(resp, access_token)
     
-    # Ensure SameSite attribute is set properly for cross-domain
+    # Explicitly set cookie attributes for cross-origin
     for cookie in resp.headers.getlist('Set-Cookie'):
         if 'access_token_cookie' in cookie:
-            resp.headers.remove('Set-Cookie')
-            cookie = cookie.replace('SameSite=Lax', 'SameSite=None')
-            if 'Secure' not in cookie:
-                cookie = cookie + '; Secure'
-            resp.headers.add('Set-Cookie', cookie)
-    
-    # Add CORS headers
-    resp = configure_cors_headers(resp)
+            resp.headers.add('Set-Cookie', cookie.replace('HttpOnly;', 'HttpOnly; SameSite=None;'))
     
     return resp
 
