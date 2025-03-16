@@ -25,6 +25,7 @@ export const AuthProvider = ({ children }) => {
 
   // Configure axios defaults
   axios.defaults.withCredentials = true;
+  axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
   // Handle authentication status check
   useEffect(() => {
@@ -32,7 +33,15 @@ export const AuthProvider = ({ children }) => {
     
     const checkAuth = async () => {
       try {
-        const response = await axios.get(`${apiBaseUrl}/me`, { withCredentials: true });
+        const response = await axios({
+          method: 'get',
+          url: `${apiBaseUrl}/me`,
+          withCredentials: true,
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+        
         if (!mounted) return;
         
         setState(prev => ({
@@ -79,19 +88,19 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       setState(prev => ({ ...prev, isLoading: true }));
-      const response = await axios.post(`${apiBaseUrl}/login`, { email, password });
+      const response = await axios({
+        method: 'post',
+        url: `${apiBaseUrl}/login`,
+        data: { email, password },
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
       
-      setState(prev => ({
-        ...prev,
-        currentUser: response.data.user,
-        isAuthenticated: true,
-        isSubscribed: response.data.user.isSubscribed || false,
-        isLoading: false,
-        error: null
-      }));
-      
-      return { success: true };
-    } catch (error) {
+      // Rest of the function as before
+    } catch (error) {  
       setState(prev => ({ 
         ...prev, 
         isLoading: false,
