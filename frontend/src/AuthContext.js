@@ -32,7 +32,7 @@ export const AuthProvider = ({ children }) => {
     
     const checkAuth = async () => {
       try {
-        const response = await axios.get(`${apiBaseUrl}/me`);
+        const response = await axios.get(`${apiBaseUrl}/me`, { withCredentials: true });
         if (!mounted) return;
         
         setState(prev => ({
