@@ -48,7 +48,7 @@ load_dotenv()
 
 # CORS Configuration
 CORS_CONFIG = {
-    'origins': config.get('CORS', {}).get('origins', ["https://robertkottelin.github.io", "https://optimizemolecule.com"]),
+    'origins': config.get('CORS', {}).get('origins', ["https://optimizemolecule.com"]),
     'methods': config.get('CORS', {}).get('methods', ["GET", "POST", "OPTIONS"]),
     'allow_headers': config.get('CORS', {}).get('allow_headers', ["Content-Type", "Authorization", "X-Requested-With"]),
     'expose_headers': ['Content-Type', 'Authorization'],

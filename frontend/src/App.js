@@ -61,7 +61,7 @@ const App = () => {
   // FIXED: Moved howToUseContent useState before conditional return
   const [howToUseContent, setHowToUseContent] = useState("");
 
-  const apiBaseUrl = "https://optimizemolecule.com";
+  const apiBaseUrl = "/api";
 
   // Group all useEffect hooks together
   useEffect(() => {

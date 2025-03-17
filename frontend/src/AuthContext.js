@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }) => {
     token: localStorage.getItem('access_token') || null
   });
   
-  const apiBaseUrl = "https://optimizemolecule.com";
+  const apiBaseUrl = "/api";
 
   // Configure axios defaults
   useEffect(() => {
