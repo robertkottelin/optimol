@@ -10,6 +10,8 @@ docker rm optimol-frontend optimol-backend || true
 docker pull robertkottelin/optimize-molecule:frontend-latest
 docker pull robertkottelin/optimize-molecule:backend-latest
 
+docker image prune -af
+
 # Run frontend container
 docker run -d \
   --name optimol-frontend \
@@ -132,6 +134,7 @@ server {
     }
 }
 EOF
+
 
 # Apply Nginx configuration
 nginx -t && systemctl restart nginx
