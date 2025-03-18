@@ -1,7 +1,7 @@
 import React from 'react';
 import { styles } from '../styles/components';
 import { Icons } from './Icons';
-import { COLORS } from '../styles/constants';
+import { COLORS, FONTS, SPACING } from '../styles/constants';
 
 const OptimizationResults = ({ optimizationResult, optimizationType, handleDownload, isMobile }) => {
   if (!optimizationResult || !optimizationResult.result) return null;
@@ -64,6 +64,11 @@ const OptimizationResults = ({ optimizationResult, optimizationType, handleDownl
       </span>
     </div>
   );
+  
+  // Determine if we're in interaction mode (multiple molecules)
+  const isInteractionMode = result.metadata && 
+    (result.molecule1_optimized_atoms || result.molecule2_optimized_atoms || 
+     result.metadata.molecules > 1);
   
   return (
     <div style={styles.resultsContainer} className={isMobile ? 'mobile-smaller-padding' : ''}>
@@ -182,6 +187,63 @@ const OptimizationResults = ({ optimizationResult, optimizationType, handleDownl
             `${result.metadata.duration_seconds.toFixed(2)} seconds` :
             "N/A"} 
       />
+      
+      {/* Molecular Interaction Section */}
+      {isInteractionMode && (
+        <>
+          <h4 style={{
+            marginTop: SPACING.lg,
+            marginBottom: SPACING.sm,
+            fontWeight: FONTS.weightSemiBold,
+            borderBottom: `1px solid ${COLORS.border}`,
+            paddingBottom: SPACING.xs
+          }}>
+            Molecular Interaction
+          </h4>
+          
+          <ResultItem 
+            label="Molecules" 
+            value={result.metadata.molecules || "2"} 
+          />
+          
+          <ResultItem 
+            label="Molecule 1 Atoms" 
+            value={result.metadata.molecule1_atom_count || 
+              (result.molecule1_optimized_atoms ? result.molecule1_optimized_atoms.length : "N/A")} 
+          />
+          
+          <ResultItem 
+            label="Molecule 2 Atoms" 
+            value={result.metadata.molecule2_atom_count || 
+              (result.molecule2_optimized_atoms ? result.molecule2_optimized_atoms.length : "N/A")} 
+          />
+          
+          {optimizationType === "classical" && (
+            <>
+              <ResultItem 
+                label="Intermolecular Bonds" 
+                value={result.metadata.intermolecular_bonds || "N/A"} 
+              />
+              
+              <ResultItem 
+                label="Interaction Energy" 
+                value={result.metadata.interaction_energy_kj_mol !== undefined ? 
+                    `${result.metadata.interaction_energy_kj_mol.toFixed(4)} kJ/mol` : 
+                    "N/A"} 
+              />
+            </>
+          )}
+          
+          {optimizationType === "quantum" && (
+            <ResultItem 
+              label="Interaction Energy" 
+              value={result.metadata.interaction_energy_hartree !== undefined ? 
+                  `${result.metadata.interaction_energy_hartree.toFixed(6)} Hartree` : 
+                  "N/A"} 
+            />
+          )}
+        </>
+      )}
       
       <div style={{ marginTop: "24px", textAlign: isMobile ? 'center' : 'left' }}>
         <button
