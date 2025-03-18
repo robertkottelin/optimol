@@ -49,6 +49,7 @@ const App = () => {
   const [interactionMode, setInteractionMode] = useState(false); // Whether to optimize molecule interaction
   const [positioningMode, setPositioningMode] = useState(false); // Whether positioning mode is active
   const [molecule2Offset, setMolecule2Offset] = useState({ x: 0, y: 0, z: 0 }); // Offset for molecule 2
+  const [molecule2Rotation, setMolecule2Rotation] = useState({ x: 0, y: 0, z: 0 }); // Euler angles in degrees
   
   const [optimizationResult, setOptimizationResult] = useState(null);
   const [activeView, setActiveView] = useState("original"); // original, optimized
@@ -395,28 +396,85 @@ const App = () => {
         }
       }
 
-      // Process molecule2 data with offset if in interaction mode
+      // Process molecule2 data with offset and rotation
       let processedMolecule2 = null;
       
       if (interactionMode && molecule2Data) {
         // Deep clone molecule2Data to avoid modifying the original
         processedMolecule2 = JSON.parse(JSON.stringify(molecule2Data));
         
-        // Apply offset to the atom coordinates
-        if (processedMolecule2.file1 && processedMolecule2.file1.atoms) {
-          processedMolecule2.file1.atoms = processedMolecule2.file1.atoms.map(atom => ({
-            ...atom,
-            x: atom.x + molecule2Offset.x,
-            y: atom.y + molecule2Offset.y,
-            z: atom.z + molecule2Offset.z
-          }));
-        } else if (processedMolecule2.atoms) {
-          processedMolecule2.atoms = processedMolecule2.atoms.map(atom => ({
-            ...atom,
-            x: atom.x + molecule2Offset.x,
-            y: atom.y + molecule2Offset.y,
-            z: atom.z + molecule2Offset.z
-          }));
+        // Get atoms array
+        let atoms = processedMolecule2.file1?.atoms || processedMolecule2.atoms;
+        
+        if (atoms) {
+          // Calculate center of mass for rotation
+          const centerOfMass = atoms.reduce((acc, atom) => {
+            return {
+              x: acc.x + atom.x,
+              y: acc.y + atom.y,
+              z: acc.z + atom.z
+            };
+          }, { x: 0, y: 0, z: 0 });
+          
+          centerOfMass.x /= atoms.length;
+          centerOfMass.y /= atoms.length;
+          centerOfMass.z /= atoms.length;
+          
+          // Apply rotation and offset to each atom
+          atoms = atoms.map(atom => {
+            // First apply rotation if any rotation angles are non-zero
+            let x = atom.x;
+            let y = atom.y;
+            let z = atom.z;
+            
+            if (molecule2Rotation.x !== 0 || molecule2Rotation.y !== 0 || molecule2Rotation.z !== 0) {
+              // Convert rotation angles to radians
+              const radX = molecule2Rotation.x * Math.PI / 180;
+              const radY = molecule2Rotation.y * Math.PI / 180;
+              const radZ = molecule2Rotation.z * Math.PI / 180;
+              
+              // Move to origin (center of mass)
+              const tx = x - centerOfMass.x;
+              const ty = y - centerOfMass.y;
+              const tz = z - centerOfMass.z;
+              
+              // Apply rotations (ZYX order)
+              // Z-axis rotation
+              let nx = tx * Math.cos(radZ) - ty * Math.sin(radZ);
+              let ny = tx * Math.sin(radZ) + ty * Math.cos(radZ);
+              let nz = tz;
+              
+              // Y-axis rotation
+              let mx = nx * Math.cos(radY) + nz * Math.sin(radY);
+              let my = ny;
+              let mz = -nx * Math.sin(radY) + nz * Math.cos(radY);
+              
+              // X-axis rotation
+              let rx = mx;
+              let ry = my * Math.cos(radX) - mz * Math.sin(radX);
+              let rz = my * Math.sin(radX) + mz * Math.cos(radX);
+              
+              // Move back from origin
+              x = rx + centerOfMass.x;
+              y = ry + centerOfMass.y;
+              z = rz + centerOfMass.z;
+            }
+            
+            // Then apply offset
+            return {
+              ...atom,
+              x: x + molecule2Offset.x,
+              y: y + molecule2Offset.y,
+              z: z + molecule2Offset.z
+            };
+          });
+          
+          // Update the processed molecule with rotated and translated atoms
+          if (processedMolecule2.file1) {
+            processedMolecule2.file1.atoms = atoms;
+          } else {
+            processedMolecule2.atoms = atoms;
+          }
         }
       }
 
@@ -426,7 +484,8 @@ const App = () => {
         optimization_type: optimizationType,
         optimization_params: optimizationParams,
         interaction_mode: interactionMode,
-        molecule2_offset: interactionMode ? molecule2Offset : null // Include offset information for reference
+        molecule2_offset: interactionMode ? molecule2Offset : null,
+        molecule2_rotation: interactionMode ? molecule2Rotation : null
       };
 
       console.log('Optimization payload:', JSON.stringify(payload, null, 2));
@@ -454,8 +513,9 @@ const App = () => {
       console.log("Response received:", response);
 
       if (response.data.success) {
-        // Store the molecule2Offset with the result for future reference
+        // Store the molecule2Offset and molecule2Rotation with the result for future reference
         response.data.molecule2Offset = molecule2Offset;
+        response.data.molecule2Rotation = molecule2Rotation;
         
         setOptimizationResult(response.data);
         setActiveView("optimized");
@@ -1134,6 +1194,116 @@ const App = () => {
                   </div>
                 )}
               </div>
+
+              {/* Rotation Controls */}
+              {positioningMode && (
+                <div style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "8px",
+                  padding: "8px",
+                  backgroundColor: "rgba(15, 23, 42, 0.7)",
+                  borderRadius: "8px",
+                  marginTop: "8px",
+                }}>
+                  <div style={{ fontWeight: "600", marginBottom: "4px" }}>Rotation (degrees):</div>
+                  <div style={{
+                    display: "flex",
+                    gap: "8px",
+                    flexWrap: isMobile ? "wrap" : "nowrap",
+                    justifyContent: isMobile ? "center" : "flex-start",
+                  }}>
+                    <div style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}>
+                      <span>RX:</span>
+                      <input
+                        type="number"
+                        value={molecule2Rotation.x}
+                        onChange={(e) => setMolecule2Rotation({
+                          ...molecule2Rotation,
+                          x: parseFloat(e.target.value) % 360
+                        })}
+                        style={{
+                          width: "70px",
+                          backgroundColor: "rgba(15, 23, 42, 0.7)",
+                          color: "#f0f4f8",
+                          border: "1px solid rgba(255, 255, 255, 0.1)",
+                          borderRadius: "4px",
+                          padding: "4px 4px",
+                        }}
+                        step="15"
+                      />
+                    </div>
+                    
+                    <div style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}>
+                      <span>RY:</span>
+                      <input
+                        type="number"
+                        value={molecule2Rotation.y}
+                        onChange={(e) => setMolecule2Rotation({
+                          ...molecule2Rotation,
+                          y: parseFloat(e.target.value) % 360
+                        })}
+                        style={{
+                          width: "70px",
+                          backgroundColor: "rgba(15, 23, 42, 0.7)",
+                          color: "#f0f4f8",
+                          border: "1px solid rgba(255, 255, 255, 0.1)",
+                          borderRadius: "4px",
+                          padding: "4px 4px",
+                        }}
+                        step="15"
+                      />
+                    </div>
+                    
+                    <div style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}>
+                      <span>RZ:</span>
+                      <input
+                        type="number"
+                        value={molecule2Rotation.z}
+                        onChange={(e) => setMolecule2Rotation({
+                          ...molecule2Rotation,
+                          z: parseFloat(e.target.value) % 360
+                        })}
+                        style={{
+                          width: "70px",
+                          backgroundColor: "rgba(15, 23, 42, 0.7)",
+                          color: "#f0f4f8",
+                          border: "1px solid rgba(255, 255, 255, 0.1)",
+                          borderRadius: "4px",
+                          padding: "4px 4px",
+                        }}
+                        step="15"
+                      />
+                    </div>
+                    
+                    <button
+                      onClick={() => setMolecule2Rotation({ x: 0, y: 0, z: 0 })}
+                      style={{
+                        backgroundColor: "rgba(15, 23, 42, 0.7)",
+                        color: "#94a3b8",
+                        border: "1px solid rgba(255, 255, 255, 0.1)",
+                        padding: "4px 8px",
+                        borderRadius: "8px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Reset Rotation
+                    </button>
+                  </div>
+                </div>
+              )}
               
               {positioningMode && (
                 <div style={{
@@ -1146,25 +1316,34 @@ const App = () => {
                   border: "1px solid rgba(56, 189, 248, 0.2)",
                 }}>
                   <p style={{ margin: 0 }}>
-                    <strong>Controls:</strong> Drag with mouse to position Molecule 2 in X-Y plane. Use keyboard arrow keys for precise control: 
-                    <span style={{ 
-                      backgroundColor: "rgba(255, 255, 255, 0.1)", 
-                      padding: "2px 5px", 
-                      margin: "0 2px", 
-                      borderRadius: "3px" 
-                    }}>←→</span> (X-axis), 
-                    <span style={{ 
-                      backgroundColor: "rgba(255, 255, 255, 0.1)", 
-                      padding: "2px 5px", 
-                      margin: "0 2px", 
-                      borderRadius: "3px" 
-                    }}>↑↓</span> (Y-axis), 
-                    <span style={{ 
-                      backgroundColor: "rgba(255, 255, 255, 0.1)", 
-                      padding: "2px 5px", 
-                      margin: "0 2px", 
-                      borderRadius: "3px" 
-                    }}>PgUp/PgDn</span> (Z-axis).
+                    <strong>Controls:</strong> Drag to position Molecule 2. Hold <kbd style={{
+                      backgroundColor: "rgba(255, 255, 255, 0.1)",
+                      padding: "2px 5px",
+                      borderRadius: "3px",
+                      fontSize: "0.8rem"
+                    }}>Alt</kbd> while dragging to rotate. 
+                    Keyboard: <kbd style={{
+                      backgroundColor: "rgba(255, 255, 255, 0.1)",
+                      padding: "2px 5px",
+                      borderRadius: "3px",
+                      fontSize: "0.8rem"
+                    }}>←→</kbd> (X-axis), <kbd style={{
+                      backgroundColor: "rgba(255, 255, 255, 0.1)",
+                      padding: "2px 5px",
+                      borderRadius: "3px",
+                      fontSize: "0.8rem"
+                    }}>↑↓</kbd> (Y-axis), <kbd style={{
+                      backgroundColor: "rgba(255, 255, 255, 0.1)",
+                      padding: "2px 5px",
+                      borderRadius: "3px",
+                      fontSize: "0.8rem"
+                    }}>PgUp/PgDn</kbd> (Z-axis).
+                    Hold <kbd style={{
+                      backgroundColor: "rgba(255, 255, 255, 0.1)",
+                      padding: "2px 5px",
+                      borderRadius: "3px",
+                      fontSize: "0.8rem"
+                    }}>Shift</kbd> + arrows for rotation.
                   </p>
                 </div>
               )}
@@ -1346,6 +1525,8 @@ const App = () => {
                   positioningMode={positioningMode && interactionMode}
                   onMoleculeMove={setMolecule2Offset}
                   molecule2Offset={molecule2Offset}
+                  molecule2Rotation={molecule2Rotation}
+                  onMoleculeRotate={setMolecule2Rotation}
                 />
                 
                 {interactionMode && molecule1Data && molecule2Data && (
@@ -1361,10 +1542,17 @@ const App = () => {
                     <span>Molecule 1: {molecule1Data.file1?.atoms?.length || molecule1Data.atoms?.length || 0} atoms</span>
                     <span style={{ margin: "0 10px" }}>•</span>
                     <span>Molecule 2: {molecule2Data.file1?.atoms?.length || molecule2Data.atoms?.length || 0} atoms</span>
-                    {molecule2Offset.x !== 0 || molecule2Offset.y !== 0 || molecule2Offset.z !== 0 ? (
+                    {(molecule2Offset.x !== 0 || molecule2Offset.y !== 0 || molecule2Offset.z !== 0 || 
+                     molecule2Rotation.x !== 0 || molecule2Rotation.y !== 0 || molecule2Rotation.z !== 0) ? (
                       <>
                         <span style={{ margin: "0 10px" }}>•</span>
                         <span>Offset: ({molecule2Offset.x.toFixed(1)}, {molecule2Offset.y.toFixed(1)}, {molecule2Offset.z.toFixed(1)})</span>
+                        {(molecule2Rotation.x !== 0 || molecule2Rotation.y !== 0 || molecule2Rotation.z !== 0) && (
+                          <>
+                            <span style={{ margin: "0 10px" }}>•</span>
+                            <span>Rotation: ({molecule2Rotation.x}°, {molecule2Rotation.y}°, {molecule2Rotation.z}°)</span>
+                          </>
+                        )}
                       </>
                     ) : null}
                   </div>

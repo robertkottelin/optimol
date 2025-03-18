@@ -7,7 +7,9 @@ const MoleculeViewer = ({
   isMobile, 
   positioningMode, 
   onMoleculeMove, 
-  molecule2Offset 
+  molecule2Offset,
+  molecule2Rotation,
+  onMoleculeRotate
 }) => {
   const viewerRef = useRef();
   const [isDragging, setIsDragging] = useState(false);
@@ -17,6 +19,66 @@ const MoleculeViewer = ({
   
   // Extract atoms for both molecules
   const { molecule1, molecule2 } = atoms || { molecule1: null, molecule2: null };
+
+  // Function to apply rotation transformation to coordinates
+  const applyRotation = (coords, rotation, centerOfMass) => {
+    // Convert degrees to radians
+    const radX = rotation.x * Math.PI / 180;
+    const radY = rotation.y * Math.PI / 180;
+    const radZ = rotation.z * Math.PI / 180;
+    
+    // Translate to origin (center of mass)
+    const centered = [
+      coords[0] - centerOfMass.x,
+      coords[1] - centerOfMass.y,
+      coords[2] - centerOfMass.z
+    ];
+    
+    // Apply rotations (ZYX order)
+    // Z-axis rotation
+    let nx = centered[0] * Math.cos(radZ) - centered[1] * Math.sin(radZ);
+    let ny = centered[0] * Math.sin(radZ) + centered[1] * Math.cos(radZ);
+    let nz = centered[2];
+    
+    // Y-axis rotation
+    let mx = nx * Math.cos(radY) + nz * Math.sin(radY);
+    let my = ny;
+    let mz = -nx * Math.sin(radY) + nz * Math.cos(radY);
+    
+    // X-axis rotation
+    let rx = mx;
+    let ry = my * Math.cos(radX) - mz * Math.sin(radX);
+    let rz = my * Math.sin(radX) + mz * Math.cos(radX);
+    
+    // Translate back from origin
+    const result = [
+      rx + centerOfMass.x,
+      ry + centerOfMass.y,
+      rz + centerOfMass.z
+    ];
+    
+    return result;
+  };
+  
+  // Calculate center of mass for a molecule
+  const calculateCenterOfMass = (atoms) => {
+    if (!atoms || atoms.length === 0) return { x: 0, y: 0, z: 0 };
+    
+    // Simple average of atom coordinates (could be weighted by atomic mass for more accuracy)
+    const sum = atoms.reduce((acc, atom) => {
+      return {
+        x: acc.x + atom.x,
+        y: acc.y + atom.y,
+        z: acc.z + atom.z
+      };
+    }, { x: 0, y: 0, z: 0 });
+    
+    return {
+      x: sum.x / atoms.length,
+      y: sum.y / atoms.length,
+      z: sum.z / atoms.length
+    };
+  };
 
   // Effect for initial molecule rendering
   useEffect(() => {
@@ -60,7 +122,7 @@ const MoleculeViewer = ({
               position: { x: atom.x, y: atom.y, z: atom.z },
               fontSize: isMobile ? 10 : 12,
               fontColor: "white",
-              backgroundColor: "rgba(56, 189, 248, 0.5)",
+              backgroundColor: "rgba(56, 189, 248, 0.5)",  // Blue background for molecule 1
               borderRadius: 10,
               padding: isMobile ? 1 : 2,
               inFront: true,
@@ -70,28 +132,62 @@ const MoleculeViewer = ({
         
         // Add atoms from molecule 2 if present
         if (molecule2) {
-          // Apply stored offset to molecule2
-          const mol2Atoms = molecule2.map((atom) => ({
-            elem: atom.element,
-            x: atom.x + molecule2Offset.x,
-            y: atom.y + molecule2Offset.y,
-            z: atom.z + molecule2Offset.z,
-            properties: { molecule: 2 }  // Add property to identify molecule
-          }));
+          // Calculate center of mass for molecule 2 (for rotation)
+          const centerOfMass = calculateCenterOfMass(molecule2);
+          
+          // Process each atom with rotation and offset
+          const mol2Atoms = molecule2.map((atom) => {
+            // Start with original coordinates
+            let x = atom.x;
+            let y = atom.y;
+            let z = atom.z;
+            
+            // Apply rotation if any rotation angles are non-zero
+            if (molecule2Rotation && (molecule2Rotation.x !== 0 || molecule2Rotation.y !== 0 || molecule2Rotation.z !== 0)) {
+              const coords = [x, y, z];
+              const rotated = applyRotation(coords, molecule2Rotation, centerOfMass);
+              x = rotated[0];
+              y = rotated[1];
+              z = rotated[2];
+            }
+            
+            // Then apply translation offset
+            return {
+              elem: atom.element,
+              x: x + molecule2Offset.x,
+              y: y + molecule2Offset.y,
+              z: z + molecule2Offset.z,
+              properties: { molecule: 2 }  // Add property to identify molecule
+            };
+          });
           
           model.addAtoms(mol2Atoms);
           
-          // Add element labels for molecule 2
+          // Add element labels for molecule 2 (with same transformations)
           molecule2.forEach((atom) => {
+            // Start with original coordinates
+            let x = atom.x;
+            let y = atom.y;
+            let z = atom.z;
+            
+            // Apply rotation if any rotation angles are non-zero
+            if (molecule2Rotation && (molecule2Rotation.x !== 0 || molecule2Rotation.y !== 0 || molecule2Rotation.z !== 0)) {
+              const coords = [x, y, z];
+              const rotated = applyRotation(coords, molecule2Rotation, centerOfMass);
+              x = rotated[0];
+              y = rotated[1];
+              z = rotated[2];
+            }
+            
             viewer.addLabel(atom.element, {
               position: { 
-                x: atom.x + molecule2Offset.x, 
-                y: atom.y + molecule2Offset.y, 
-                z: atom.z + molecule2Offset.z 
+                x: x + molecule2Offset.x, 
+                y: y + molecule2Offset.y, 
+                z: z + molecule2Offset.z 
               },
               fontSize: isMobile ? 10 : 12,
               fontColor: "white",
-              backgroundColor: "rgba(16, 185, 129, 0.5)",
+              backgroundColor: "rgba(16, 185, 129, 0.5)",  // Green background for molecule 2
               borderRadius: 10,
               padding: isMobile ? 1 : 2,
               inFront: true,
@@ -130,22 +226,36 @@ const MoleculeViewer = ({
             position: { x: molecule1[0].x, y: molecule1[0].y, z: molecule1[0].z + 5 },
             fontSize: isMobile ? 14 : 16,
             fontColor: "white",
-            backgroundColor: "rgba(56, 189, 248, 0.7)",
+            backgroundColor: "rgba(56, 189, 248, 0.7)",  // Blue background for molecule 1
             borderRadius: 10,
             padding: isMobile ? 2 : 4,
             inFront: true,
             fixedPosition: true,
           });
           
+          // Calculate position for molecule 2 label (with rotation and offset applied)
+          let labelX = molecule2[0].x;
+          let labelY = molecule2[0].y;
+          let labelZ = molecule2[0].z;
+          
+          if (molecule2Rotation && (molecule2Rotation.x !== 0 || molecule2Rotation.y !== 0 || molecule2Rotation.z !== 0)) {
+            const centerOfMass = calculateCenterOfMass(molecule2);
+            const coords = [labelX, labelY, labelZ];
+            const rotated = applyRotation(coords, molecule2Rotation, centerOfMass);
+            labelX = rotated[0];
+            labelY = rotated[1];
+            labelZ = rotated[2];
+          }
+          
           viewer.addLabel(positioningMode ? "Molecule 2 (Draggable)" : "Molecule 2", {
             position: { 
-              x: molecule2[0].x + molecule2Offset.x, 
-              y: molecule2[0].y + molecule2Offset.y, 
-              z: molecule2[0].z + molecule2Offset.z + 5 
+              x: labelX + molecule2Offset.x, 
+              y: labelY + molecule2Offset.y, 
+              z: labelZ + molecule2Offset.z + 5 
             },
             fontSize: isMobile ? 14 : 16,
             fontColor: "white",
-            backgroundColor: "rgba(16, 185, 129, 0.7)",
+            backgroundColor: "rgba(16, 185, 129, 0.7)",  // Green background for molecule 2
             borderRadius: 10,
             padding: isMobile ? 2 : 4,
             inFront: true,
@@ -205,9 +315,9 @@ const MoleculeViewer = ({
       window.removeEventListener('resize', handleResize);
       clearTimeout(timer);
     };
-  }, [atoms, isMobile, molecule2Offset, positioningMode]);
+  }, [atoms, isMobile, molecule2Offset, molecule2Rotation, positioningMode]);
 
-  // Effect to handle mouse/touch events for dragging in positioning mode
+  // Effect to handle mouse/touch events for dragging and rotation in positioning mode
   useEffect(() => {
     if (!positioningMode || !viewerInstance || !molecule2) return;
 
@@ -236,19 +346,35 @@ const MoleculeViewer = ({
         const deltaX = e.clientX - dragStartPos.x;
         const deltaY = e.clientY - dragStartPos.y;
         
-        // Scale factor for movement (adjust for sensitivity)
-        const scaleFactor = 0.05;
-        
-        // Get viewer orientation to map screen coordinates to model coordinates
-        // This is a simplified approach that maps screen X,Y to model X,Z
-        const newOffset = {
-          x: molecule2Offset.x + (deltaX * scaleFactor),
-          y: molecule2Offset.y - (deltaY * scaleFactor), // Invert Y axis
-          z: molecule2Offset.z
-        };
-        
-        // Update the offset
-        onMoleculeMove(newOffset);
+        if (e.altKey) {
+          // ALT key held - handle rotation
+          const rotationFactor = 0.5; // degrees per pixel
+          const newRotation = {
+            x: (molecule2Rotation.x + (deltaY * rotationFactor)) % 360,
+            y: (molecule2Rotation.y + (deltaX * rotationFactor)) % 360,
+            z: molecule2Rotation.z
+          };
+          
+          // Normalize angles to 0-360 range
+          newRotation.x = (newRotation.x + 360) % 360;
+          newRotation.y = (newRotation.y + 360) % 360;
+          newRotation.z = (newRotation.z + 360) % 360;
+          
+          onMoleculeRotate(newRotation);
+        } else {
+          // Scale factor for movement (adjust for sensitivity)
+          const scaleFactor = 0.05;
+          
+          // Normal dragging - handle translation
+          const newOffset = {
+            x: molecule2Offset.x + (deltaX * scaleFactor),
+            y: molecule2Offset.y - (deltaY * scaleFactor), // Invert Y axis
+            z: molecule2Offset.z
+          };
+          
+          // Update the offset
+          onMoleculeMove(newOffset);
+        }
         
         // Update drag start position
         setDragStartPos({
@@ -285,17 +411,37 @@ const MoleculeViewer = ({
         const deltaX = e.touches[0].clientX - dragStartPos.x;
         const deltaY = e.touches[0].clientY - dragStartPos.y;
         
-        // Scale factor for movement
-        const scaleFactor = 0.05;
+        // Determine if this is a rotation touch (second finger down = rotation)
+        const isRotating = e.touches.length > 1;
         
-        // Update the offset
-        const newOffset = {
-          x: molecule2Offset.x + (deltaX * scaleFactor),
-          y: molecule2Offset.y - (deltaY * scaleFactor), // Invert Y axis
-          z: molecule2Offset.z
-        };
-        
-        onMoleculeMove(newOffset);
+        if (isRotating) {
+          // Rotation via multi-touch
+          const rotationFactor = 0.5; // degrees per pixel
+          const newRotation = {
+            x: (molecule2Rotation.x + (deltaY * rotationFactor)) % 360,
+            y: (molecule2Rotation.y + (deltaX * rotationFactor)) % 360,
+            z: molecule2Rotation.z
+          };
+          
+          // Normalize angles to 0-360 range
+          newRotation.x = (newRotation.x + 360) % 360;
+          newRotation.y = (newRotation.y + 360) % 360;
+          newRotation.z = (newRotation.z + 360) % 360;
+          
+          onMoleculeRotate(newRotation);
+        } else {
+          // Scale factor for movement
+          const scaleFactor = 0.05;
+          
+          // Update the offset
+          const newOffset = {
+            x: molecule2Offset.x + (deltaX * scaleFactor),
+            y: molecule2Offset.y - (deltaY * scaleFactor), // Invert Y axis
+            z: molecule2Offset.z
+          };
+          
+          onMoleculeMove(newOffset);
+        }
         
         // Update drag start position
         setDragStartPos({
@@ -314,38 +460,72 @@ const MoleculeViewer = ({
       }
     };
     
-    // Keyboard controls for more precise positioning
+    // Keyboard controls for precise positioning and rotation
     const handleKeyDown = (e) => {
       if (!positioningMode) return;
       
       const moveStep = 0.5; // Angstroms per keypress
-      let newOffset = {...molecule2Offset};
+      const rotationStep = 15; // Degrees per keypress
       
-      switch(e.key) {
-        case 'ArrowLeft':
-          newOffset.x -= moveStep;
-          break;
-        case 'ArrowRight':
-          newOffset.x += moveStep;
-          break;
-        case 'ArrowUp':
-          newOffset.y += moveStep;
-          break;
-        case 'ArrowDown':
-          newOffset.y -= moveStep;
-          break;
-        case 'PageUp':
-          newOffset.z += moveStep;
-          break;
-        case 'PageDown':
-          newOffset.z -= moveStep;
-          break;
-        default:
-          return; // Exit if not a handled key
+      if (e.shiftKey) {
+        // Shift key held - handle rotation
+        let newRotation = {...molecule2Rotation};
+        
+        switch(e.key) {
+          case 'ArrowLeft':
+            newRotation.y = (newRotation.y - rotationStep + 360) % 360;
+            break;
+          case 'ArrowRight':
+            newRotation.y = (newRotation.y + rotationStep) % 360;
+            break;
+          case 'ArrowUp':
+            newRotation.x = (newRotation.x - rotationStep + 360) % 360;
+            break;
+          case 'ArrowDown':
+            newRotation.x = (newRotation.x + rotationStep) % 360;
+            break;
+          case 'PageUp':
+            newRotation.z = (newRotation.z + rotationStep) % 360;
+            break;
+          case 'PageDown':
+            newRotation.z = (newRotation.z - rotationStep + 360) % 360;
+            break;
+          default:
+            return; // Exit if not a handled key
+        }
+        
+        onMoleculeRotate(newRotation);
+        e.preventDefault();
+      } else {
+        // No shift key - handle translation
+        let newOffset = {...molecule2Offset};
+        
+        switch(e.key) {
+          case 'ArrowLeft':
+            newOffset.x -= moveStep;
+            break;
+          case 'ArrowRight':
+            newOffset.x += moveStep;
+            break;
+          case 'ArrowUp':
+            newOffset.y += moveStep;
+            break;
+          case 'ArrowDown':
+            newOffset.y -= moveStep;
+            break;
+          case 'PageUp':
+            newOffset.z += moveStep;
+            break;
+          case 'PageDown':
+            newOffset.z -= moveStep;
+            break;
+          default:
+            return; // Exit if not a handled key
+        }
+        
+        onMoleculeMove(newOffset);
+        e.preventDefault();
       }
-      
-      onMoleculeMove(newOffset);
-      e.preventDefault();
     };
 
     // Add event listeners
@@ -353,9 +533,9 @@ const MoleculeViewer = ({
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
     
-    viewer.addEventListener('touchstart', handleTouchStart);
-    document.addEventListener('touchmove', handleTouchMove);
-    document.addEventListener('touchend', handleTouchEnd);
+    viewer.addEventListener('touchstart', handleTouchStart, { passive: false });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd, { passive: false });
     
     document.addEventListener('keydown', handleKeyDown);
     
@@ -371,7 +551,7 @@ const MoleculeViewer = ({
       
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [positioningMode, isDragging, dragStartPos, viewerInstance, molecule2, molecule2Offset, onMoleculeMove]);
+  }, [positioningMode, isDragging, dragStartPos, viewerInstance, molecule2, molecule2Offset, molecule2Rotation, onMoleculeMove, onMoleculeRotate]);
 
   return (
     <div 
@@ -413,7 +593,8 @@ const MoleculeViewer = ({
           color: 'white',
           fontSize: '12px'
         }}>
-          Offset: X: {molecule2Offset.x.toFixed(2)}, Y: {molecule2Offset.y.toFixed(2)}, Z: {molecule2Offset.z.toFixed(2)}
+          <div>Offset: X: {molecule2Offset.x.toFixed(2)}, Y: {molecule2Offset.y.toFixed(2)}, Z: {molecule2Offset.z.toFixed(2)}</div>
+          <div>Rotation: X: {molecule2Rotation.x}°, Y: {molecule2Rotation.y}°, Z: {molecule2Rotation.z}°</div>
         </div>
       )}
     </div>
