@@ -16,7 +16,6 @@ const MoleculeViewer = ({
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
   const [viewerInstance, setViewerInstance] = useState(null);
-  const [modelInstance, setModelInstance] = useState(null);
   const [isInitialRender, setIsInitialRender] = useState(true);
   const viewerIdRef = useRef(`molecule-viewer-${Math.random().toString(36).substr(2, 9)}`);
   const cameraStateRef = useRef(null);
@@ -68,7 +67,7 @@ const MoleculeViewer = ({
   const calculateCenterOfMass = (atoms) => {
     if (!atoms || atoms.length === 0) return { x: 0, y: 0, z: 0 };
     
-    // Simple average of atom coordinates (could be weighted by atomic mass for more accuracy)
+    // Simple average of atom coordinates
     const sum = atoms.reduce((acc, atom) => {
       return {
         x: acc.x + atom.x,
@@ -152,45 +151,29 @@ const MoleculeViewer = ({
 
     // Add a slight delay to ensure container is fully rendered
     const timer = setTimeout(() => {
-      // Save current camera state before updating
-      if (!isInitialRender) {
-        cameraStateRef.current = saveCameraState(viewerInstance);
-      }
-      
-      // Clear previous content
-      viewerInstance.clear();
-
       try {
-        // Create separate models for each molecule to prevent bond conflicts
+        // Save current camera state before updating
+        if (!isInitialRender) {
+          cameraStateRef.current = saveCameraState(viewerInstance);
+        }
+        
+        // Clear previous content
+        viewerInstance.clear();
+
+        // Handle molecule1
         if (molecule1) {
-          // Create model specifically for molecule 1
-          const model1 = viewerInstance.addModel();
-          
-          // Apply any offset to molecule1 (typically fixed at origin)
-          const mol1Atoms = molecule1.map((atom) => ({
+          // Transform molecule1 data to 3Dmol format
+          let m1Data = molecule1.map(atom => ({
             elem: atom.element,
             x: atom.x,
             y: atom.y,
             z: atom.z,
-            properties: { molecule: 1 }  // Add property to identify molecule
+            properties: { molecule: 1 }
           }));
           
-          // Add atoms and calculate bonds immediately for this model
-          model1.addAtoms(mol1Atoms);
-          model1.calculateBonds();
-          
-          // Style molecule 1
-          viewerInstance.setStyle({properties: {molecule: 1}}, {
-            sphere: { 
-              radius: isMobile ? 0.30 : 0.35, 
-              scale: isMobile ? 0.85 : 0.9,
-              color: "0x38bdf8"  // Blue color for molecule 1
-            },
-            stick: { 
-              radius: isMobile ? 0.12 : 0.15,
-              color: "0x38bdf8"  // Blue color for molecule 1
-            },
-          });
+          // Add molecule1 with its own model
+          let model1 = viewerInstance.addModel();
+          model1.addAtoms(m1Data);
           
           // Add element labels for molecule 1
           molecule1.forEach((atom) => {
@@ -205,13 +188,13 @@ const MoleculeViewer = ({
             });
           });
           
-          // Add molecule label if both molecules are present
+          // Add molecule1 label if in interaction mode
           if (molecule1 && molecule2) {
             viewerInstance.addLabel("Molecule 1 (Fixed)", {
               position: { x: molecule1[0].x, y: molecule1[0].y, z: molecule1[0].z + 5 },
               fontSize: isMobile ? 14 : 16,
               fontColor: "white",
-              backgroundColor: "rgba(56, 189, 248, 0.7)",  // Blue background
+              backgroundColor: "rgba(56, 189, 248, 0.7)",  
               borderRadius: 10,
               padding: isMobile ? 2 : 4,
               inFront: true,
@@ -219,23 +202,17 @@ const MoleculeViewer = ({
             });
           }
         }
-        
-        // Handle molecule 2 separately to avoid bond conflicts
+
+        // Handle molecule2
         if (molecule2) {
-          // Calculate center of mass for molecule 2 (for rotation)
+          // Calculate center of mass for rotation
           const centerOfMass = calculateCenterOfMass(molecule2);
           
-          // Create a separate model for molecule 2
-          const model2 = viewerInstance.addModel();
-          
           // Process each atom with rotation and offset
-          const mol2Atoms = molecule2.map((atom) => {
-            // Start with original coordinates
-            let x = atom.x;
-            let y = atom.y;
-            let z = atom.z;
+          let m2Data = molecule2.map(atom => {
+            // Apply rotation if needed
+            let x = atom.x, y = atom.y, z = atom.z;
             
-            // Apply rotation if any rotation angles are non-zero
             if (molecule2Rotation && (molecule2Rotation.x !== 0 || molecule2Rotation.y !== 0 || molecule2Rotation.z !== 0)) {
               const coords = [x, y, z];
               const rotated = applyRotation(coords, molecule2Rotation, centerOfMass);
@@ -244,41 +221,25 @@ const MoleculeViewer = ({
               z = rotated[2];
             }
             
-            // Then apply translation offset
+            // Apply offset and return atom
             return {
               elem: atom.element,
               x: x + molecule2Offset.x,
               y: y + molecule2Offset.y,
               z: z + molecule2Offset.z,
-              properties: { molecule: 2 }  // Add property to identify molecule
+              properties: { molecule: 2 }
             };
           });
           
-          // Add atoms and calculate bonds immediately
-          model2.addAtoms(mol2Atoms);
-          model2.calculateBonds();
+          // Add molecule2 with its own model
+          let model2 = viewerInstance.addModel();
+          model2.addAtoms(m2Data);
           
-          // Style molecule 2
-          viewerInstance.setStyle({properties: {molecule: 2}}, {
-            sphere: { 
-              radius: isMobile ? 0.30 : 0.35, 
-              scale: isMobile ? 0.85 : 0.9,
-              color: "0x10b981"  // Green color for molecule 2
-            },
-            stick: { 
-              radius: isMobile ? 0.12 : 0.15,
-              color: "0x10b981"  // Green color for molecule 2
-            },
-          });
-          
-          // Add element labels for molecule 2 (with same transformations)
+          // Add element labels for molecule2
           molecule2.forEach((atom) => {
-            // Start with original coordinates
-            let x = atom.x;
-            let y = atom.y;
-            let z = atom.z;
+            // Apply same transformations as for the atoms
+            let x = atom.x, y = atom.y, z = atom.z;
             
-            // Apply rotation if any rotation angles are non-zero
             if (molecule2Rotation && (molecule2Rotation.x !== 0 || molecule2Rotation.y !== 0 || molecule2Rotation.z !== 0)) {
               const coords = [x, y, z];
               const rotated = applyRotation(coords, molecule2Rotation, centerOfMass);
@@ -295,22 +256,19 @@ const MoleculeViewer = ({
               },
               fontSize: isMobile ? 10 : 12,
               fontColor: "white",
-              backgroundColor: "rgba(16, 185, 129, 0.5)",  // Green background for molecule 2
+              backgroundColor: "rgba(16, 185, 129, 0.5)",  // Green background
               borderRadius: 10,
               padding: isMobile ? 1 : 2,
               inFront: true,
             });
           });
           
-          // Add molecule 2 label
+          // Add molecule2 label in interaction mode
           if (molecule1 && molecule2) {
-            // Calculate position for molecule 2 label (with rotation and offset applied)
-            let labelX = molecule2[0].x;
-            let labelY = molecule2[0].y;
-            let labelZ = molecule2[0].z;
+            // Calculate position for label with transformations
+            let labelX = molecule2[0].x, labelY = molecule2[0].y, labelZ = molecule2[0].z;
             
             if (molecule2Rotation && (molecule2Rotation.x !== 0 || molecule2Rotation.y !== 0 || molecule2Rotation.z !== 0)) {
-              const centerOfMass = calculateCenterOfMass(molecule2);
               const coords = [labelX, labelY, labelZ];
               const rotated = applyRotation(coords, molecule2Rotation, centerOfMass);
               labelX = rotated[0];
@@ -326,7 +284,7 @@ const MoleculeViewer = ({
               },
               fontSize: isMobile ? 14 : 16,
               fontColor: "white",
-              backgroundColor: "rgba(16, 185, 129, 0.7)",  // Green background for molecule 2
+              backgroundColor: "rgba(16, 185, 129, 0.7)",  
               borderRadius: 10,
               padding: isMobile ? 2 : 4,
               inFront: true,
@@ -334,6 +292,31 @@ const MoleculeViewer = ({
             });
           }
         }
+
+        // Style both molecules - must be done after adding all models
+        viewerInstance.setStyle({properties: {molecule: 1}}, {
+          sphere: { 
+            radius: isMobile ? 0.30 : 0.35, 
+            scale: isMobile ? 0.85 : 0.9,
+            color: "0x38bdf8"  // Blue for molecule 1
+          },
+          stick: { 
+            radius: isMobile ? 0.12 : 0.15,
+            color: "0x38bdf8"  
+          },
+        });
+        
+        viewerInstance.setStyle({properties: {molecule: 2}}, {
+          sphere: { 
+            radius: isMobile ? 0.30 : 0.35, 
+            scale: isMobile ? 0.85 : 0.9,
+            color: "0x10b981"  // Green for molecule 2
+          },
+          stick: { 
+            radius: isMobile ? 0.12 : 0.15,
+            color: "0x10b981"  
+          },
+        });
         
         // Add positioning mode instructions if active
         if (positioningMode && molecule2) {
@@ -349,27 +332,22 @@ const MoleculeViewer = ({
           });
         }
         
-        // Disable default mouse handling in 3DMol when in positioning mode
+        // Disable default mouse handling in positioning mode
         if (positioningMode) {
           viewerInstance.setClickable(false, true);
           viewerInstance.setHoverable(false, true);
         }
         
-        // Only reset view on initial render
+        // Initial view or restore camera
         if (isInitialRender) {
           viewerInstance.zoomTo();
           setIsInitialRender(false);
-        } else {
-          // Restore camera position from saved state
-          if (cameraStateRef.current) {
-            restoreCameraState(viewerInstance, cameraStateRef.current);
-          }
+        } else if (cameraStateRef.current) {
+          restoreCameraState(viewerInstance, cameraStateRef.current);
         }
         
-        // Always render after updates
+        // Force render and resize
         viewerInstance.render();
-        
-        // Force a resize to ensure proper fit
         viewerInstance.resize();
       } catch (error) {
         console.error("Error rendering molecule:", error);
@@ -381,12 +359,8 @@ const MoleculeViewer = ({
       if (viewerRef.current) {
         const viewer = $3Dmol.viewers[viewerRef.current.id];
         if (viewer) {
-          // Save camera state before resize
           const tempCameraState = saveCameraState(viewer);
-          
           viewer.resize();
-          
-          // Restore camera state after resize
           if (tempCameraState) {
             restoreCameraState(viewer, tempCameraState);
           } else {
@@ -410,11 +384,8 @@ const MoleculeViewer = ({
     if (!positioningMode || !molecule2) return;
 
     const container = containerRef.current;
-    
-    // Focus the container to ensure keyboard events work
     container.focus();
     
-    // Keyboard controls for precise positioning and rotation
     const handleKeyDown = (e) => {
       const moveStep = 0.5; // Angstroms per keypress
       const rotationStep = 15; // Degrees per keypress
@@ -480,10 +451,8 @@ const MoleculeViewer = ({
       }
     };
 
-    // Add keyboard event listener
     container.addEventListener('keydown', handleKeyDown, true);
     
-    // Cleanup function
     return () => {
       container.removeEventListener('keydown', handleKeyDown, true);
     };
@@ -505,7 +474,7 @@ const MoleculeViewer = ({
         boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.2)",
         border: "1px solid rgba(255, 255, 255, 0.1)",
         cursor: "auto",
-        outline: "none" // Remove focus outline while maintaining keyboard accessibility
+        outline: "none"
       }}
     >
       <div
