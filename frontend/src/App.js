@@ -41,7 +41,7 @@ const App = () => {
   // FIXED: Moved all useState declarations to component top level
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showLoginForm, setShowLoginForm] = useState(true);
-  
+
   // Updated state for dual molecule support
   const [molecule1Data, setMolecule1Data] = useState(null);
   const [molecule2Data, setMolecule2Data] = useState(null);
@@ -50,7 +50,7 @@ const App = () => {
   const [positioningMode, setPositioningMode] = useState(false); // Whether positioning mode is active
   const [molecule2Offset, setMolecule2Offset] = useState({ x: 0, y: 0, z: 0 }); // Offset for molecule 2
   const [molecule2Rotation, setMolecule2Rotation] = useState({ x: 0, y: 0, z: 0 }); // Euler angles in degrees
-  
+
   const [optimizationResult, setOptimizationResult] = useState(null);
   const [activeView, setActiveView] = useState("original"); // original, optimized
   const [optimizationType, setOptimizationType] = useState("classical"); // classical or quantum
@@ -69,6 +69,8 @@ const App = () => {
   const [serverHealthDetails, setServerHealthDetails] = useState(null);
   // FIXED: Moved howToUseContent useState before conditional return
   const [howToUseContent, setHowToUseContent] = useState("");
+
+
 
   const apiBaseUrl = "/api";
 
@@ -165,6 +167,27 @@ const App = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
+  const getMoleculeName = (moleculeData) => {
+    if (!moleculeData) return null;
+
+    // Check if the molecule has metadata with name
+    if (moleculeData.file1?.metadata?.name) {
+      return moleculeData.file1.metadata.name;
+    }
+
+    // If no metadata name, check for a filename property (for uploaded files)
+    if (moleculeData.filename) {
+      return moleculeData.filename;
+    }
+
+    // If no name is found, return a default name
+    return "Unknown Molecule";
+  };
+
+  const onMoleculeRotate = (newRotation) => {
+    setMolecule2Rotation(newRotation);
+  };
+
   const checkServerHealth = async () => {
     setIsCheckingHealth(true);
     setServerHealthDetails(null);
@@ -254,13 +277,16 @@ const App = () => {
           return;
         }
 
+        // Store file name with the molecule data
+        parsedData.filename = file.name;
+
         // Target the active molecule
         if (activeMolecule === 1) {
           setMolecule1Data(parsedData);
         } else {
           setMolecule2Data(parsedData);
         }
-        
+
         setOptimizationResult(null);
         setActiveView("original");
       } catch (error) {
@@ -299,13 +325,16 @@ const App = () => {
             return;
           }
 
+          // Store file name with the molecule data
+          parsedData.filename = file.name;
+
           // Target the active molecule
           if (activeMolecule === 1) {
             setMolecule1Data(parsedData);
           } else {
             setMolecule2Data(parsedData);
           }
-          
+
           setOptimizationResult(null);
           setActiveView("original");
         } catch (error) {
@@ -317,6 +346,7 @@ const App = () => {
       reader.readAsText(file);
     }
   };
+
 
   const validateMoleculeJSON = (data) => {
     // Check for either format: file1 structure or direct atoms array
@@ -357,26 +387,26 @@ const App = () => {
       alert("Please upload or select both molecules for interaction optimization.");
       return;
     }
-    
+  
     // For single molecule mode, at least one molecule must be loaded
     if (!interactionMode && !molecule1Data && !molecule2Data) {
       alert("Please upload or select at least one molecule.");
       return;
     }
-
+  
     setIsOptimizeLoading(true);
-
+  
     try {
       // Get the correct parameters based on selected optimization type
       const optimizationParams =
         optimizationType === "classical" ? { ...classicalParams } : { ...quantumParams };
-
+  
       // Apply iteration limits for all users
       if (optimizationType === "classical") {
         const maxIterations = isSubscribed
           ? ITERATION_LIMITS.subscribed.classical
           : ITERATION_LIMITS.unsubscribed.classical;
-
+  
         optimizationParams.max_iterations = Math.min(
           optimizationParams.max_iterations,
           maxIterations
@@ -385,141 +415,92 @@ const App = () => {
         const maxIterations = isSubscribed
           ? ITERATION_LIMITS.subscribed.quantum
           : ITERATION_LIMITS.unsubscribed.quantum;
-
+  
         optimizationParams.max_iterations = Math.min(
           optimizationParams.max_iterations,
           maxIterations
         );
-
+  
         if (!isSubscribed && (optimizationParams.basis === "6-311g" || optimizationParams.basis === "cc-pvdz")) {
           optimizationParams.basis = "6-31g";
         }
       }
-
-      // Process molecule2 data with offset and rotation
-      let processedMolecule2 = null;
+  
+      // CRITICAL: Use the current atoms based on the active view for subsequent optimizations
+      // This ensures we're using already optimized positions when optimizing again
+      const { molecule1, molecule2 } = getAtoms();
       
-      if (interactionMode && molecule2Data) {
-        // Deep clone molecule2Data to avoid modifying the original
-        processedMolecule2 = JSON.parse(JSON.stringify(molecule2Data));
-        
-        // Get atoms array
-        let atoms = processedMolecule2.file1?.atoms || processedMolecule2.atoms;
-        
-        if (atoms) {
-          // Calculate center of mass for rotation
-          const centerOfMass = atoms.reduce((acc, atom) => {
-            return {
-              x: acc.x + atom.x,
-              y: acc.y + atom.y,
-              z: acc.z + atom.z
-            };
-          }, { x: 0, y: 0, z: 0 });
-          
-          centerOfMass.x /= atoms.length;
-          centerOfMass.y /= atoms.length;
-          centerOfMass.z /= atoms.length;
-          
-          // Apply rotation and offset to each atom
-          atoms = atoms.map(atom => {
-            // First apply rotation if any rotation angles are non-zero
-            let x = atom.x;
-            let y = atom.y;
-            let z = atom.z;
-            
-            if (molecule2Rotation.x !== 0 || molecule2Rotation.y !== 0 || molecule2Rotation.z !== 0) {
-              // Convert rotation angles to radians
-              const radX = molecule2Rotation.x * Math.PI / 180;
-              const radY = molecule2Rotation.y * Math.PI / 180;
-              const radZ = molecule2Rotation.z * Math.PI / 180;
-              
-              // Move to origin (center of mass)
-              const tx = x - centerOfMass.x;
-              const ty = y - centerOfMass.y;
-              const tz = z - centerOfMass.z;
-              
-              // Apply rotations (ZYX order)
-              // Z-axis rotation
-              let nx = tx * Math.cos(radZ) - ty * Math.sin(radZ);
-              let ny = tx * Math.sin(radZ) + ty * Math.cos(radZ);
-              let nz = tz;
-              
-              // Y-axis rotation
-              let mx = nx * Math.cos(radY) + nz * Math.sin(radY);
-              let my = ny;
-              let mz = -nx * Math.sin(radY) + nz * Math.cos(radY);
-              
-              // X-axis rotation
-              let rx = mx;
-              let ry = my * Math.cos(radX) - mz * Math.sin(radX);
-              let rz = my * Math.sin(radX) + mz * Math.cos(radX);
-              
-              // Move back from origin
-              x = rx + centerOfMass.x;
-              y = ry + centerOfMass.y;
-              z = rz + centerOfMass.z;
-            }
-            
-            // Then apply offset
-            return {
-              ...atom,
-              x: x + molecule2Offset.x,
-              y: y + molecule2Offset.y,
-              z: z + molecule2Offset.z
-            };
-          });
-          
-          // Update the processed molecule with rotated and translated atoms
-          if (processedMolecule2.file1) {
-            processedMolecule2.file1.atoms = atoms;
-          } else {
-            processedMolecule2.atoms = atoms;
-          }
+      // Prepare molecule1Data for optimization request - use current view's atoms
+      let requestMolecule1 = null;
+      if (molecule1) {
+        // Create a deep clone of the source data to avoid modifying it directly
+        requestMolecule1 = {
+          atoms: molecule1
+        };
+      }
+  
+      // Prepare molecule2Data for optimization request with current rotation and offset
+      let requestMolecule2 = null;
+      let processedMolecule2 = null;
+  
+      if (molecule2) {
+        // Create base molecule2 data
+        requestMolecule2 = {
+          atoms: molecule2
+        };
+  
+        // Process molecule2 data with offset and rotation for API request if needed
+        if (interactionMode) {
+          // Deep clone molecule2Data to avoid modifying the original
+          processedMolecule2 = JSON.parse(JSON.stringify(requestMolecule2));
         }
       }
-
+  
+      // When in interaction mode and processedMolecule2 is available,
+      // rotation and offsets are already incorporated in the current view
+      // so we don't need additional processing here
+  
       const payload = {
-        molecule1: molecule1Data,
-        molecule2: interactionMode ? (processedMolecule2 || molecule2Data) : null,
+        molecule1: requestMolecule1,
+        molecule2: interactionMode ? (processedMolecule2 || requestMolecule2) : null,
         optimization_type: optimizationType,
         optimization_params: optimizationParams,
         interaction_mode: interactionMode,
         molecule2_offset: interactionMode ? molecule2Offset : null,
         molecule2_rotation: interactionMode ? molecule2Rotation : null
       };
-
+  
       console.log('Optimization payload:', JSON.stringify(payload, null, 2));
-
       console.log("Attempting request to:", `${apiBaseUrl}/optimize-molecule`);
-
+  
       // Token is handled by axios interceptor in AuthContext if user is authenticated
       const headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       };
-
+  
       // Add Authorization token only if authenticated
       if (isAuthenticated && token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-
+  
       const response = await axios({
         method: 'post',
         url: `${apiBaseUrl}/optimize-molecule`,
         data: payload,
         headers: headers
       });
-
+  
       console.log("Response received:", response);
-
+  
       if (response.data.success) {
         // Store the molecule2Offset and molecule2Rotation with the result for future reference
         response.data.molecule2Offset = molecule2Offset;
         response.data.molecule2Rotation = molecule2Rotation;
-        
+  
         setOptimizationResult(response.data);
         setActiveView("optimized");
-        
+  
         // Disable positioning mode after optimization
         if (positioningMode) {
           setPositioningMode(false);
@@ -539,7 +520,7 @@ const App = () => {
       setIsOptimizeLoading(false);
     }
   };
-
+  
   const handleParamChange = (type, paramName, value) => {
     if (type === "classical") {
       setClassicalParams(prev => ({
@@ -603,10 +584,18 @@ const App = () => {
   // Handle test molecule selection
   const handleTestMoleculeSelect = (moleculeKey) => {
     if (TEST_MOLECULES[moleculeKey]) {
+      const testMoleculeData = { ...TEST_MOLECULES[moleculeKey] };
+
+      // Add a molecule name reference - though this is redundant since the test molecules
+      // already have metadata.name, this ensures we have a consistent approach
+      if (!testMoleculeData.filename) {
+        testMoleculeData.filename = testMoleculeData.file1?.metadata?.name || moleculeKey;
+      }
+
       if (activeMolecule === 1) {
-        setMolecule1Data(TEST_MOLECULES[moleculeKey]);
+        setMolecule1Data(testMoleculeData);
       } else {
-        setMolecule2Data(TEST_MOLECULES[moleculeKey]);
+        setMolecule2Data(testMoleculeData);
       }
       setOptimizationResult(null);
       setActiveView("original");
@@ -620,7 +609,7 @@ const App = () => {
     }
 
     let downloadData;
-    
+
     if (interactionMode && optimizationResult.result.molecule1_optimized_atoms && optimizationResult.result.molecule2_optimized_atoms) {
       // For interaction mode, create a combined file with both molecules
       downloadData = {
@@ -649,7 +638,7 @@ const App = () => {
       };
     }
 
-    const filename = interactionMode ? 
+    const filename = interactionMode ?
       `${optimizationType}_optimized_interaction.json` :
       `${optimizationType}_optimized_molecule.json`;
 
@@ -666,14 +655,17 @@ const App = () => {
 
   // Get atoms arrays based on active view
   const getAtoms = () => {
+    // For molecule1, determine the correct atoms array based on active view
     const atoms1 = (() => {
       if (activeView === "original") {
+        // Use original atoms from molecule1Data
         if (molecule1Data?.file1?.atoms) {
           return molecule1Data.file1.atoms;
         } else if (molecule1Data?.atoms) {
           return molecule1Data.atoms;
         }
       } else if (activeView === "optimized" && optimizationResult?.result) {
+        // Use optimized atoms from previous optimization
         if (interactionMode && optimizationResult.result.molecule1_optimized_atoms) {
           return optimizationResult.result.molecule1_optimized_atoms;
         } else if (!interactionMode && optimizationResult.result.optimized_atoms) {
@@ -683,23 +675,27 @@ const App = () => {
       }
       return null;
     })();
-
+  
+    // For molecule2, determine the correct atoms array based on active view
     const atoms2 = (() => {
       if (activeView === "original") {
+        // For "original" view, use the source molecule2Data with any user-applied
+        // offset and rotation from the interaction mode
         if (molecule2Data?.file1?.atoms) {
           return molecule2Data.file1.atoms;
         } else if (molecule2Data?.atoms) {
           return molecule2Data.atoms;
         }
       } else if (activeView === "optimized" && optimizationResult?.result && interactionMode) {
+        // For "optimized" view in interaction mode, use the optimized atoms for molecule2
         return optimizationResult.result.molecule2_optimized_atoms;
       }
       return null;
     })();
-
+  
     return { molecule1: atoms1, molecule2: atoms2 };
   };
-
+  
   // Toggle auth modal visibility
   const toggleAuthModal = () => {
     setShowAuthModal(!showAuthModal);
@@ -963,7 +959,7 @@ const App = () => {
               <span style={{ color: "#38bdf8" }}><Icons.molecule /></span>
               Molecule Selection
             </h3>
-            
+
             <div style={{
               display: "flex",
               justifyContent: "center",
@@ -971,58 +967,182 @@ const App = () => {
               marginBottom: "8px",
               flexWrap: "wrap"
             }} className={isMobile ? 'mobile-stack' : ''}>
-              <button
-                onClick={() => setActiveMolecule(1)}
+              <div
                 style={{
-                  padding: "8px 16px",
-                  backgroundColor: activeMolecule === 1 ? "rgba(56, 189, 248, 0.2)" : "rgba(15, 23, 42, 0.7)",
-                  color: activeMolecule === 1 ? "#38bdf8" : "#94a3b8",
-                  borderRadius: "8px",
-                  fontWeight: activeMolecule === 1 ? "600" : "400",
-                  cursor: "pointer",
-                  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                  marginRight: "4px",
-                  border: `1px solid ${activeMolecule === 1 ? "rgba(56, 189, 248, 0.3)" : "transparent"}`,
-                  boxShadow: activeMolecule === 1 ? "0 4px 6px rgba(0, 0, 0, 0.1)" : "none",
                   display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  minWidth: isMobile ? "100%" : "180px",
-                  justifyContent: "center",
+                  flexDirection: "column",
+                  width: isMobile ? "100%" : "180px",
                   marginBottom: isMobile ? "8px" : 0
                 }}
-                className={`molecule-selector-button ${isMobile ? 'mobile-full-width' : ''}`}
               >
-                <Icons.molecule /> 
-                Molecule 1 {molecule1Data ? " (Loaded)" : " (Empty)"}
-              </button>
-              
-              <button
-                onClick={() => setActiveMolecule(2)}
+                <button
+                  onClick={() => setActiveMolecule(1)}
+                  style={{
+                    padding: "8px 16px",
+                    backgroundColor: activeMolecule === 1 ? "rgba(56, 189, 248, 0.2)" : "rgba(15, 23, 42, 0.7)",
+                    color: activeMolecule === 1 ? "#38bdf8" : "#94a3b8",
+                    borderRadius: "8px 8px 0 0",
+                    fontWeight: activeMolecule === 1 ? "600" : "400",
+                    cursor: "pointer",
+                    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                    border: `1px solid ${activeMolecule === 1 ? "rgba(56, 189, 248, 0.3)" : "transparent"}`,
+                    borderBottom: "none",
+                    boxShadow: activeMolecule === 1 ? "0 4px 6px rgba(0, 0, 0, 0.1)" : "none",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    justifyContent: "center",
+                  }}
+                  className={`molecule-selector-button ${isMobile ? 'mobile-full-width' : ''}`}
+                >
+                  <Icons.molecule />
+                  Molecule 1 {molecule1Data ? " (Loaded)" : " (Empty)"}
+                </button>
+
+                {molecule1Data && (
+                  <div style={{
+                    backgroundColor: "rgba(56, 189, 248, 0.1)",
+                    padding: "8px",
+                    borderRadius: "0 0 8px 8px",
+                    fontSize: "0.85rem",
+                    textAlign: "center",
+                    border: "1px solid rgba(56, 189, 248, 0.3)",
+                    borderTop: "none",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "6px"
+                  }}>
+                    <div style={{ fontWeight: "500", color: "#38bdf8", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {getMoleculeName(molecule1Data)}
+                    </div>
+                    <button
+                      onClick={() => setMolecule1Data(null)}
+                      style={{
+                        backgroundColor: "rgba(244, 63, 94, 0.1)",
+                        color: "#f43f5e",
+                        border: "1px solid rgba(244, 63, 94, 0.3)",
+                        borderRadius: "4px",
+                        padding: "4px 8px",
+                        fontSize: "0.75rem",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "4px",
+                        transition: "all 0.2s ease"
+                      }}
+                    >
+                      <Icons.close /> Clear
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div
                 style={{
-                  padding: "8px 16px",
-                  backgroundColor: activeMolecule === 2 ? "rgba(16, 185, 129, 0.2)" : "rgba(15, 23, 42, 0.7)",
-                  color: activeMolecule === 2 ? "#10b981" : "#94a3b8",
-                  borderRadius: "8px",
-                  fontWeight: activeMolecule === 2 ? "600" : "400",
-                  cursor: "pointer",
-                  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                  marginRight: "4px",
-                  border: `1px solid ${activeMolecule === 2 ? "rgba(16, 185, 129, 0.3)" : "transparent"}`,
-                  boxShadow: activeMolecule === 2 ? "0 4px 6px rgba(0, 0, 0, 0.1)" : "none",
                   display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  minWidth: isMobile ? "100%" : "180px",
-                  justifyContent: "center"
+                  flexDirection: "column",
+                  width: isMobile ? "100%" : "180px",
                 }}
-                className={`molecule-selector-button ${isMobile ? 'mobile-full-width' : ''}`}
               >
-                <Icons.molecule /> 
-                Molecule 2 {molecule2Data ? " (Loaded)" : " (Empty)"}
-              </button>
+                <button
+                  onClick={() => setActiveMolecule(2)}
+                  style={{
+                    padding: "8px 16px",
+                    backgroundColor: activeMolecule === 2 ? "rgba(16, 185, 129, 0.2)" : "rgba(15, 23, 42, 0.7)",
+                    color: activeMolecule === 2 ? "#10b981" : "#94a3b8",
+                    borderRadius: "8px 8px 0 0",
+                    fontWeight: activeMolecule === 2 ? "600" : "400",
+                    cursor: "pointer",
+                    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                    border: `1px solid ${activeMolecule === 2 ? "rgba(16, 185, 129, 0.3)" : "transparent"}`,
+                    borderBottom: "none",
+                    boxShadow: activeMolecule === 2 ? "0 4px 6px rgba(0, 0, 0, 0.1)" : "none",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    justifyContent: "center",
+                  }}
+                  className={`molecule-selector-button ${isMobile ? 'mobile-full-width' : ''}`}
+                >
+                  <Icons.molecule />
+                  Molecule 2 {molecule2Data ? " (Loaded)" : " (Empty)"}
+                </button>
+
+                {molecule2Data && (
+                  <div style={{
+                    backgroundColor: "rgba(16, 185, 129, 0.1)",
+                    padding: "8px",
+                    borderRadius: "0 0 8px 8px",
+                    fontSize: "0.85rem",
+                    textAlign: "center",
+                    border: "1px solid rgba(16, 185, 129, 0.3)",
+                    borderTop: "none",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "6px"
+                  }}>
+                    <div style={{ fontWeight: "500", color: "#10b981", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {getMoleculeName(molecule2Data)}
+                    </div>
+                    <button
+                      onClick={() => setMolecule2Data(null)}
+                      style={{
+                        backgroundColor: "rgba(244, 63, 94, 0.1)",
+                        color: "#f43f5e",
+                        border: "1px solid rgba(244, 63, 94, 0.3)",
+                        borderRadius: "4px",
+                        padding: "4px 8px",
+                        fontSize: "0.75rem",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "4px",
+                        transition: "all 0.2s ease"
+                      }}
+                    >
+                      <Icons.close /> Clear
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-            
+
+            {/* Clear both molecules button */}
+            {(molecule1Data || molecule2Data) && (
+              <div style={{
+                display: "flex",
+                justifyContent: "center",
+                marginTop: "12px"
+              }}>
+                <button
+                  onClick={() => {
+                    setMolecule1Data(null);
+                    setMolecule2Data(null);
+                    setOptimizationResult(null);
+                    setActiveView("original");
+                  }}
+                  style={{
+                    backgroundColor: "rgba(244, 63, 94, 0.1)",
+                    color: "#f43f5e",
+                    border: "1px solid rgba(244, 63, 94, 0.3)",
+                    borderRadius: "6px",
+                    padding: "6px 12px",
+                    fontSize: "0.875rem",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    transition: "all 0.2s ease"
+                  }}
+                >
+                  <Icons.close /> Clear All Molecules
+                </button>
+              </div>
+            )}
+
             <div style={{
               display: "flex",
               justifyContent: "center",
@@ -1047,6 +1167,7 @@ const App = () => {
               </label>
             </div>
           </div>
+
 
           {/* Positioning Mode Controls */}
           {interactionMode && molecule1Data && molecule2Data && (
@@ -1093,7 +1214,7 @@ const App = () => {
                     {positioningMode ? "Disable Positioning Mode" : "Enable Positioning Mode"}
                   </button>
                 </div>
-                
+
                 {positioningMode && (
                   <div style={{
                     display: "flex",
@@ -1116,7 +1237,7 @@ const App = () => {
                     >
                       Reset Position
                     </button>
-                    
+
                     <div style={{
                       display: "flex",
                       alignItems: "center",
@@ -1141,7 +1262,7 @@ const App = () => {
                         step="0.5"
                       />
                     </div>
-                    
+
                     <div style={{
                       display: "flex",
                       alignItems: "center",
@@ -1166,7 +1287,7 @@ const App = () => {
                         step="0.5"
                       />
                     </div>
-                    
+
                     <div style={{
                       display: "flex",
                       alignItems: "center",
@@ -1237,7 +1358,7 @@ const App = () => {
                         step="15"
                       />
                     </div>
-                    
+
                     <div style={{
                       display: "flex",
                       alignItems: "center",
@@ -1262,7 +1383,7 @@ const App = () => {
                         step="15"
                       />
                     </div>
-                    
+
                     <div style={{
                       display: "flex",
                       alignItems: "center",
@@ -1287,7 +1408,7 @@ const App = () => {
                         step="15"
                       />
                     </div>
-                    
+
                     <button
                       onClick={() => setMolecule2Rotation({ x: 0, y: 0, z: 0 })}
                       style={{
@@ -1304,7 +1425,7 @@ const App = () => {
                   </div>
                 </div>
               )}
-              
+
               {positioningMode && (
                 <div style={{
                   backgroundColor: "rgba(56, 189, 248, 0.1)",
@@ -1315,14 +1436,9 @@ const App = () => {
                   color: "#94a3b8",
                   border: "1px solid rgba(56, 189, 248, 0.2)",
                 }}>
+
                   <p style={{ margin: 0 }}>
-                    <strong>Controls:</strong> Drag to position Molecule 2. Hold <kbd style={{
-                      backgroundColor: "rgba(255, 255, 255, 0.1)",
-                      padding: "2px 5px",
-                      borderRadius: "3px",
-                      fontSize: "0.8rem"
-                    }}>Alt</kbd> while dragging to rotate. 
-                    Keyboard: <kbd style={{
+                    <strong>Controls:</strong> Use keyboard to position Molecule 2: <kbd style={{
                       backgroundColor: "rgba(255, 255, 255, 0.1)",
                       padding: "2px 5px",
                       borderRadius: "3px",
@@ -1345,6 +1461,7 @@ const App = () => {
                       fontSize: "0.8rem"
                     }}>Shift</kbd> + arrows for rotation.
                   </p>
+
                 </div>
               )}
             </div>
@@ -1489,9 +1606,9 @@ const App = () => {
                 <div style={styles.visualizationHeader} className={isMobile ? 'mobile-stack' : ''}>
                   <div style={styles.visualizationTitle}>
                     <span style={styles.visualizationIcon}><Icons.molecule /></span>
-                    {activeView === "original" ? 
-                      (interactionMode ? "Original Molecules" : "Original Structure") : 
-                      (optimizationType === "classical" ? "Classical" : "Quantum") + 
+                    {activeView === "original" ?
+                      (interactionMode ? "Original Molecules" : "Original Structure") :
+                      (optimizationType === "classical" ? "Classical" : "Quantum") +
                       (interactionMode ? " Optimized Interaction" : " Optimized Structure")}
                   </div>
 
@@ -1519,16 +1636,16 @@ const App = () => {
                   )}
                 </div>
 
-                <MoleculeViewer 
-                  atoms={getAtoms()} 
-                  isMobile={isMobile} 
+                <MoleculeViewer
+                  atoms={getAtoms()}
+                  isMobile={isMobile}
                   positioningMode={positioningMode && interactionMode}
                   onMoleculeMove={setMolecule2Offset}
                   molecule2Offset={molecule2Offset}
                   molecule2Rotation={molecule2Rotation}
-                  onMoleculeRotate={setMolecule2Rotation}
+                  onMoleculeRotate={onMoleculeRotate}
                 />
-                
+
                 {interactionMode && molecule1Data && molecule2Data && (
                   <div style={{
                     display: "flex",
@@ -1542,8 +1659,8 @@ const App = () => {
                     <span>Molecule 1: {molecule1Data.file1?.atoms?.length || molecule1Data.atoms?.length || 0} atoms</span>
                     <span style={{ margin: "0 10px" }}>•</span>
                     <span>Molecule 2: {molecule2Data.file1?.atoms?.length || molecule2Data.atoms?.length || 0} atoms</span>
-                    {(molecule2Offset.x !== 0 || molecule2Offset.y !== 0 || molecule2Offset.z !== 0 || 
-                     molecule2Rotation.x !== 0 || molecule2Rotation.y !== 0 || molecule2Rotation.z !== 0) ? (
+                    {(molecule2Offset.x !== 0 || molecule2Offset.y !== 0 || molecule2Offset.z !== 0 ||
+                      molecule2Rotation.x !== 0 || molecule2Rotation.y !== 0 || molecule2Rotation.z !== 0) ? (
                       <>
                         <span style={{ margin: "0 10px" }}>•</span>
                         <span>Offset: ({molecule2Offset.x.toFixed(1)}, {molecule2Offset.y.toFixed(1)}, {molecule2Offset.z.toFixed(1)})</span>

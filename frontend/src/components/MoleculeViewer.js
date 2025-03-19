@@ -12,10 +12,14 @@ const MoleculeViewer = ({
   onMoleculeRotate
 }) => {
   const viewerRef = useRef();
+  const containerRef = useRef();
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
   const [viewerInstance, setViewerInstance] = useState(null);
   const [modelInstance, setModelInstance] = useState(null);
+  const [isInitialRender, setIsInitialRender] = useState(true);
+  const viewerIdRef = useRef(`molecule-viewer-${Math.random().toString(36).substr(2, 9)}`);
+  const cameraStateRef = useRef(null);
   
   // Extract atoms for both molecules
   const { molecule1, molecule2 } = atoms || { molecule1: null, molecule2: null };
@@ -80,7 +84,37 @@ const MoleculeViewer = ({
     };
   };
 
-  // Effect for initial molecule rendering
+  // Function to store current camera state
+  const saveCameraState = (viewer) => {
+    if (!viewer) return null;
+    
+    try {
+      // Extract camera parameters from the viewer
+      const camState = {
+        position: viewer.getView(),
+        model: viewer.getModel()
+      };
+      return camState;
+    } catch (e) {
+      console.error("Error saving camera state:", e);
+      return null;
+    }
+  };
+
+  // Function to restore camera state
+  const restoreCameraState = (viewer, state) => {
+    if (!viewer || !state) return;
+    
+    try {
+      // Restore camera parameters
+      viewer.setView(state.position);
+      viewer.render();
+    } catch (e) {
+      console.error("Error restoring camera state:", e);
+    }
+  };
+
+  // Initial viewer setup - only runs once
   useEffect(() => {
     // Skip if no molecules are provided
     if (!molecule1 && !molecule2) {
@@ -88,19 +122,46 @@ const MoleculeViewer = ({
       return;
     }
 
+    // Set up viewer instance only once
+    const viewer = $3Dmol.createViewer(viewerRef.current, {
+      backgroundColor: "rgb(15, 23, 42)",
+    });
+    
+    // Store viewer instance for later use
+    setViewerInstance(viewer);
+    setIsInitialRender(true);
+    
+    // Cleanup function
+    return () => {
+      if (viewer) {
+        try {
+          viewer.clear();
+        } catch (e) {
+          console.error("Error cleaning up viewer:", e);
+        }
+      }
+    };
+  }, []); // Empty dependency array means this runs once
+
+  // Effect for updating molecule visualization based on changes
+  useEffect(() => {
+    // Skip if no molecules are provided or viewer not initialized
+    if ((!molecule1 && !molecule2) || !viewerInstance) {
+      return;
+    }
+
     // Add a slight delay to ensure container is fully rendered
     const timer = setTimeout(() => {
-      const viewer = $3Dmol.createViewer(viewerRef.current, {
-        backgroundColor: "rgb(15, 23, 42)",
-      });
+      // Save current camera state before updating
+      if (!isInitialRender) {
+        cameraStateRef.current = saveCameraState(viewerInstance);
+      }
       
-      // Store viewer instance for later use
-      setViewerInstance(viewer);
-      
-      viewer.clear();
+      // Clear previous content
+      viewerInstance.clear();
 
       try {
-        const model = viewer.addModel();
+        const model = viewerInstance.addModel();
         setModelInstance(model);
         
         // Add atoms from molecule 1 if present
@@ -118,7 +179,7 @@ const MoleculeViewer = ({
           
           // Add element labels for molecule 1
           molecule1.forEach((atom) => {
-            viewer.addLabel(atom.element, {
+            viewerInstance.addLabel(atom.element, {
               position: { x: atom.x, y: atom.y, z: atom.z },
               fontSize: isMobile ? 10 : 12,
               fontColor: "white",
@@ -179,7 +240,7 @@ const MoleculeViewer = ({
               z = rotated[2];
             }
             
-            viewer.addLabel(atom.element, {
+            viewerInstance.addLabel(atom.element, {
               position: { 
                 x: x + molecule2Offset.x, 
                 y: y + molecule2Offset.y, 
@@ -196,7 +257,7 @@ const MoleculeViewer = ({
         }
 
         // Style atoms with different colors based on molecule
-        viewer.setStyle({properties: {molecule: 1}}, {
+        viewerInstance.setStyle({properties: {molecule: 1}}, {
           sphere: { 
             radius: isMobile ? 0.30 : 0.35, 
             scale: isMobile ? 0.85 : 0.9,
@@ -208,7 +269,7 @@ const MoleculeViewer = ({
           },
         });
         
-        viewer.setStyle({properties: {molecule: 2}}, {
+        viewerInstance.setStyle({properties: {molecule: 2}}, {
           sphere: { 
             radius: isMobile ? 0.30 : 0.35, 
             scale: isMobile ? 0.85 : 0.9,
@@ -222,7 +283,7 @@ const MoleculeViewer = ({
         
         // Add molecule labels if both molecules are present
         if (molecule1 && molecule2) {
-          viewer.addLabel("Molecule 1 (Fixed)", {
+          viewerInstance.addLabel("Molecule 1 (Fixed)", {
             position: { x: molecule1[0].x, y: molecule1[0].y, z: molecule1[0].z + 5 },
             fontSize: isMobile ? 14 : 16,
             fontColor: "white",
@@ -247,7 +308,7 @@ const MoleculeViewer = ({
             labelZ = rotated[2];
           }
           
-          viewer.addLabel(positioningMode ? "Molecule 2 (Draggable)" : "Molecule 2", {
+          viewerInstance.addLabel("Molecule 2 (Use Arrow Keys)", {
             position: { 
               x: labelX + molecule2Offset.x, 
               y: labelY + molecule2Offset.y, 
@@ -265,7 +326,7 @@ const MoleculeViewer = ({
         
         // Add positioning mode instructions if active
         if (positioningMode && molecule2) {
-          viewer.addLabel("Drag to position Molecule 2", {
+          viewerInstance.addLabel("Use arrow keys to position Molecule 2", {
             position: { x: 0, y: 0, z: 10 },
             fontSize: 16,
             fontColor: "white",
@@ -280,18 +341,28 @@ const MoleculeViewer = ({
         // Setup bonds between atoms
         model.calculateBonds();
         
-        // Center and zoom to fit the molecule(s)
-        viewer.zoomTo();
-        viewer.render();
+        // Disable default mouse handling in 3DMol when in positioning mode
+        if (positioningMode) {
+          viewerInstance.setClickable(false, true);
+          viewerInstance.setHoverable(false, true);
+        }
+        
+        // Only reset view on initial render
+        if (isInitialRender) {
+          viewerInstance.zoomTo();
+          setIsInitialRender(false);
+        } else {
+          // Restore camera position from saved state
+          if (cameraStateRef.current) {
+            restoreCameraState(viewerInstance, cameraStateRef.current);
+          }
+        }
+        
+        // Always render after updates
+        viewerInstance.render();
         
         // Force a resize to ensure proper fit
-        viewer.resize();
-        
-        // Additional render after short delay to ensure everything is displayed correctly
-        setTimeout(() => {
-          viewer.resize();
-          viewer.render();
-        }, 100);
+        viewerInstance.resize();
       } catch (error) {
         console.error("Error rendering molecule:", error);
       }
@@ -302,8 +373,17 @@ const MoleculeViewer = ({
       if (viewerRef.current) {
         const viewer = $3Dmol.viewers[viewerRef.current.id];
         if (viewer) {
+          // Save camera state before resize
+          const tempCameraState = saveCameraState(viewer);
+          
           viewer.resize();
-          viewer.render();
+          
+          // Restore camera state after resize
+          if (tempCameraState) {
+            restoreCameraState(viewer, tempCameraState);
+          } else {
+            viewer.render();
+          }
         }
       }
     };
@@ -315,155 +395,19 @@ const MoleculeViewer = ({
       window.removeEventListener('resize', handleResize);
       clearTimeout(timer);
     };
-  }, [atoms, isMobile, molecule2Offset, molecule2Rotation, positioningMode]);
+  }, [atoms, isMobile, molecule2Offset, molecule2Rotation, positioningMode, viewerInstance, isInitialRender]);
 
-  // Effect to handle mouse/touch events for dragging and rotation in positioning mode
+  // Effect to handle keyboard events for positioning mode
   useEffect(() => {
-    if (!positioningMode || !viewerInstance || !molecule2) return;
+    if (!positioningMode || !molecule2) return;
 
-    const viewer = viewerRef.current;
+    const container = containerRef.current;
     
-    // Get viewer dimensions for calculations
-    const viewerRect = viewer.getBoundingClientRect();
-    const viewerWidth = viewerRect.width;
-    const viewerHeight = viewerRect.height;
-
-    // Mouse event handlers
-    const handleMouseDown = (e) => {
-      if (positioningMode) {
-        setIsDragging(true);
-        setDragStartPos({
-          x: e.clientX,
-          y: e.clientY
-        });
-        e.preventDefault();
-      }
-    };
-    
-    const handleMouseMove = (e) => {
-      if (isDragging && positioningMode) {
-        // Calculate drag delta in screen coordinates
-        const deltaX = e.clientX - dragStartPos.x;
-        const deltaY = e.clientY - dragStartPos.y;
-        
-        if (e.altKey) {
-          // ALT key held - handle rotation
-          const rotationFactor = 0.5; // degrees per pixel
-          const newRotation = {
-            x: (molecule2Rotation.x + (deltaY * rotationFactor)) % 360,
-            y: (molecule2Rotation.y + (deltaX * rotationFactor)) % 360,
-            z: molecule2Rotation.z
-          };
-          
-          // Normalize angles to 0-360 range
-          newRotation.x = (newRotation.x + 360) % 360;
-          newRotation.y = (newRotation.y + 360) % 360;
-          newRotation.z = (newRotation.z + 360) % 360;
-          
-          onMoleculeRotate(newRotation);
-        } else {
-          // Scale factor for movement (adjust for sensitivity)
-          const scaleFactor = 0.05;
-          
-          // Normal dragging - handle translation
-          const newOffset = {
-            x: molecule2Offset.x + (deltaX * scaleFactor),
-            y: molecule2Offset.y - (deltaY * scaleFactor), // Invert Y axis
-            z: molecule2Offset.z
-          };
-          
-          // Update the offset
-          onMoleculeMove(newOffset);
-        }
-        
-        // Update drag start position
-        setDragStartPos({
-          x: e.clientX,
-          y: e.clientY
-        });
-        
-        e.preventDefault();
-      }
-    };
-    
-    const handleMouseUp = (e) => {
-      if (isDragging) {
-        setIsDragging(false);
-        e.preventDefault();
-      }
-    };
-    
-    // Touch event handlers (for mobile)
-    const handleTouchStart = (e) => {
-      if (positioningMode && e.touches.length === 1) {
-        setIsDragging(true);
-        setDragStartPos({
-          x: e.touches[0].clientX,
-          y: e.touches[0].clientY
-        });
-        e.preventDefault();
-      }
-    };
-    
-    const handleTouchMove = (e) => {
-      if (isDragging && positioningMode && e.touches.length === 1) {
-        // Calculate drag delta
-        const deltaX = e.touches[0].clientX - dragStartPos.x;
-        const deltaY = e.touches[0].clientY - dragStartPos.y;
-        
-        // Determine if this is a rotation touch (second finger down = rotation)
-        const isRotating = e.touches.length > 1;
-        
-        if (isRotating) {
-          // Rotation via multi-touch
-          const rotationFactor = 0.5; // degrees per pixel
-          const newRotation = {
-            x: (molecule2Rotation.x + (deltaY * rotationFactor)) % 360,
-            y: (molecule2Rotation.y + (deltaX * rotationFactor)) % 360,
-            z: molecule2Rotation.z
-          };
-          
-          // Normalize angles to 0-360 range
-          newRotation.x = (newRotation.x + 360) % 360;
-          newRotation.y = (newRotation.y + 360) % 360;
-          newRotation.z = (newRotation.z + 360) % 360;
-          
-          onMoleculeRotate(newRotation);
-        } else {
-          // Scale factor for movement
-          const scaleFactor = 0.05;
-          
-          // Update the offset
-          const newOffset = {
-            x: molecule2Offset.x + (deltaX * scaleFactor),
-            y: molecule2Offset.y - (deltaY * scaleFactor), // Invert Y axis
-            z: molecule2Offset.z
-          };
-          
-          onMoleculeMove(newOffset);
-        }
-        
-        // Update drag start position
-        setDragStartPos({
-          x: e.touches[0].clientX,
-          y: e.touches[0].clientY
-        });
-        
-        e.preventDefault();
-      }
-    };
-    
-    const handleTouchEnd = (e) => {
-      if (isDragging) {
-        setIsDragging(false);
-        e.preventDefault();
-      }
-    };
+    // Focus the container to ensure keyboard events work
+    container.focus();
     
     // Keyboard controls for precise positioning and rotation
     const handleKeyDown = (e) => {
-      if (!positioningMode) return;
-      
       const moveStep = 0.5; // Angstroms per keypress
       const rotationStep = 15; // Degrees per keypress
       
@@ -473,22 +417,22 @@ const MoleculeViewer = ({
         
         switch(e.key) {
           case 'ArrowLeft':
-            newRotation.y = (newRotation.y - rotationStep + 360) % 360;
+            newRotation.y = ((newRotation.y - rotationStep) % 360 + 360) % 360;
             break;
           case 'ArrowRight':
-            newRotation.y = (newRotation.y + rotationStep) % 360;
+            newRotation.y = ((newRotation.y + rotationStep) % 360 + 360) % 360;
             break;
           case 'ArrowUp':
-            newRotation.x = (newRotation.x - rotationStep + 360) % 360;
+            newRotation.x = ((newRotation.x - rotationStep) % 360 + 360) % 360;
             break;
           case 'ArrowDown':
-            newRotation.x = (newRotation.x + rotationStep) % 360;
+            newRotation.x = ((newRotation.x + rotationStep) % 360 + 360) % 360;
             break;
           case 'PageUp':
-            newRotation.z = (newRotation.z + rotationStep) % 360;
+            newRotation.z = ((newRotation.z + rotationStep) % 360 + 360) % 360;
             break;
           case 'PageDown':
-            newRotation.z = (newRotation.z - rotationStep + 360) % 360;
+            newRotation.z = ((newRotation.z - rotationStep) % 360 + 360) % 360;
             break;
           default:
             return; // Exit if not a handled key
@@ -528,34 +472,20 @@ const MoleculeViewer = ({
       }
     };
 
-    // Add event listeners
-    viewer.addEventListener('mousedown', handleMouseDown);
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    
-    viewer.addEventListener('touchstart', handleTouchStart, { passive: false });
-    document.addEventListener('touchmove', handleTouchMove, { passive: false });
-    document.addEventListener('touchend', handleTouchEnd, { passive: false });
-    
-    document.addEventListener('keydown', handleKeyDown);
+    // Add keyboard event listener
+    container.addEventListener('keydown', handleKeyDown, true);
     
     // Cleanup function
     return () => {
-      viewer.removeEventListener('mousedown', handleMouseDown);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      
-      viewer.removeEventListener('touchstart', handleTouchStart);
-      document.removeEventListener('touchmove', handleTouchMove);
-      document.removeEventListener('touchend', handleTouchEnd);
-      
-      document.removeEventListener('keydown', handleKeyDown);
+      container.removeEventListener('keydown', handleKeyDown, true);
     };
-  }, [positioningMode, isDragging, dragStartPos, viewerInstance, molecule2, molecule2Offset, molecule2Rotation, onMoleculeMove, onMoleculeRotate]);
+  }, [positioningMode, molecule2, molecule2Offset, molecule2Rotation, onMoleculeMove, onMoleculeRotate]);
 
   return (
     <div 
+      ref={containerRef}
       className="viewer-container" 
+      tabIndex="0"
       style={{
         position: 'relative',
         width: '100%',
@@ -566,12 +496,13 @@ const MoleculeViewer = ({
         backgroundColor: "rgba(15, 23, 42, 0.5)",
         boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.2)",
         border: "1px solid rgba(255, 255, 255, 0.1)",
-        cursor: positioningMode && molecule2 ? "move" : "auto"
+        cursor: "auto",
+        outline: "none" // Remove focus outline while maintaining keyboard accessibility
       }}
     >
       <div
         ref={viewerRef}
-        id={`molecule-viewer-${Math.random().toString(36).substr(2, 9)}`}
+        id={viewerIdRef.current}
         style={{
           width: "100%",
           height: "100%",
@@ -579,6 +510,7 @@ const MoleculeViewer = ({
           top: 0,
           left: 0,
           borderRadius: "12px",
+          pointerEvents: "auto"
         }}
       ></div>
       
@@ -589,12 +521,20 @@ const MoleculeViewer = ({
           right: '10px',
           backgroundColor: 'rgba(0,0,0,0.7)',
           borderRadius: '5px',
-          padding: '5px 10px',
+          padding: '8px 10px',
           color: 'white',
-          fontSize: '12px'
+          fontSize: '12px',
+          pointerEvents: 'none',
+          zIndex: 20
         }}>
           <div>Offset: X: {molecule2Offset.x.toFixed(2)}, Y: {molecule2Offset.y.toFixed(2)}, Z: {molecule2Offset.z.toFixed(2)}</div>
           <div>Rotation: X: {molecule2Rotation.x}°, Y: {molecule2Rotation.y}°, Z: {molecule2Rotation.z}°</div>
+          <div style={{ marginTop: '4px', borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '4px' }}>
+            <strong>Keyboard Controls:</strong>
+            <div>• Arrow keys (←→↑↓): X/Y position</div>
+            <div>• PageUp/PageDown: Z position</div>
+            <div>• Hold Shift + arrows: Rotation</div>
+          </div>
         </div>
       )}
     </div>
