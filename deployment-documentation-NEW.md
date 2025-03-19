@@ -2,15 +2,18 @@
 ```bash
 #!/bin/bash
 
+# SSH in to droplet
+ssh root@64.227.122.193
+
 # Stop and remove existing containers
 docker stop optimol-frontend optimol-backend || true
 docker rm optimol-frontend optimol-backend || true
 
+docker image prune -af
+
 # Pull latest images
 docker pull robertkottelin/optimize-molecule:frontend-latest
 docker pull robertkottelin/optimize-molecule:backend-latest
-
-docker image prune -af
 
 # Run frontend container
 docker run -d \

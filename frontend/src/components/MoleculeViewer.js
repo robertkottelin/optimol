@@ -161,11 +161,11 @@ const MoleculeViewer = ({
       viewerInstance.clear();
 
       try {
-        const model = viewerInstance.addModel();
-        setModelInstance(model);
-        
-        // Add atoms from molecule 1 if present
+        // Create separate models for each molecule to prevent bond conflicts
         if (molecule1) {
+          // Create model specifically for molecule 1
+          const model1 = viewerInstance.addModel();
+          
           // Apply any offset to molecule1 (typically fixed at origin)
           const mol1Atoms = molecule1.map((atom) => ({
             elem: atom.element,
@@ -175,7 +175,22 @@ const MoleculeViewer = ({
             properties: { molecule: 1 }  // Add property to identify molecule
           }));
           
-          model.addAtoms(mol1Atoms);
+          // Add atoms and calculate bonds immediately for this model
+          model1.addAtoms(mol1Atoms);
+          model1.calculateBonds();
+          
+          // Style molecule 1
+          viewerInstance.setStyle({properties: {molecule: 1}}, {
+            sphere: { 
+              radius: isMobile ? 0.30 : 0.35, 
+              scale: isMobile ? 0.85 : 0.9,
+              color: "0x38bdf8"  // Blue color for molecule 1
+            },
+            stick: { 
+              radius: isMobile ? 0.12 : 0.15,
+              color: "0x38bdf8"  // Blue color for molecule 1
+            },
+          });
           
           // Add element labels for molecule 1
           molecule1.forEach((atom) => {
@@ -189,12 +204,29 @@ const MoleculeViewer = ({
               inFront: true,
             });
           });
+          
+          // Add molecule label if both molecules are present
+          if (molecule1 && molecule2) {
+            viewerInstance.addLabel("Molecule 1 (Fixed)", {
+              position: { x: molecule1[0].x, y: molecule1[0].y, z: molecule1[0].z + 5 },
+              fontSize: isMobile ? 14 : 16,
+              fontColor: "white",
+              backgroundColor: "rgba(56, 189, 248, 0.7)",  // Blue background
+              borderRadius: 10,
+              padding: isMobile ? 2 : 4,
+              inFront: true,
+              fixedPosition: true,
+            });
+          }
         }
         
-        // Add atoms from molecule 2 if present
+        // Handle molecule 2 separately to avoid bond conflicts
         if (molecule2) {
           // Calculate center of mass for molecule 2 (for rotation)
           const centerOfMass = calculateCenterOfMass(molecule2);
+          
+          // Create a separate model for molecule 2
+          const model2 = viewerInstance.addModel();
           
           // Process each atom with rotation and offset
           const mol2Atoms = molecule2.map((atom) => {
@@ -222,7 +254,22 @@ const MoleculeViewer = ({
             };
           });
           
-          model.addAtoms(mol2Atoms);
+          // Add atoms and calculate bonds immediately
+          model2.addAtoms(mol2Atoms);
+          model2.calculateBonds();
+          
+          // Style molecule 2
+          viewerInstance.setStyle({properties: {molecule: 2}}, {
+            sphere: { 
+              radius: isMobile ? 0.30 : 0.35, 
+              scale: isMobile ? 0.85 : 0.9,
+              color: "0x10b981"  // Green color for molecule 2
+            },
+            stick: { 
+              radius: isMobile ? 0.12 : 0.15,
+              color: "0x10b981"  // Green color for molecule 2
+            },
+          });
           
           // Add element labels for molecule 2 (with same transformations)
           molecule2.forEach((atom) => {
@@ -254,74 +301,38 @@ const MoleculeViewer = ({
               inFront: true,
             });
           });
-        }
-
-        // Style atoms with different colors based on molecule
-        viewerInstance.setStyle({properties: {molecule: 1}}, {
-          sphere: { 
-            radius: isMobile ? 0.30 : 0.35, 
-            scale: isMobile ? 0.85 : 0.9,
-            color: "0x38bdf8"  // Blue color for molecule 1
-          },
-          stick: { 
-            radius: isMobile ? 0.12 : 0.15,
-            color: "0x38bdf8"  // Blue color for molecule 1
-          },
-        });
-        
-        viewerInstance.setStyle({properties: {molecule: 2}}, {
-          sphere: { 
-            radius: isMobile ? 0.30 : 0.35, 
-            scale: isMobile ? 0.85 : 0.9,
-            color: "0x10b981"  // Green color for molecule 2
-          },
-          stick: { 
-            radius: isMobile ? 0.12 : 0.15,
-            color: "0x10b981"  // Green color for molecule 2
-          },
-        });
-        
-        // Add molecule labels if both molecules are present
-        if (molecule1 && molecule2) {
-          viewerInstance.addLabel("Molecule 1 (Fixed)", {
-            position: { x: molecule1[0].x, y: molecule1[0].y, z: molecule1[0].z + 5 },
-            fontSize: isMobile ? 14 : 16,
-            fontColor: "white",
-            backgroundColor: "rgba(56, 189, 248, 0.7)",  // Blue background for molecule 1
-            borderRadius: 10,
-            padding: isMobile ? 2 : 4,
-            inFront: true,
-            fixedPosition: true,
-          });
           
-          // Calculate position for molecule 2 label (with rotation and offset applied)
-          let labelX = molecule2[0].x;
-          let labelY = molecule2[0].y;
-          let labelZ = molecule2[0].z;
-          
-          if (molecule2Rotation && (molecule2Rotation.x !== 0 || molecule2Rotation.y !== 0 || molecule2Rotation.z !== 0)) {
-            const centerOfMass = calculateCenterOfMass(molecule2);
-            const coords = [labelX, labelY, labelZ];
-            const rotated = applyRotation(coords, molecule2Rotation, centerOfMass);
-            labelX = rotated[0];
-            labelY = rotated[1];
-            labelZ = rotated[2];
+          // Add molecule 2 label
+          if (molecule1 && molecule2) {
+            // Calculate position for molecule 2 label (with rotation and offset applied)
+            let labelX = molecule2[0].x;
+            let labelY = molecule2[0].y;
+            let labelZ = molecule2[0].z;
+            
+            if (molecule2Rotation && (molecule2Rotation.x !== 0 || molecule2Rotation.y !== 0 || molecule2Rotation.z !== 0)) {
+              const centerOfMass = calculateCenterOfMass(molecule2);
+              const coords = [labelX, labelY, labelZ];
+              const rotated = applyRotation(coords, molecule2Rotation, centerOfMass);
+              labelX = rotated[0];
+              labelY = rotated[1];
+              labelZ = rotated[2];
+            }
+            
+            viewerInstance.addLabel("Molecule 2 (Use Arrow Keys)", {
+              position: { 
+                x: labelX + molecule2Offset.x, 
+                y: labelY + molecule2Offset.y, 
+                z: labelZ + molecule2Offset.z + 5 
+              },
+              fontSize: isMobile ? 14 : 16,
+              fontColor: "white",
+              backgroundColor: "rgba(16, 185, 129, 0.7)",  // Green background for molecule 2
+              borderRadius: 10,
+              padding: isMobile ? 2 : 4,
+              inFront: true,
+              fixedPosition: true,
+            });
           }
-          
-          viewerInstance.addLabel("Molecule 2 (Use Arrow Keys)", {
-            position: { 
-              x: labelX + molecule2Offset.x, 
-              y: labelY + molecule2Offset.y, 
-              z: labelZ + molecule2Offset.z + 5 
-            },
-            fontSize: isMobile ? 14 : 16,
-            fontColor: "white",
-            backgroundColor: "rgba(16, 185, 129, 0.7)",  // Green background for molecule 2
-            borderRadius: 10,
-            padding: isMobile ? 2 : 4,
-            inFront: true,
-            fixedPosition: true,
-          });
         }
         
         // Add positioning mode instructions if active
@@ -337,9 +348,6 @@ const MoleculeViewer = ({
             fixedPosition: true,
           });
         }
-        
-        // Setup bonds between atoms
-        model.calculateBonds();
         
         // Disable default mouse handling in 3DMol when in positioning mode
         if (positioningMode) {
