@@ -525,15 +525,21 @@ def optimize_classical_combined(molecule1_atoms, molecule2_atoms, params=None):
             # Calculate energy with all interactions
             state_all = context_energy.getState(getEnergy=True)
             energy_all = state_all.getPotentialEnergy().value_in_unit(unit.kilojoules_per_mole)
-            
+            energy_exception_pairs = set()
+
             # Calculate energy with only molecule1 interactions
             for i in range(len(all_atoms)):
-                for j in range(len(all_atoms)):
-                    if i in molecule1_indices and j in molecule1_indices:
-                        continue  # Keep molecule1-molecule1 interactions
-                    if i in molecule2_indices and j in molecule2_indices:
-                        continue  # Keep molecule2-molecule2 interactions
-                    nb_force.addException(i, j, 0.0, 0.1, 0.0)  # Turn off cross-molecule interactions
+                for j in range(i+1, len(all_atoms)):  # Only process each pair once with i < j
+                    # Skip intra-molecular interactions (keep them)
+                    if (i in molecule1_indices and j in molecule1_indices) or \
+                    (i in molecule2_indices and j in molecule2_indices):
+                        continue
+                        
+                    # This is an inter-molecular interaction we want to disable
+                    pair = (i, j)  # No need for min/max here since i < j is enforced
+                    if pair not in energy_exception_pairs:
+                        nb_force.addException(i, j, 0.0, 0.1, 0.0)
+                        energy_exception_pairs.add(pair)
                     
             context_energy.reinitialize(True)
             context_energy.setPositions(positions)
