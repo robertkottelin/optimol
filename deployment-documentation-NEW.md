@@ -4,7 +4,6 @@
 
 # SSH in to droplet
 ssh root@64.227.122.193
-
 # Stop and remove existing containers
 docker stop optimol-frontend optimol-backend || true
 docker rm optimol-frontend optimol-backend || true
