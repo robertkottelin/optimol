@@ -582,36 +582,46 @@ const MoleculeViewer = ({
   const setupAtomClickHandling = (viewer) => {
     if (!viewer) return;
     
-    // Enable atom picking
-    viewer.setClickable({}, true, (atom) => {
+    // First, disable any existing click handlers to prevent duplicate events
+    viewer.setClickable({}, false);
+    
+    // Enable atom picking with full model coverage
+    viewer.setClickable({}, true, (atom, viewer, event, container) => {
       if (measurementMode) {
-        const atomIndex = atom.serial;
-        let atomData;
+        // Validation to ensure we received a valid atom object with serial property
+        if (!atom || typeof atom.serial !== 'number') {
+          console.error("Invalid atom clicked:", atom);
+          return;
+        }
         
-        // Need to map back to the original atom data from the props
-        // First, look in molecule1
+        const atomIndex = atom.serial;
+        let atomData = null;
+        
+        // Determine which molecule the atom belongs to and extract data
         if (molecule1 && atomIndex < molecule1.length) {
+          // Atom from molecule1 - use coordinates directly
           atomData = {
-            id: molecule1[atomIndex].id || atomIndex,
+            id: molecule1[atomIndex].id || atomIndex + 1,
             element: molecule1[atomIndex].element,
             coords: {
               x: molecule1[atomIndex].x,
               y: molecule1[atomIndex].y, 
               z: molecule1[atomIndex].z
             },
-            moleculeIndex: 1
+            moleculeIndex: 1,
+            atomIndex: atomIndex
           };
-        } 
-        // Then, look in molecule2
-        else if (molecule2) {
+        } else if (molecule2) {
+          // Calculate offset for molecule2 atom indexes
           const mol2Index = atomIndex - (molecule1 ? molecule1.length : 0);
-          if (mol2Index < molecule2.length) {
-            // Apply any transformations
+          
+          if (mol2Index >= 0 && mol2Index < molecule2.length) {
+            // Extract base coordinates
             let x = molecule2[mol2Index].x;
             let y = molecule2[mol2Index].y;
             let z = molecule2[mol2Index].z;
             
-            // Apply rotation if needed
+            // Apply rotation transformation if applicable
             if (molecule2Rotation && (molecule2Rotation.x !== 0 || molecule2Rotation.y !== 0 || molecule2Rotation.z !== 0)) {
               const centerOfMass = calculateCenterOfMass(molecule2);
               const coords = [x, y, z];
@@ -621,25 +631,82 @@ const MoleculeViewer = ({
               z = rotated[2];
             }
             
-            // Apply offset
+            // Create atom data with transformation and offset applied
             atomData = {
-              id: molecule2[mol2Index].id || mol2Index,
+              id: molecule2[mol2Index].id || mol2Index + 1,
               element: molecule2[mol2Index].element,
               coords: {
                 x: x + molecule2Offset.x,
                 y: y + molecule2Offset.y,
                 z: z + molecule2Offset.z
               },
-              moleculeIndex: 2
+              moleculeIndex: 2,
+              atomIndex: mol2Index
             };
+          } else {
+            console.error("Atom index out of range for molecule2:", mol2Index);
           }
         }
         
+        // Process the atom if we successfully identified it
         if (atomData) {
+          // Add highlight to visualize selection
+          const highlightSphere = viewer.addSphere({
+            center: atomData.coords,
+            radius: 0.4,
+            color: measurementMode === 'distance' ? '#FFFF00' : 
+                   measurementMode === 'angle' ? '#00FFFF' : '#FF00FF',
+            opacity: 0.7
+          });
+          
+          // Store reference to later remove highlight
+          spheresRef.current.push(highlightSphere);
+          
+          // Pass atom data to handler function
           handleAtomClick(atomData);
+          
+          // Render to show selection highlight
+          viewer.render();
+        } else {
+          console.warn("Could not identify clicked atom:", atom);
         }
       }
     });
+    
+    // Enable hover highlighting for better usability
+    viewer.setHoverable({}, true, (atom, viewer, event, container) => {
+      if (measurementMode && atom) {
+        // Apply temporary highlight style to show hoverable atoms
+        let color = 'yellow';
+        if (measurementMode === 'angle') color = 'cyan';
+        if (measurementMode === 'dihedral') color = 'magenta';
+        
+        // Show temporary label
+        const tempLabel = viewer.addLabel(atom.elem, {
+          position: {x: atom.x, y: atom.y, z: atom.z},
+          backgroundColor: color,
+          fontColor: 'black',
+          fontSize: 12,
+          borderRadius: 10,
+          padding: 2,
+          inFront: true
+        });
+        
+        // Remove label when mouse leaves atom
+        $(container).on('mouseout', function() {
+          viewer.removeLabel(tempLabel);
+          viewer.render();
+        });
+        
+        viewer.render();
+      }
+    });
+    
+    // Set cursor to crosshair to indicate clickable area
+    $(viewer.container).css('cursor', 'crosshair');
+    
+    // Update viewer immediately
+    viewer.render();
   };
 
   // Update molecule display with all models and styles
@@ -835,9 +902,8 @@ const MoleculeViewer = ({
       }
       
       // Disable default mouse handling in positioning mode
-      if (positioningMode) {
-        viewer.setClickable(false, true);
-        viewer.setHoverable(false, true);
+      if (measurementMode) {
+        setupAtomClickHandling(viewer);
       }
       
       // Force render and resize
@@ -938,7 +1004,25 @@ const MoleculeViewer = ({
     
     // If measurement mode is active, set up click handling
     if (measurementMode) {
+      // Force viewer to be clickable, regardless of positioning mode
+      viewerInstance.setClickable({}, false);  // Reset clickable state first
       setupAtomClickHandling(viewerInstance);
+      
+      // Display current selection mode in tooltip
+      viewerInstance.addLabel(`Click atoms to measure ${measurementMode} (${selectedAtoms.length}/${
+        measurementMode === 'distance' ? 2 : measurementMode === 'angle' ? 3 : 4
+      })`, {
+        position: { x: 0, y: 0, z: 0 },
+        backgroundColor: "rgba(0, 0, 0, 0.7)",
+        fontColor: "white",
+        fontSize: 14,
+        borderRadius: 10,
+        padding: 5,
+        inFront: true,
+        fixedPosition: true
+      });
+      
+      viewerInstance.render();
     } 
     // Otherwise disable atom clicking
     else {
@@ -956,7 +1040,7 @@ const MoleculeViewer = ({
         viewerInstance.render();
       }
     }
-  }, [measurementMode, viewerInstance, molecule1, molecule2]);
+  }, [measurementMode, viewerInstance, molecule1, molecule2, selectedAtoms.length]);
 
   // Effect to handle keyboard events for positioning mode
   useEffect(() => {
