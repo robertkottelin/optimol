@@ -13,6 +13,7 @@ from openmm import unit
 
 # Quantum optimization imports
 from pyscf import gto, scf, grad
+from pyscf import df  # Import density fitting module
 
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
 from constants import ITERATION_LIMITS
@@ -45,6 +46,16 @@ ELEMENT_NONBONDED_PARAMS = {
 
 # Default nonbonded parameters for unknown elements
 DEFAULT_NONBONDED_PARAMS = [0.0, 0.3, 0.5]
+
+# System size thresholds for quantum calculations based on basis set complexity
+QUANTUM_ATOM_THRESHOLDS = {
+    "sto-3g": 100,    # Most minimal basis
+    "3-21g": 70,      
+    "6-31g": 50,      # Medium basis
+    "6-311g": 30,     # Larger basis
+    "cc-pvdz": 25,    # Even larger basis
+    "cc-pvtz": 15     # Very large basis
+}
 
 class Optimization(db.Model):
     """Optimization record model for tracking molecular optimizations."""
@@ -808,6 +819,25 @@ def optimize_quantum(atoms, params=None):
         convergence_threshold = params.get("convergence_threshold", 1e-5)
         step_size = params.get("step_size", 0.1)
         
+        # New memory optimization parameters
+        use_direct_scf = params.get("direct_scf", True)  # Enable direct SCF by default
+        use_density_fitting = params.get("density_fitting", False)  # Optional density fitting
+        
+        # Check system size against thresholds
+        atom_count = len(atoms)
+        threshold = QUANTUM_ATOM_THRESHOLDS.get(basis, 30)  # Default to 30 if basis not in dict
+        
+        if atom_count > threshold:
+            return {
+                "error": f"System size of {atom_count} atoms exceeds the recommended limit of {threshold} for basis {basis}. Consider using classical optimization instead.",
+                "metadata": {
+                    "method": "quantum_chemistry",
+                    "library": "PySCF",
+                    "status": "failed",
+                    "reason": "system_too_large"
+                }
+            }
+        
         # Convert atoms to PySCF format
         atom_list = []
         for atom in atoms:
@@ -820,8 +850,19 @@ def optimize_quantum(atoms, params=None):
             verbose=0
         )
         
-        # Run Hartree-Fock calculation
+        # Run Hartree-Fock calculation with memory optimizations
         mf = scf.RHF(mol)
+        
+        # Enable direct SCF to avoid storing integrals in memory
+        if use_direct_scf:
+            mf.direct_scf = True
+            logger.info("Using direct SCF for quantum optimization")
+            
+        # Apply density fitting if requested (for even larger systems)
+        if use_density_fitting:
+            mf = scf.density_fit(mf)
+            logger.info("Using density fitting approximation for quantum optimization")
+        
         energy = mf.kernel()
         
         # Check if SCF converged
@@ -865,8 +906,16 @@ def optimize_quantum(atoms, params=None):
                 verbose=0
             )
             
-            # Run Hartree-Fock on new geometry
+            # Run Hartree-Fock on new geometry with same memory optimizations
             new_mf = scf.RHF(new_mol)
+            
+            # Apply same memory optimization settings
+            if use_direct_scf:
+                new_mf.direct_scf = True
+                
+            if use_density_fitting:
+                new_mf = scf.density_fit(new_mf)
+                
             new_energy = new_mf.kernel()
             
             # Check if SCF converged
@@ -921,7 +970,9 @@ def optimize_quantum(atoms, params=None):
                     "basis": basis,
                     "max_iterations": max_iterations,
                     "convergence_threshold": convergence_threshold,
-                    "step_size": step_size
+                    "step_size": step_size,
+                    "direct_scf": use_direct_scf,
+                    "density_fitting": use_density_fitting
                 },
                 "theory_level": f"RHF/{basis}",
                 "final_energy_hartree": float(current_energy),
@@ -969,6 +1020,10 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None):
         convergence_threshold = params.get("convergence_threshold", 1e-5)
         step_size = params.get("step_size", 0.1)
         
+        # New memory optimization parameters
+        use_direct_scf = params.get("direct_scf", True)  # Enable direct SCF by default
+        use_density_fitting = params.get("density_fitting", False)  # Optional density fitting
+        
         # Combine atoms from both molecules, tracking their origins
         all_atoms = []
         atom_origins = []  # Track which molecule each atom came from (1 or 2)
@@ -984,6 +1039,21 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None):
             for atom in molecule2_atoms:
                 all_atoms.append(atom)
                 atom_origins.append(2)
+        
+        # Check system size against thresholds
+        total_atoms = len(all_atoms)
+        threshold = QUANTUM_ATOM_THRESHOLDS.get(basis, 30)  # Default to 30 if basis not in dict
+        
+        if total_atoms > threshold:
+            return {
+                "error": f"System size of {total_atoms} atoms exceeds the recommended limit of {threshold} for basis {basis}. Consider using classical optimization instead.",
+                "metadata": {
+                    "method": "quantum_chemistry",
+                    "library": "PySCF",
+                    "status": "failed",
+                    "reason": "system_too_large"
+                }
+            }
         
         # Get indices for atoms from each molecule
         molecule1_indices = [i for i, origin in enumerate(atom_origins) if origin == 1]
@@ -1019,27 +1089,51 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None):
                     verbose=0
                 )
                 
-                # Run Hartree-Fock on combined system
+                # Run Hartree-Fock on combined system with memory optimizations
                 mf_combined = scf.RHF(mol_combined)
+                
+                # Apply memory optimizations
+                if use_direct_scf:
+                    mf_combined.direct_scf = True
+                    
+                if use_density_fitting:
+                    mf_combined = scf.density_fit(mf_combined)
+                    
                 energy_combined = mf_combined.kernel()
                 
-                # Create and calculate energy for molecule 1
+                # Create and calculate energy for molecule 1 with memory optimizations
                 mol1 = gto.M(
                     atom=molecule1_atom_list,
                     basis=basis,
                     verbose=0
                 )
                 mf1 = scf.RHF(mol1)
+                
+                # Apply same memory optimizations
+                if use_direct_scf:
+                    mf1.direct_scf = True
+                    
+                if use_density_fitting:
+                    mf1 = scf.density_fit(mf1)
+                    
                 energy1 = mf1.kernel()
                 initial_energy1 = energy1
                 
-                # Create and calculate energy for molecule 2
+                # Create and calculate energy for molecule 2 with memory optimizations
                 mol2 = gto.M(
                     atom=molecule2_atom_list,
                     basis=basis,
                     verbose=0
                 )
                 mf2 = scf.RHF(mol2)
+                
+                # Apply same memory optimizations
+                if use_direct_scf:
+                    mf2.direct_scf = True
+                    
+                if use_density_fitting:
+                    mf2 = scf.density_fit(mf2)
+                    
                 energy2 = mf2.kernel()
                 initial_energy2 = energy2
                 
@@ -1056,8 +1150,18 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None):
             verbose=0
         )
         
-        # Run Hartree-Fock calculation
+        # Run Hartree-Fock calculation with memory optimizations
         mf = scf.RHF(mol)
+        
+        # Apply memory optimizations
+        if use_direct_scf:
+            mf.direct_scf = True
+            logger.info("Using direct SCF for quantum combined optimization")
+            
+        if use_density_fitting:
+            mf = scf.density_fit(mf)
+            logger.info("Using density fitting approximation for quantum combined optimization")
+            
         energy = mf.kernel()
         
         # Check if SCF converged
@@ -1101,8 +1205,16 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None):
                 verbose=0
             )
             
-            # Run Hartree-Fock on new geometry
+            # Run Hartree-Fock on new geometry with same memory optimizations
             new_mf = scf.RHF(new_mol)
+            
+            # Apply same memory optimization settings
+            if use_direct_scf:
+                new_mf.direct_scf = True
+                
+            if use_density_fitting:
+                new_mf = scf.density_fit(new_mf)
+                
             new_energy = new_mf.kernel()
             
             # Check if SCF converged
@@ -1155,16 +1267,24 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None):
                     if i < len(current_atoms):
                         mol2_opt_atoms.append([current_atoms[i][0], current_atoms[i][1]])
                 
-                # Calculate energy for optimized combined system
+                # Calculate energy for optimized combined system with memory optimizations
                 mol_combined_opt = gto.M(
                     atom=current_atoms,
                     basis=basis,
                     verbose=0
                 )
                 mf_combined_opt = scf.RHF(mol_combined_opt)
+                
+                # Apply memory optimizations
+                if use_direct_scf:
+                    mf_combined_opt.direct_scf = True
+                    
+                if use_density_fitting:
+                    mf_combined_opt = scf.density_fit(mf_combined_opt)
+                    
                 energy_combined_opt = mf_combined_opt.kernel()
                 
-                # Calculate energy for optimized molecule 1
+                # Calculate energy for optimized molecule 1 with memory optimizations
                 if mol1_opt_atoms:
                     mol1_opt = gto.M(
                         atom=mol1_opt_atoms,
@@ -1172,12 +1292,20 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None):
                         verbose=0
                     )
                     mf1_opt = scf.RHF(mol1_opt)
+                    
+                    # Apply memory optimizations
+                    if use_direct_scf:
+                        mf1_opt.direct_scf = True
+                        
+                    if use_density_fitting:
+                        mf1_opt = scf.density_fit(mf1_opt)
+                        
                     energy1_opt = mf1_opt.kernel()
                     final_energy1 = energy1_opt
                 else:
                     energy1_opt = 0
                 
-                # Calculate energy for optimized molecule 2
+                # Calculate energy for optimized molecule 2 with memory optimizations
                 if mol2_opt_atoms:
                     mol2_opt = gto.M(
                         atom=mol2_opt_atoms,
@@ -1185,6 +1313,14 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None):
                         verbose=0
                     )
                     mf2_opt = scf.RHF(mol2_opt)
+                    
+                    # Apply memory optimizations
+                    if use_direct_scf:
+                        mf2_opt.direct_scf = True
+                        
+                    if use_density_fitting:
+                        mf2_opt = scf.density_fit(mf2_opt)
+                        
                     energy2_opt = mf2_opt.kernel()
                     final_energy2 = energy2_opt
                 else:
@@ -1231,7 +1367,9 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None):
                     "basis": basis,
                     "max_iterations": max_iterations,
                     "convergence_threshold": convergence_threshold,
-                    "step_size": step_size
+                    "step_size": step_size,
+                    "direct_scf": use_direct_scf,
+                    "density_fitting": use_density_fitting
                 },
                 "molecules": 2 if molecule1_atoms and molecule2_atoms else 1,
                 "molecule1_atom_count": len(molecule1_atoms) if molecule1_atoms else 0,
@@ -1398,6 +1536,16 @@ def optimize_molecule():
             if not is_subscribed and optimization_params.get('basis') in ["6-311g", "cc-pvdz"]:
                 optimization_params['basis'] = "6-31g"
                 logger.info("Downgraded basis set to 6-31g for non-subscriber")
+                
+            # Force direct SCF for quantum calculations to prevent memory issues
+            optimization_params['direct_scf'] = True
+            
+            # Enable density fitting for larger systems (over 25 atoms) or when requested
+            total_atoms = (len(molecule1_atoms) if molecule1_atoms else 0) + \
+                         (len(molecule2_atoms) if molecule2_atoms else 0)
+            if total_atoms > 25 or optimization_params.get('density_fitting', False):
+                optimization_params['density_fitting'] = True
+                logger.info(f"Enabling density fitting for system with {total_atoms} atoms")
         
         # Log the optimization request
         logger.info(f"Starting {optimization_type} optimization, interaction_mode={interaction_mode}, "
