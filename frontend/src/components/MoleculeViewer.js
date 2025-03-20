@@ -582,13 +582,12 @@ const MoleculeViewer = ({
   const setupAtomClickHandling = (viewer) => {
     if (!viewer) return;
     
-    // First, disable any existing click handlers to prevent duplicate events
+    // First, disable any existing click handlers
     viewer.setClickable({}, false);
     
     // Enable atom picking with full model coverage
     viewer.setClickable({}, true, (atom, viewer, event, container) => {
       if (measurementMode) {
-        // Validation to ensure we received a valid atom object with serial property
         if (!atom || typeof atom.serial !== 'number') {
           console.error("Invalid atom clicked:", atom);
           return;
@@ -597,9 +596,7 @@ const MoleculeViewer = ({
         const atomIndex = atom.serial;
         let atomData = null;
         
-        // Determine which molecule the atom belongs to and extract data
         if (molecule1 && atomIndex < molecule1.length) {
-          // Atom from molecule1 - use coordinates directly
           atomData = {
             id: molecule1[atomIndex].id || atomIndex + 1,
             element: molecule1[atomIndex].element,
@@ -612,16 +609,13 @@ const MoleculeViewer = ({
             atomIndex: atomIndex
           };
         } else if (molecule2) {
-          // Calculate offset for molecule2 atom indexes
           const mol2Index = atomIndex - (molecule1 ? molecule1.length : 0);
           
           if (mol2Index >= 0 && mol2Index < molecule2.length) {
-            // Extract base coordinates
             let x = molecule2[mol2Index].x;
             let y = molecule2[mol2Index].y;
             let z = molecule2[mol2Index].z;
             
-            // Apply rotation transformation if applicable
             if (molecule2Rotation && (molecule2Rotation.x !== 0 || molecule2Rotation.y !== 0 || molecule2Rotation.z !== 0)) {
               const centerOfMass = calculateCenterOfMass(molecule2);
               const coords = [x, y, z];
@@ -631,7 +625,6 @@ const MoleculeViewer = ({
               z = rotated[2];
             }
             
-            // Create atom data with transformation and offset applied
             atomData = {
               id: molecule2[mol2Index].id || mol2Index + 1,
               element: molecule2[mol2Index].element,
@@ -648,9 +641,7 @@ const MoleculeViewer = ({
           }
         }
         
-        // Process the atom if we successfully identified it
         if (atomData) {
-          // Add highlight to visualize selection
           const highlightSphere = viewer.addSphere({
             center: atomData.coords,
             radius: 0.4,
@@ -659,13 +650,8 @@ const MoleculeViewer = ({
             opacity: 0.7
           });
           
-          // Store reference to later remove highlight
           spheresRef.current.push(highlightSphere);
-          
-          // Pass atom data to handler function
           handleAtomClick(atomData);
-          
-          // Render to show selection highlight
           viewer.render();
         } else {
           console.warn("Could not identify clicked atom:", atom);
@@ -673,15 +659,13 @@ const MoleculeViewer = ({
       }
     });
     
-    // Enable hover highlighting for better usability
+    // Enable hover highlighting
     viewer.setHoverable({}, true, (atom, viewer, event, container) => {
       if (measurementMode && atom) {
-        // Apply temporary highlight style to show hoverable atoms
         let color = 'yellow';
         if (measurementMode === 'angle') color = 'cyan';
         if (measurementMode === 'dihedral') color = 'magenta';
         
-        // Show temporary label
         const tempLabel = viewer.addLabel(atom.elem, {
           position: {x: atom.x, y: atom.y, z: atom.z},
           backgroundColor: color,
@@ -692,22 +676,26 @@ const MoleculeViewer = ({
           inFront: true
         });
         
-        // Remove label when mouse leaves atom
-        $(container).on('mouseout', function() {
-          viewer.removeLabel(tempLabel);
-          viewer.render();
-        });
+        // Use vanilla JS instead of jQuery
+        if (container) {
+          container.addEventListener('mouseout', function() {
+            viewer.removeLabel(tempLabel);
+            viewer.render();
+          });
+        }
         
         viewer.render();
       }
     });
     
-    // Set cursor to crosshair to indicate clickable area
-    $(viewer.container).css('cursor', 'crosshair');
+    // Use vanilla JS for style manipulation
+    if (viewer.container) {
+      viewer.container.style.cursor = 'crosshair';
+    }
     
-    // Update viewer immediately
     viewer.render();
   };
+  
 
   // Update molecule display with all models and styles
   const updateMoleculeDisplay = (viewer) => {
