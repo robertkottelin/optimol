@@ -30,6 +30,38 @@ docker run -d \
   -v optimol_data:/app/instance \
   robertkottelin/optimize-molecule:backend-latest
 
+# Check logs
+docker logs optimol-backend
+docker logs optimol-frontend
+
+cat > deploy.sh << 'EOF'
+#!/bin/bash
+
+# Stop, remove containers, and prune images in single operation
+docker stop optimol-frontend optimol-backend || true && \
+docker rm optimol-frontend optimol-backend || true && \
+docker image prune -af && \
+
+# Pull and deploy containers sequentially
+docker pull robertkottelin/optimize-molecule:frontend-latest && \
+docker pull robertkottelin/optimize-molecule:backend-latest && \
+
+# Deploy containers
+docker run -d \
+  --name optimol-frontend \
+  --restart unless-stopped \
+  -p 3000:3000 \
+  robertkottelin/optimize-molecule:frontend-latest && \
+
+docker run -d \
+  --name optimol-backend \
+  --restart unless-stopped \
+  -p 5000:5000 \
+  -v /opt/optimol/.env:/app/.env \
+  -v optimol_data:/app/instance \
+  robertkottelin/optimize-molecule:backend-latest
+EOF
+
 # Update Nginx configuration
 cat > /etc/nginx/sites-available/optimizemolecule.com << 'EOF'
 server {
