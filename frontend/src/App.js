@@ -69,15 +69,10 @@ const App = () => {
   const [serverHealthDetails, setServerHealthDetails] = useState(null);
   // FIXED: Moved howToUseContent useState before conditional return
   const [howToUseContent, setHowToUseContent] = useState("");
-  // Add state for measurement instructions visibility
-  const [showMeasurementInstructions, setShowMeasurementInstructions] = useState(false);
+
+
 
   const apiBaseUrl = "/api";
-
-  // Function to toggle measurement instructions
-  const handleToggleMeasurementInstructions = () => {
-    setShowMeasurementInstructions(!showMeasurementInstructions);
-  };
 
   // Group all useEffect hooks together
   useEffect(() => {
@@ -1719,118 +1714,6 @@ const App = () => {
                   handleDownload={handleDownload}
                   isMobile={isMobile}
                 />
-              )}
-
-              {/* Measurement Tools Section */}
-              {(molecule1Data || molecule2Data) && activeView === "optimized" && (
-                <div style={{
-                  marginTop: "24px",
-                  backgroundColor: "rgba(15, 23, 42, 0.7)",
-                  backdropFilter: "blur(12px)",
-                  WebkitBackdropFilter: "blur(12px)",
-                  borderRadius: "16px",
-                  padding: "16px",
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
-                  boxShadow: "0 15px 25px rgba(0, 0, 0, 0.25)",
-                }}>
-                  <div style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    marginBottom: "12px"
-                  }}>
-                    <h3 style={{
-                      fontSize: "1.1rem",
-                      fontWeight: "600",
-                      margin: 0,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px"
-                    }}>
-                      <span style={{ color: "#38bdf8" }}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-                        </svg>
-                      </span>
-                      Measurement Tools
-                    </h3>
-                    
-                    <button
-                      onClick={handleToggleMeasurementInstructions}
-                      style={{
-                        backgroundColor: "rgba(56, 189, 248, 0.1)",
-                        color: "#38bdf8",
-                        border: "1px solid rgba(56, 189, 248, 0.3)",
-                        borderRadius: "6px",
-                        padding: "4px 10px",
-                        fontSize: "0.85rem",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "5px"
-                      }}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <path d="M12 16v-4" />
-                        <path d="M12 8h.01" />
-                      </svg>
-                      {showMeasurementInstructions ? "Hide Instructions" : "View Instructions"}
-                    </button>
-                  </div>
-                  
-                  {showMeasurementInstructions && (
-                    <div style={{
-                      backgroundColor: "rgba(56, 189, 248, 0.1)",
-                      border: "1px solid rgba(56, 189, 248, 0.3)",
-                      borderRadius: "8px",
-                      padding: "12px",
-                      marginBottom: "16px",
-                      fontSize: "0.9rem"
-                    }}>
-                      <p style={{ margin: "0 0 10px 0", fontWeight: "500" }}>
-                        The measurement tools allow you to analyze molecular structures by measuring:
-                      </p>
-                      <ul style={{ margin: "0 0 10px 0", paddingLeft: "20px" }}>
-                        <li style={{ marginBottom: "6px" }}>
-                          <strong>Distances</strong> between two atoms (in Ångströms)
-                        </li>
-                        <li style={{ marginBottom: "6px" }}>
-                          <strong>Angles</strong> between three atoms (in degrees)
-                        </li>
-                        <li style={{ marginBottom: "6px" }}>
-                          <strong>Dihedral angles</strong> between four atoms (in degrees)
-                        </li>
-                      </ul>
-                      <p style={{ margin: "0", fontWeight: "500" }}>
-                        How to use:
-                      </p>
-                      <ol style={{ margin: "0", paddingLeft: "20px" }}>
-                        <li style={{ marginBottom: "4px" }}>Select a measurement type (Distance, Angle, or Dihedral)</li>
-                        <li style={{ marginBottom: "4px" }}>Click on atoms in the 3D viewer to take measurements</li>
-                        <li style={{ marginBottom: "4px" }}>View results in the measurements panel</li>
-                        <li>Use "Clear All" to remove measurements and start over</li>
-                      </ol>
-                    </div>
-                  )}
-                  
-                  <p style={{ fontSize: "0.9rem", margin: "0 0 10px 0" }}>
-                    Use these tools to measure distances, angles, and dihedral angles in your optimized molecule.
-                    Click the buttons below the 3D viewer to activate measurement mode.
-                  </p>
-                  
-                  <div style={{
-                    backgroundColor: "rgba(56, 189, 248, 0.05)",
-                    padding: "10px",
-                    borderRadius: "8px",
-                    fontSize: "0.85rem",
-                    fontStyle: "italic",
-                    color: "#94a3b8",
-                    border: "1px dashed rgba(56, 189, 248, 0.2)"
-                  }}>
-                    Pro Tip: When measuring dihedrals, select atoms in sequence along the bond path. 
-                    For accuracy, first adjust the view to clearly see the atoms you need to measure.
-                  </div>
-                </div>
               )}
             </div>
           )}
