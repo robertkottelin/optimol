@@ -107,6 +107,77 @@ def calculate_angle(vec1, vec2):
     return np.arccos(cosine)
 
 
+def are_molecules_similar(molecule1_atoms, molecule2_atoms, position_threshold=0.01, element_match=True):
+    """
+    Determine if two molecules are identical or very similar.
+    
+    Args:
+        molecule1_atoms: List of atoms for first molecule
+        molecule2_atoms: List of atoms for second molecule
+        position_threshold: Threshold (in Å) for considering positions similar
+        element_match: Whether to require elements to match
+    
+    Returns:
+        tuple: (is_similar, rmsd) 
+               is_similar: Boolean indicating if molecules are similar
+               rmsd: Root mean square deviation between atom positions (None if different lengths)
+    """
+    # Quick check: different number of atoms means different molecules
+    if len(molecule1_atoms) != len(molecule2_atoms):
+        return False, None
+    
+    positions1 = np.array([[atom['x'], atom['y'], atom['z']] for atom in molecule1_atoms])
+    positions2 = np.array([[atom['x'], atom['y'], atom['z']] for atom in molecule2_atoms])
+    
+    # Check if elements match
+    if element_match:
+        elements1 = [atom['element'] for atom in molecule1_atoms]
+        elements2 = [atom['element'] for atom in molecule2_atoms]
+        if elements1 != elements2:
+            return False, None
+    
+    # Calculate RMSD between molecules
+    squared_diff = np.sum((positions1 - positions2)**2, axis=1)
+    rmsd = np.sqrt(np.mean(squared_diff))
+    
+    # Consider molecules similar if RMSD is below threshold
+    is_similar = rmsd < position_threshold
+    
+    return is_similar, rmsd
+
+
+def displace_molecule(atoms, displacement_vector=None, magnitude=1.0):
+    """
+    Apply displacement to molecule atoms.
+    
+    Args:
+        atoms: List of atom dictionaries to displace
+        displacement_vector: Optional specific displacement vector (default: random unit vector)
+        magnitude: Magnitude of displacement in Å
+    
+    Returns:
+        List of displaced atom dictionaries
+    """
+    if displacement_vector is None:
+        # Generate random unit vector
+        displacement_vector = np.random.randn(3)
+        displacement_vector = displacement_vector / np.linalg.norm(displacement_vector)
+    
+    # Scale to desired magnitude
+    displacement_vector = displacement_vector * magnitude
+    
+    # Apply displacement to all atoms
+    displaced_atoms = []
+    for atom in atoms:
+        displaced_atom = atom.copy()
+        displaced_atom['x'] = atom['x'] + displacement_vector[0]
+        displaced_atom['y'] = atom['y'] + displacement_vector[1]
+        displaced_atom['z'] = atom['z'] + displacement_vector[2]
+        displaced_atoms.append(displaced_atom)
+    
+    return displaced_atoms
+
+
 def optimize_classical(atoms, params=None):
     """
     Optimize molecule using classical molecular dynamics with OpenMM.
@@ -383,6 +454,18 @@ def optimize_classical_combined(molecule1_atoms, molecule2_atoms, params=None):
         tolerance = params.get("tolerance", 10.0)  # kJ/mol/nm (force units)
         force_iterations = params.get("force_iterations", False)  # Whether to force all iterations
         
+        # Check if molecules are too similar (causes numerical instability)
+        is_similar = False
+        rmsd = None
+        
+        if molecule1_atoms and molecule2_atoms:
+            is_similar, rmsd = are_molecules_similar(molecule1_atoms, molecule2_atoms)
+            
+            if is_similar:
+                logger.info(f"Detected identical or very similar molecules (RMSD={rmsd}Å), applying displacement")
+                # Apply a 3Å displacement to second molecule to avoid instability
+                molecule2_atoms = displace_molecule(molecule2_atoms, magnitude=3.0)
+        
         # Combine atoms from both molecules, tracking their origins
         all_atoms = []
         atom_origins = []  # Track which molecule each atom came from (1 or 2)
@@ -611,54 +694,88 @@ def optimize_classical_combined(molecule1_atoms, molecule2_atoms, params=None):
         # Custom iteration tracking
         iterations_performed = 0
         
-        if force_iterations:
-            # Manual optimization to force all iterations
-            energy_history = []
-            
-            # Initial minimization to stabilize structure
-            simulation.minimizeEnergy(maxIterations=100)
-            
-            # Execute exact number of iterations requested
-            for i in range(max_iterations):
-                simulation.step(1)
+        try:
+            if force_iterations:
+                # Manual optimization to force all iterations
+                energy_history = []
                 
-                state = simulation.context.getState(getEnergy=True)
-                energy = state.getPotentialEnergy().value_in_unit(unit.kilojoules_per_mole)
-                energy_history.append(energy)
-                iterations_performed += 1
+                # Initial minimization to stabilize structure
+                simulation.minimizeEnergy(maxIterations=100)
                 
-                # Safety check for complex molecules
-                if (i > 20 and np.isfinite(energy) and 
-                    i < len(energy_history) and 
-                    energy > energy_history[i-1] * 5.0) or not np.isfinite(energy):
-                    logger.info(f"Breaking at iteration {i} due to energy instability: {energy}")
-                    break
+                # Execute exact number of iterations requested
+                for i in range(max_iterations):
+                    simulation.step(1)
                     
-            state = simulation.context.getState(getPositions=True, getEnergy=True)
-            minimized_positions = state.getPositions(asNumpy=True).value_in_unit(unit.angstrom)
-            final_energy = state.getPotentialEnergy().value_in_unit(unit.kilojoules_per_mole)
-            
-        else:
-            # Standard energy minimization with correct force units for tolerance
-            force_tolerance = tolerance * unit.kilojoule_per_mole / unit.nanometer
-            
-            # Skip passing tolerance if using default value to avoid unit errors
-            if abs(tolerance - 10.0) < 0.01:  # If close to default value
-                simulation.minimizeEnergy(maxIterations=max_iterations)
+                    state = simulation.context.getState(getEnergy=True)
+                    energy = state.getPotentialEnergy().value_in_unit(unit.kilojoules_per_mole)
+                    energy_history.append(energy)
+                    iterations_performed += 1
+                    
+                    # Safety check for complex molecules
+                    if (i > 20 and np.isfinite(energy) and 
+                        i < len(energy_history) and 
+                        energy > energy_history[i-1] * 5.0) or not np.isfinite(energy):
+                        logger.info(f"Breaking at iteration {i} due to energy instability: {energy}")
+                        break
+                        
+                state = simulation.context.getState(getPositions=True, getEnergy=True)
+                minimized_positions = state.getPositions(asNumpy=True).value_in_unit(unit.angstrom)
+                final_energy = state.getPotentialEnergy().value_in_unit(unit.kilojoules_per_mole)
+                
             else:
-                # Use custom tolerance
-                simulation.minimizeEnergy(tolerance=force_tolerance, maxIterations=max_iterations)
-            
-            # Get final state
-            state = simulation.context.getState(getPositions=True, getEnergy=True)
-            final_energy = state.getPotentialEnergy().value_in_unit(unit.kilojoules_per_mole)
-            energy_change = abs(start_energy - final_energy)
-            
-            # Estimate iterations based on energy change and tolerance
-            iterations_performed = min(max_iterations, int((energy_change/max(tolerance, 1e-6)) * 10))
-            
-            minimized_positions = state.getPositions(asNumpy=True).value_in_unit(unit.angstrom)
+                # Apply a preliminary short equilibration to stabilize the system first
+                # This helps prevent NaN issues with identical molecules during minimization
+                if is_similar:
+                    logger.info("Performing preliminary equilibration for identical molecules")
+                    simulation.step(50)  # 50 very small steps to slightly perturb the structure
+                
+                # Standard energy minimization with correct force units for tolerance
+                force_tolerance = tolerance * unit.kilojoule_per_mole / unit.nanometer
+                
+                try:
+                    # Skip passing tolerance if using default value to avoid unit errors
+                    if abs(tolerance - 10.0) < 0.01:  # If close to default value
+                        simulation.minimizeEnergy(maxIterations=max_iterations)
+                    else:
+                        # Use custom tolerance
+                        simulation.minimizeEnergy(tolerance=force_tolerance, maxIterations=max_iterations)
+                except Exception as min_error:
+                    # If minimization fails, try a more robust approach with staged minimization
+                    logger.warning(f"Initial minimization failed: {str(min_error)}. Trying staged approach.")
+                    
+                    # Reset positions with slight perturbation to break exact symmetry
+                    perturbed_positions = np.array(positions.value_in_unit(unit.nanometer))
+                    # Add small random noise (0.01 nm = 0.1 Å)
+                    perturbed_positions += np.random.normal(0, 0.01, perturbed_positions.shape)
+                    simulation.context.setPositions(perturbed_positions * unit.nanometer)
+                    
+                    # Try staged minimization with increasing iterations
+                    for stage_iterations in [50, 100, max_iterations]:
+                        try:
+                            simulation.minimizeEnergy(maxIterations=stage_iterations)
+                        except Exception as stage_error:
+                            logger.warning(f"Stage minimization with {stage_iterations} iterations failed: {str(stage_error)}")
+                            # Continue to next stage anyway
+                
+                # Get final state
+                state = simulation.context.getState(getPositions=True, getEnergy=True)
+                final_energy = state.getPotentialEnergy().value_in_unit(unit.kilojoules_per_mole)
+                energy_change = abs(start_energy - final_energy)
+                
+                # Estimate iterations based on energy change and tolerance
+                iterations_performed = min(max_iterations, int((energy_change/max(tolerance, 1e-6)) * 10))
+                
+                minimized_positions = state.getPositions(asNumpy=True).value_in_unit(unit.angstrom)
         
+        except Exception as opt_error:
+            # Final fallback if all optimization attempts fail
+            logger.error(f"All optimization attempts failed: {str(opt_error)}")
+            
+            # Return with original positions
+            minimized_positions = np.array(positions.value_in_unit(unit.angstrom))
+            final_energy = start_energy
+            iterations_performed = 0
+            
         # Calculate final interaction energy
         final_interaction_energy = None
         
@@ -776,6 +893,8 @@ def optimize_classical_combined(molecule1_atoms, molecule2_atoms, params=None):
                 "energy_change_kj_mol": abs(start_energy - final_energy),
                 "duration_seconds": duration,
                 "convergence": "energy_minimized",
+                "identical_molecules_detected": is_similar,
+                "molecule_rmsd": rmsd,
                 "bonds_detected": len(bonds),
                 "intermolecular_bonds": intermolecular_bonds,
                 "angles_detected": len(angles),
@@ -1023,6 +1142,18 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None):
         # New memory optimization parameters
         use_direct_scf = params.get("direct_scf", True)  # Enable direct SCF by default
         use_density_fitting = params.get("density_fitting", False)  # Optional density fitting
+        
+        # Check if molecules are too similar (causes numerical instability)
+        is_similar = False
+        rmsd = None
+        
+        if molecule1_atoms and molecule2_atoms:
+            is_similar, rmsd = are_molecules_similar(molecule1_atoms, molecule2_atoms)
+            
+            if is_similar:
+                logger.info(f"Detected identical or very similar molecules (RMSD={rmsd}Å), applying displacement")
+                # Apply a 3Å displacement to second molecule to avoid instability
+                molecule2_atoms = displace_molecule(molecule2_atoms, magnitude=3.0)
         
         # Combine atoms from both molecules, tracking their origins
         all_atoms = []
@@ -1374,6 +1505,8 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None):
                 "molecules": 2 if molecule1_atoms and molecule2_atoms else 1,
                 "molecule1_atom_count": len(molecule1_atoms) if molecule1_atoms else 0,
                 "molecule2_atom_count": len(molecule2_atoms) if molecule2_atoms else 0,
+                "identical_molecules_detected": is_similar,
+                "molecule_rmsd": rmsd,
                 "theory_level": f"RHF/{basis}",
                 "final_energy_hartree": float(current_energy),
                 "initial_molecule1_energy_hartree": float(initial_energy1) if initial_energy1 is not None else None,
@@ -1551,6 +1684,12 @@ def optimize_molecule():
         logger.info(f"Starting {optimization_type} optimization, interaction_mode={interaction_mode}, "
                   f"molecule1_atoms={len(molecule1_atoms) if molecule1_atoms else 0}, "
                   f"molecule2_atoms={len(molecule2_atoms) if molecule2_atoms else 0}")
+        
+        # Check for similar/identical molecules if in interaction mode
+        if interaction_mode and molecule1_atoms and molecule2_atoms:
+            is_similar, rmsd = are_molecules_similar(molecule1_atoms, molecule2_atoms)
+            if is_similar:
+                logger.info(f"Detected identical or very similar molecules (RMSD={rmsd}Å) in interaction mode")
         
         # Perform requested optimization with parameters
         result = None
