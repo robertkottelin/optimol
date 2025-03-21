@@ -13,6 +13,7 @@ import RegisterForm from './components/RegisterForm';
 import { styles } from './styles/components';
 import {
   ITERATION_LIMITS,
+  QUANTUM_SIZE_LIMITS,
   defaultClassicalParams,
   defaultQuantumParams,
   TEST_MOLECULES
@@ -70,7 +71,52 @@ const App = () => {
   // FIXED: Moved howToUseContent useState before conditional return
   const [howToUseContent, setHowToUseContent] = useState("");
 
-
+  const countAtoms = (molecule) => {
+    if (!molecule) return 0;
+    return molecule.length;
+  };
+  
+  // Check if molecule size is within quantum limits
+  const validateQuantumMoleculeSize = (molecule1, molecule2, isInteractionMode) => {
+    if (isInteractionMode) {
+      // Check total atoms for interaction mode
+      const totalAtoms = countAtoms(molecule1) + countAtoms(molecule2);
+      if (totalAtoms > QUANTUM_SIZE_LIMITS.interactionTotal) {
+        return {
+          valid: false,
+          message: `Quantum optimization for molecular interactions is limited to ${QUANTUM_SIZE_LIMITS.interactionTotal} total atoms (current: ${totalAtoms}). Please use classical optimization for larger systems.`
+        };
+      }
+      
+      // Check individual molecule sizes
+      if (countAtoms(molecule1) > QUANTUM_SIZE_LIMITS.interactionPerMolecule) {
+        return {
+          valid: false,
+          message: `Molecule 1 exceeds the limit of ${QUANTUM_SIZE_LIMITS.interactionPerMolecule} atoms for quantum interaction optimization (current: ${countAtoms(molecule1)}).`
+        };
+      }
+      
+      if (countAtoms(molecule2) > QUANTUM_SIZE_LIMITS.interactionPerMolecule) {
+        return {
+          valid: false,
+          message: `Molecule 2 exceeds the limit of ${QUANTUM_SIZE_LIMITS.interactionPerMolecule} atoms for quantum interaction optimization (current: ${countAtoms(molecule2)}).`
+        };
+      }
+    } else {
+      // Single molecule mode - check the active molecule
+      const activeMolecule = molecule1 || molecule2;
+      const atomCount = countAtoms(activeMolecule);
+      
+      if (atomCount > QUANTUM_SIZE_LIMITS.singleMolecule) {
+        return {
+          valid: false,
+          message: `Quantum optimization is limited to ${QUANTUM_SIZE_LIMITS.singleMolecule} atoms per molecule (current: ${atomCount}). Please use classical optimization for larger molecules.`
+        };
+      }
+    }
+    
+    return { valid: true };
+  };
 
   const apiBaseUrl = "/api";
 
@@ -398,9 +444,21 @@ const App = () => {
       alert("Please upload or select at least one molecule.");
       return;
     }
+    
+    // Get the current atoms based on the active view for subsequent optimizations
+    const { molecule1, molecule2 } = getAtoms();
+    
+    // For quantum optimization, check molecule size limits
+    if (optimizationType === "quantum") {
+      const sizeValidation = validateQuantumMoleculeSize(molecule1, molecule2, interactionMode);
+      if (!sizeValidation.valid) {
+        alert(sizeValidation.message);
+        return;
+      }
+    }
   
     setIsOptimizeLoading(true);
-  
+      
     try {
       // Get the correct parameters based on selected optimization type
       const optimizationParams =
@@ -608,7 +666,7 @@ const App = () => {
       setActiveView("original");
     }
   };
-  
+
   const handleDownload = () => {
     if (!optimizationResult) {
       alert("No optimization results available to download.");

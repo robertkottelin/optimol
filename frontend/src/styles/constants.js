@@ -110,6 +110,13 @@ export const ITERATION_LIMITS = {
   }
 };
 
+// Molecule size limits for quantum calculations
+const QUANTUM_SIZE_LIMITS = {
+  singleMolecule: 20,  // Maximum atoms for single molecule quantum optimization
+  interactionTotal: 30,  // Maximum total atoms for interaction quantum optimization
+  interactionPerMolecule: 15  // Maximum atoms per molecule for interaction quantum optimization
+};
+
 // Default optimization parameters
 export const defaultClassicalParams = {
   temperature: 300,
