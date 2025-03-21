@@ -259,34 +259,36 @@ const App = () => {
 
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
-
+  
     if (!file) {
       alert("Please select a file.");
       return;
     }
-
+  
     const reader = new FileReader();
-
+  
     reader.onload = (e) => {
       try {
         const fileContent = e.target.result;
         const parsedData = JSON.parse(fileContent);
-
+  
         if (!validateMoleculeJSON(parsedData)) {
           alert("Invalid molecule JSON format.");
           return;
         }
-
+  
         // Store file name with the molecule data
         parsedData.filename = file.name;
-
+  
         // Target the active molecule
         if (activeMolecule === 1) {
           setMolecule1Data(parsedData);
         } else {
           setMolecule2Data(parsedData);
+          // Set a default offset for molecule 2 to appear beside molecule 1
+          setMolecule2Offset({ x: 5, y: 0, z: 0 });
         }
-
+  
         setOptimizationResult(null);
         setActiveView("original");
       } catch (error) {
@@ -294,10 +296,10 @@ const App = () => {
         alert("Error processing the file. Check the console for details.");
       }
     };
-
+  
     reader.readAsText(file);
   };
-
+  
   const handleDragOver = (e) => {
     e.preventDefault();
     setIsDragActive(true);
@@ -310,31 +312,33 @@ const App = () => {
   const handleFileDrop = (e) => {
     e.preventDefault();
     setIsDragActive(false);
-
+  
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0];
-
+  
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
           const fileContent = e.target.result;
           const parsedData = JSON.parse(fileContent);
-
+  
           if (!validateMoleculeJSON(parsedData)) {
             alert("Invalid molecule JSON format.");
             return;
           }
-
+  
           // Store file name with the molecule data
           parsedData.filename = file.name;
-
+  
           // Target the active molecule
           if (activeMolecule === 1) {
             setMolecule1Data(parsedData);
           } else {
             setMolecule2Data(parsedData);
+            // Set a default offset for molecule 2 to appear beside molecule 1
+            setMolecule2Offset({ x: 5, y: 0, z: 0 });
           }
-
+  
           setOptimizationResult(null);
           setActiveView("original");
         } catch (error) {
@@ -342,10 +346,11 @@ const App = () => {
           alert("Error processing the file. Check the console for details.");
         }
       };
-
+  
       reader.readAsText(file);
     }
   };
+  
 
 
   const validateMoleculeJSON = (data) => {
@@ -585,23 +590,25 @@ const App = () => {
   const handleTestMoleculeSelect = (moleculeKey) => {
     if (TEST_MOLECULES[moleculeKey]) {
       const testMoleculeData = { ...TEST_MOLECULES[moleculeKey] };
-
+  
       // Add a molecule name reference - though this is redundant since the test molecules
       // already have metadata.name, this ensures we have a consistent approach
       if (!testMoleculeData.filename) {
         testMoleculeData.filename = testMoleculeData.file1?.metadata?.name || moleculeKey;
       }
-
+  
       if (activeMolecule === 1) {
         setMolecule1Data(testMoleculeData);
       } else {
         setMolecule2Data(testMoleculeData);
+        // Set a default offset for molecule 2 to appear beside molecule 1
+        setMolecule2Offset({ x: 5, y: 0, z: 0 });
       }
       setOptimizationResult(null);
       setActiveView("original");
     }
   };
-
+  
   const handleDownload = () => {
     if (!optimizationResult) {
       alert("No optimization results available to download.");
