@@ -34,6 +34,7 @@ docker run -d \
 docker logs optimol-backend
 docker logs optimol-frontend
 
+#AUTOMATION
 cat > deploy.sh << 'EOF'
 #!/bin/bash
 
@@ -64,6 +65,9 @@ docker run -d \
 sudo systemctl restart nginx
 
 EOF
+
+# run automation script
+./deploy.sh
 
 # Update Nginx configuration
 cat > /etc/nginx/sites-available/optimizemolecule.com << 'EOF'
@@ -172,20 +176,9 @@ server {
 }
 EOF
 
-
 # Apply Nginx configuration
 nginx -t && systemctl restart nginx
 
 # Test endpoints
-echo "Testing API endpoint..."
 curl -s https://optimizemolecule.com/api/health
 ```
-
-## 5. Verification Testing
-After deployment, execute these verification steps:
-
-1. Verify API access: `curl https://optimizemolecule.com/api/health`
-2. Access frontend: https://optimizemolecule.com 
-3. Monitor network requests in browser developer tools to confirm:
-   - API requests use path `/api/endpoint`
-   - No cross-origin requests to GitHub Pages
