@@ -60,6 +60,9 @@ docker run -d \
   -v /opt/optimol/.env:/app/.env \
   -v optimol_data:/app/instance \
   robertkottelin/optimize-molecule:backend-latest
+
+sudo systemctl restart nginx
+
 EOF
 
 # Update Nginx configuration

@@ -131,8 +131,8 @@ from user import user_bp
 from opti import opti_bp
 
 # Register blueprints
-app.register_blueprint(user_bp)
-app.register_blueprint(opti_bp)
+app.register_blueprint(user_bp, url_prefix='/api')
+app.register_blueprint(opti_bp, url_prefix='/api')
 
 # Initialize database tables during application startup
 with app.app_context():
