@@ -2,11 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as $3Dmol from '3dmol';
 import { styles } from '../styles/components';
 
-const MoleculeViewer = ({ 
-  atoms, 
-  isMobile, 
-  positioningMode, 
-  onMoleculeMove, 
+const MoleculeViewer = ({
+  atoms,
+  isMobile,
+  positioningMode,
+  onMoleculeMove,
   molecule2Offset,
   molecule2Rotation,
   onMoleculeRotate
@@ -19,7 +19,52 @@ const MoleculeViewer = ({
   const [isInitialRender, setIsInitialRender] = useState(true);
   const viewerIdRef = useRef(`molecule-viewer-${Math.random().toString(36).substr(2, 9)}`);
   const cameraStateRef = useRef(null);
-  
+
+  // Control button styles
+  const positionControlButtonStyle = {
+    width: isMobile ? '48px' : '40px',
+    height: isMobile ? '48px' : '40px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(56, 189, 248, 0.2)',
+    border: '1px solid rgba(56, 189, 248, 0.3)',
+    borderRadius: '8px',
+    color: '#f0f4f8',
+    fontSize: isMobile ? '20px' : '18px',
+    cursor: 'pointer',
+    padding: '4px',
+    touchAction: 'manipulation'
+  };
+
+  const rotationControlButtonStyle = {
+    width: isMobile ? '46px' : '40px',
+    height: isMobile ? '36px' : '30px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    border: '1px solid rgba(16, 185, 129, 0.3)',
+    borderRadius: '8px',
+    color: '#f0f4f8',
+    fontSize: isMobile ? '16px' : '14px',
+    cursor: 'pointer',
+    margin: '2px',
+    padding: '4px',
+    touchAction: 'manipulation'
+  };
+
+  const resetButtonStyle = {
+    backgroundColor: 'rgba(15, 23, 42, 0.7)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '8px',
+    color: '#f0f4f8',
+    padding: '8px 12px',
+    cursor: 'pointer',
+    fontSize: isMobile ? '14px' : '12px',
+    touchAction: 'manipulation'
+  };
+
   // Extract atoms for both molecules
   const { molecule1, molecule2 } = atoms || { molecule1: null, molecule2: null };
 
@@ -29,44 +74,109 @@ const MoleculeViewer = ({
     const radX = rotation.x * Math.PI / 180;
     const radY = rotation.y * Math.PI / 180;
     const radZ = rotation.z * Math.PI / 180;
-    
+
     // Translate to origin (center of mass)
     const centered = [
       coords[0] - centerOfMass.x,
       coords[1] - centerOfMass.y,
       coords[2] - centerOfMass.z
     ];
-    
+
     // Apply rotations (ZYX order)
     // Z-axis rotation
     let nx = centered[0] * Math.cos(radZ) - centered[1] * Math.sin(radZ);
     let ny = centered[0] * Math.sin(radZ) + centered[1] * Math.cos(radZ);
     let nz = centered[2];
-    
+
     // Y-axis rotation
     let mx = nx * Math.cos(radY) + nz * Math.sin(radY);
     let my = ny;
     let mz = -nx * Math.sin(radY) + nz * Math.cos(radY);
-    
+
     // X-axis rotation
     let rx = mx;
     let ry = my * Math.cos(radX) - mz * Math.sin(radX);
     let rz = my * Math.sin(radX) + mz * Math.cos(radX);
-    
+
     // Translate back from origin
     const result = [
       rx + centerOfMass.x,
       ry + centerOfMass.y,
       rz + centerOfMass.z
     ];
-    
+
     return result;
+  };
+  const enableViewerInteractions = (viewer) => {
+    if (!viewer) return;
+    
+    try {
+      // Remove the overlay if it exists
+      const viewerElement = viewerRef.current;
+      const overlay = viewerElement.querySelector('.event-blocker-overlay');
+      if (overlay) {
+        viewerElement.removeChild(overlay);
+      }
+      
+      // Re-enable hoverable
+      viewer.setHoverable({}, true);
+      viewer.setClickable({}, true);
+      
+      // Reset viewer state
+      viewer.render();
+    } catch (e) {
+      console.error("Error enabling viewer interactions:", e);
+    }
+  };
+  
+  const disableViewerInteractions = (viewer) => {
+    if (!viewer) return;
+    
+    try {
+      // Completely remove hover functionality first
+      viewer.setHoverable({}, false);
+      
+      // Create a transparent overlay to block all mouse events
+      const viewerElement = viewerRef.current;
+      let overlay = viewerElement.querySelector('.event-blocker-overlay');
+      
+      if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.className = 'event-blocker-overlay';
+        overlay.style.position = 'absolute';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100%';
+        overlay.style.height = '100%';
+        overlay.style.zIndex = '100';
+        overlay.style.cursor = 'not-allowed';
+        
+        // Add the overlay to the viewer container
+        viewerElement.appendChild(overlay);
+      }
+      
+      // Add a simple mouse handler to prevent events from reaching the viewer
+      overlay.onmousemove = (e) => {
+        e.stopPropagation();
+        return false;
+      };
+      
+      // Ensure viewer doesn't process mouse events by setting null handlers
+      viewer.mouseStartCallback = null;
+      viewer.mouseMoveCallback = null;
+      viewer.mouseUpCallback = null;
+      
+      // Reset current_hover to prevent callback errors
+      viewer.current_hover = null;
+    } catch (e) {
+      console.error("Error disabling viewer interactions:", e);
+    }
   };
   
   // Calculate center of mass for a molecule
   const calculateCenterOfMass = (atoms) => {
     if (!atoms || atoms.length === 0) return { x: 0, y: 0, z: 0 };
-    
+
     // Simple average of atom coordinates
     const sum = atoms.reduce((acc, atom) => {
       return {
@@ -75,7 +185,7 @@ const MoleculeViewer = ({
         z: acc.z + atom.z
       };
     }, { x: 0, y: 0, z: 0 });
-    
+
     return {
       x: sum.x / atoms.length,
       y: sum.y / atoms.length,
@@ -86,7 +196,7 @@ const MoleculeViewer = ({
   // Function to store current camera state
   const saveCameraState = (viewer) => {
     if (!viewer) return null;
-    
+
     try {
       // Extract camera parameters from the viewer
       const camState = {
@@ -103,7 +213,7 @@ const MoleculeViewer = ({
   // Function to restore camera state
   const restoreCameraState = (viewer, state) => {
     if (!viewer || !state) return;
-    
+
     try {
       // Restore camera parameters
       viewer.setView(state.position);
@@ -125,11 +235,11 @@ const MoleculeViewer = ({
     const viewer = $3Dmol.createViewer(viewerRef.current, {
       backgroundColor: "rgb(15, 23, 42)",
     });
-    
+
     // Store viewer instance for later use
     setViewerInstance(viewer);
     setIsInitialRender(true);
-    
+
     // Cleanup function
     return () => {
       if (viewer) {
@@ -156,7 +266,7 @@ const MoleculeViewer = ({
         if (!isInitialRender) {
           cameraStateRef.current = saveCameraState(viewerInstance);
         }
-        
+
         // Clear previous content
         viewerInstance.clear();
 
@@ -170,11 +280,11 @@ const MoleculeViewer = ({
             z: atom.z,
             properties: { molecule: 1 }
           }));
-          
+
           // Add molecule1 with its own model
           let model1 = viewerInstance.addModel();
           model1.addAtoms(m1Data);
-          
+
           // Add element labels for molecule 1
           molecule1.forEach((atom) => {
             viewerInstance.addLabel(atom.element, {
@@ -187,14 +297,14 @@ const MoleculeViewer = ({
               inFront: true,
             });
           });
-          
+
           // Add molecule1 label if in interaction mode
           if (molecule1 && molecule2) {
             viewerInstance.addLabel("Molecule 1 (Fixed)", {
               position: { x: molecule1[0].x, y: molecule1[0].y, z: molecule1[0].z + 5 },
               fontSize: isMobile ? 14 : 16,
               fontColor: "white",
-              backgroundColor: "rgba(56, 189, 248, 0.7)",  
+              backgroundColor: "rgba(56, 189, 248, 0.7)",
               borderRadius: 10,
               padding: isMobile ? 2 : 4,
               inFront: true,
@@ -207,12 +317,12 @@ const MoleculeViewer = ({
         if (molecule2) {
           // Calculate center of mass for rotation
           const centerOfMass = calculateCenterOfMass(molecule2);
-          
+
           // Process each atom with rotation and offset
           let m2Data = molecule2.map(atom => {
             // Apply rotation if needed
             let x = atom.x, y = atom.y, z = atom.z;
-            
+
             if (molecule2Rotation && (molecule2Rotation.x !== 0 || molecule2Rotation.y !== 0 || molecule2Rotation.z !== 0)) {
               const coords = [x, y, z];
               const rotated = applyRotation(coords, molecule2Rotation, centerOfMass);
@@ -220,7 +330,7 @@ const MoleculeViewer = ({
               y = rotated[1];
               z = rotated[2];
             }
-            
+
             // Apply offset and return atom
             return {
               elem: atom.element,
@@ -230,16 +340,16 @@ const MoleculeViewer = ({
               properties: { molecule: 2 }
             };
           });
-          
+
           // Add molecule2 with its own model
           let model2 = viewerInstance.addModel();
           model2.addAtoms(m2Data);
-          
+
           // Add element labels for molecule2
           molecule2.forEach((atom) => {
             // Apply same transformations as for the atoms
             let x = atom.x, y = atom.y, z = atom.z;
-            
+
             if (molecule2Rotation && (molecule2Rotation.x !== 0 || molecule2Rotation.y !== 0 || molecule2Rotation.z !== 0)) {
               const coords = [x, y, z];
               const rotated = applyRotation(coords, molecule2Rotation, centerOfMass);
@@ -247,12 +357,12 @@ const MoleculeViewer = ({
               y = rotated[1];
               z = rotated[2];
             }
-            
+
             viewerInstance.addLabel(atom.element, {
-              position: { 
-                x: x + molecule2Offset.x, 
-                y: y + molecule2Offset.y, 
-                z: z + molecule2Offset.z 
+              position: {
+                x: x + molecule2Offset.x,
+                y: y + molecule2Offset.y,
+                z: z + molecule2Offset.z
               },
               fontSize: isMobile ? 10 : 12,
               fontColor: "white",
@@ -262,12 +372,12 @@ const MoleculeViewer = ({
               inFront: true,
             });
           });
-          
+
           // Add molecule2 label in interaction mode
           if (molecule1 && molecule2) {
             // Calculate position for label with transformations
             let labelX = molecule2[0].x, labelY = molecule2[0].y, labelZ = molecule2[0].z;
-            
+
             if (molecule2Rotation && (molecule2Rotation.x !== 0 || molecule2Rotation.y !== 0 || molecule2Rotation.z !== 0)) {
               const coords = [labelX, labelY, labelZ];
               const rotated = applyRotation(coords, molecule2Rotation, centerOfMass);
@@ -275,16 +385,16 @@ const MoleculeViewer = ({
               labelY = rotated[1];
               labelZ = rotated[2];
             }
-            
+
             viewerInstance.addLabel("Molecule 2 (Use Arrow Keys)", {
-              position: { 
-                x: labelX + molecule2Offset.x, 
-                y: labelY + molecule2Offset.y, 
-                z: labelZ + molecule2Offset.z + 5 
+              position: {
+                x: labelX + molecule2Offset.x,
+                y: labelY + molecule2Offset.y,
+                z: labelZ + molecule2Offset.z + 5
               },
               fontSize: isMobile ? 14 : 16,
               fontColor: "white",
-              backgroundColor: "rgba(16, 185, 129, 0.7)",  
+              backgroundColor: "rgba(16, 185, 129, 0.7)",
               borderRadius: 10,
               padding: isMobile ? 2 : 4,
               inFront: true,
@@ -294,50 +404,57 @@ const MoleculeViewer = ({
         }
 
         // Style both molecules - must be done after adding all models
-        viewerInstance.setStyle({properties: {molecule: 1}}, {
-          sphere: { 
-            radius: isMobile ? 0.30 : 0.35, 
+        viewerInstance.setStyle({ properties: { molecule: 1 } }, {
+          sphere: {
+            radius: isMobile ? 0.30 : 0.35,
             scale: isMobile ? 0.85 : 0.9,
             color: "0x38bdf8"  // Blue for molecule 1
           },
-          stick: { 
+          stick: {
             radius: isMobile ? 0.12 : 0.15,
-            color: "0x38bdf8"  
+            color: "0x38bdf8"
           },
         });
-        
-        viewerInstance.setStyle({properties: {molecule: 2}}, {
-          sphere: { 
-            radius: isMobile ? 0.30 : 0.35, 
+
+        viewerInstance.setStyle({ properties: { molecule: 2 } }, {
+          sphere: {
+            radius: isMobile ? 0.30 : 0.35,
             scale: isMobile ? 0.85 : 0.9,
             color: "0x10b981"  // Green for molecule 2
           },
-          stick: { 
+          stick: {
             radius: isMobile ? 0.12 : 0.15,
-            color: "0x10b981"  
+            color: "0x10b981"
           },
         });
-        
-        // Add positioning mode instructions if active
-        if (positioningMode && molecule2) {
-          viewerInstance.addLabel("Use arrow keys to position Molecule 2", {
-            position: { x: 0, y: 0, z: 10 },
-            fontSize: 16,
-            fontColor: "white",
-            backgroundColor: "rgba(0, 0, 0, 0.7)",
-            borderRadius: 10,
-            padding: 5,
-            inFront: true,
-            fixedPosition: true,
-          });
+
+        // Handle mouse interaction behavior and positioning mode
+        try {
+          if (positioningMode) {
+            // Use the dedicated function to disable all interactions properly
+            disableViewerInteractions(viewerInstance);
+            
+            // Add positioning mode instructions if needed
+            if (molecule2) {
+              viewerInstance.addLabel("Use arrow keys to position Molecule 2", {
+                position: { x: 0, y: 0, z: 10 },
+                fontSize: 16,
+                fontColor: "white",
+                backgroundColor: "rgba(0, 0, 0, 0.7)",
+                borderRadius: 10,
+                padding: 5,
+                inFront: true,
+                fixedPosition: true,
+              });
+            }
+          } else {
+            // Reset to normal behavior
+            enableViewerInteractions(viewerInstance);
+          }
+        } catch (e) {
+          console.error("3DMol interaction handler error:", e);
         }
-        
-        // Disable default mouse handling in positioning mode
-        if (positioningMode) {
-          viewerInstance.setClickable(false, true);
-          viewerInstance.setHoverable(false, true);
-        }
-        
+
         // Initial view or restore camera
         if (isInitialRender) {
           viewerInstance.zoomTo();
@@ -345,7 +462,7 @@ const MoleculeViewer = ({
         } else if (cameraStateRef.current) {
           restoreCameraState(viewerInstance, cameraStateRef.current);
         }
-        
+
         // Force render and resize
         viewerInstance.render();
         viewerInstance.resize();
@@ -369,9 +486,9 @@ const MoleculeViewer = ({
         }
       }
     };
-    
+
     window.addEventListener('resize', handleResize);
-    
+
     // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
@@ -385,16 +502,16 @@ const MoleculeViewer = ({
 
     const container = containerRef.current;
     container.focus();
-    
+
     const handleKeyDown = (e) => {
       const moveStep = 0.5; // Angstroms per keypress
       const rotationStep = 15; // Degrees per keypress
-      
+
       if (e.shiftKey) {
         // Shift key held - handle rotation
-        let newRotation = {...molecule2Rotation};
-        
-        switch(e.key) {
+        let newRotation = { ...molecule2Rotation };
+
+        switch (e.key) {
           case 'ArrowLeft':
             newRotation.y = ((newRotation.y - rotationStep) % 360 + 360) % 360;
             break;
@@ -416,14 +533,14 @@ const MoleculeViewer = ({
           default:
             return; // Exit if not a handled key
         }
-        
+
         onMoleculeRotate(newRotation);
         e.preventDefault();
       } else {
         // No shift key - handle translation
-        let newOffset = {...molecule2Offset};
-        
-        switch(e.key) {
+        let newOffset = { ...molecule2Offset };
+
+        switch (e.key) {
           case 'ArrowLeft':
             newOffset.x -= moveStep;
             break;
@@ -445,76 +562,199 @@ const MoleculeViewer = ({
           default:
             return; // Exit if not a handled key
         }
-        
+
         onMoleculeMove(newOffset);
         e.preventDefault();
       }
     };
 
     container.addEventListener('keydown', handleKeyDown, true);
-    
+
     return () => {
       container.removeEventListener('keydown', handleKeyDown, true);
     };
   }, [positioningMode, molecule2, molecule2Offset, molecule2Rotation, onMoleculeMove, onMoleculeRotate]);
 
   return (
-    <div 
-      ref={containerRef}
-      className="viewer-container" 
-      tabIndex="0"
-      style={{
-        position: 'relative',
-        width: '100%',
-        height: isMobile ? '350px' : '450px',
-        margin: '0 auto',
-        borderRadius: '12px',
-        overflow: 'hidden',
-        backgroundColor: "rgba(15, 23, 42, 0.5)",
-        boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.2)",
-        border: "1px solid rgba(255, 255, 255, 0.1)",
-        cursor: "auto",
-        outline: "none"
-      }}
-    >
-      <div
-        ref={viewerRef}
-        id={viewerIdRef.current}
-        style={{
-          width: "100%",
-          height: "100%",
-          position: "absolute",
-          top: 0,
-          left: 0,
-          borderRadius: "12px",
-          pointerEvents: "auto"
-        }}
-      ></div>
-      
+    <>
       {positioningMode && molecule2 && (
         <div style={{
-          position: 'absolute',
-          bottom: '10px',
-          right: '10px',
-          backgroundColor: 'rgba(0,0,0,0.7)',
-          borderRadius: '5px',
-          padding: '8px 10px',
-          color: 'white',
-          fontSize: '12px',
-          pointerEvents: 'none',
-          zIndex: 20
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px',
+          marginBottom: '16px',
+          backgroundColor: 'rgba(15, 23, 42, 0.7)',
+          padding: isMobile ? '12px' : '16px',
+          borderRadius: '8px',
+          border: '1px solid rgba(255, 255, 255, 0.1)'
         }}>
-          <div>Offset: X: {molecule2Offset.x.toFixed(2)}, Y: {molecule2Offset.y.toFixed(2)}, Z: {molecule2Offset.z.toFixed(2)}</div>
-          <div>Rotation: X: {molecule2Rotation.x}°, Y: {molecule2Rotation.y}°, Z: {molecule2Rotation.z}°</div>
-          <div style={{ marginTop: '4px', borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '4px' }}>
-            <strong>Keyboard Controls:</strong>
-            <div>• Arrow keys (←→↑↓): X/Y position</div>
-            <div>• PageUp/PageDown: Z position</div>
-            <div>• Hold Shift + arrows: Rotation</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h4 style={{ margin: '0 0 8px 0', fontSize: '16px' }}>Position Controls</h4>
+          </div>
+          
+          {/* XY position control buttons */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+            <button
+              onClick={() => onMoleculeMove({ ...molecule2Offset, y: molecule2Offset.y + 0.5 })}
+              style={positionControlButtonStyle}>
+              ↑
+            </button>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <button
+                onClick={() => onMoleculeMove({ ...molecule2Offset, x: molecule2Offset.x - 0.5 })}
+                style={positionControlButtonStyle}>
+                ←
+              </button>
+              <button
+                onClick={() => onMoleculeMove({ ...molecule2Offset, y: molecule2Offset.y - 0.5 })}
+                style={positionControlButtonStyle}>
+                ↓
+              </button>
+              <button
+                onClick={() => onMoleculeMove({ ...molecule2Offset, x: molecule2Offset.x + 0.5 })}
+                style={positionControlButtonStyle}>
+                →
+              </button>
+            </div>
+          </div>
+          
+          {/* Z position control buttons */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '4px', marginTop: '4px' }}>
+            <button
+              onClick={() => onMoleculeMove({ ...molecule2Offset, z: molecule2Offset.z - 0.5 })}
+              style={positionControlButtonStyle}>
+              Z−
+            </button>
+            <button
+              onClick={() => onMoleculeMove({ ...molecule2Offset, z: molecule2Offset.z + 0.5 })}
+              style={positionControlButtonStyle}>
+              Z+
+            </button>
+          </div>
+          
+          {/* Rotation control buttons */}
+          <div style={{ marginTop: '8px', padding: '8px 0', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+            <h4 style={{ margin: '0 0 8px 0', fontSize: '16px' }}>Rotation Controls</h4>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <button
+                  onClick={() => onMoleculeRotate({ ...molecule2Rotation, x: (molecule2Rotation.x - 15 + 360) % 360 })}
+                  style={rotationControlButtonStyle}>
+                  X−
+                </button>
+                <button
+                  onClick={() => onMoleculeRotate({ ...molecule2Rotation, x: (molecule2Rotation.x + 15) % 360 })}
+                  style={rotationControlButtonStyle}>
+                  X+
+                </button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <button
+                  onClick={() => onMoleculeRotate({ ...molecule2Rotation, y: (molecule2Rotation.y - 15 + 360) % 360 })}
+                  style={rotationControlButtonStyle}>
+                  Y−
+                </button>
+                <button
+                  onClick={() => onMoleculeRotate({ ...molecule2Rotation, y: (molecule2Rotation.y + 15) % 360 })}
+                  style={rotationControlButtonStyle}>
+                  Y+
+                </button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <button
+                  onClick={() => onMoleculeRotate({ ...molecule2Rotation, z: (molecule2Rotation.z - 15 + 360) % 360 })}
+                  style={rotationControlButtonStyle}>
+                  Z−
+                </button>
+                <button
+                  onClick={() => onMoleculeRotate({ ...molecule2Rotation, z: (molecule2Rotation.z + 15) % 360 })}
+                  style={rotationControlButtonStyle}>
+                  Z+
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          {/* Reset buttons */}
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            gap: '8px',
+            marginTop: '8px', 
+            paddingTop: '8px', 
+            borderTop: '1px solid rgba(255, 255, 255, 0.1)' 
+          }}>
+            <button
+              onClick={() => onMoleculeMove({ x: 0, y: 0, z: 0 })}
+              style={resetButtonStyle}>
+              Reset Position
+            </button>
+            <button
+              onClick={() => onMoleculeRotate({ x: 0, y: 0, z: 0 })}
+              style={resetButtonStyle}>
+              Reset Rotation
+            </button>
           </div>
         </div>
       )}
-    </div>
+
+      <div
+        ref={containerRef}
+        className="viewer-container"
+        tabIndex="0"
+        style={{
+          position: 'relative',
+          width: '100%',
+          height: isMobile ? '350px' : '450px',
+          margin: '0 auto',
+          borderRadius: '12px',
+          overflow: 'hidden',
+          backgroundColor: "rgba(15, 23, 42, 0.5)",
+          boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.2)",
+          border: "1px solid rgba(255, 255, 255, 0.1)",
+          cursor: "auto",
+          outline: "none"
+        }}
+      >
+        <div
+          ref={viewerRef}
+          id={viewerIdRef.current}
+          style={{
+            width: "100%",
+            height: "100%",
+            position: "absolute",
+            top: 0,
+            left: 0,
+            borderRadius: "12px",
+            pointerEvents: "auto"
+          }}
+        ></div>
+
+        {positioningMode && molecule2 && (
+          <div style={{
+            position: 'absolute',
+            bottom: '10px',
+            right: '10px',
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            borderRadius: '5px',
+            padding: '8px 10px',
+            color: 'white',
+            fontSize: '12px',
+            pointerEvents: 'none',
+            zIndex: 20
+          }}>
+            <div>Offset: X: {molecule2Offset.x.toFixed(2)}, Y: {molecule2Offset.y.toFixed(2)}, Z: {molecule2Offset.z.toFixed(2)}</div>
+            <div>Rotation: X: {molecule2Rotation.x}°, Y: {molecule2Rotation.y}°, Z: {molecule2Rotation.z}°</div>
+            <div style={{ marginTop: '4px', borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '4px' }}>
+              <strong>Keyboard Controls:</strong>
+              <div>• Arrow keys (←→↑↓): X/Y position</div>
+              <div>• PageUp/PageDown: Z position</div>
+              <div>• Hold Shift + arrows: Rotation</div>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
   );
 };
 
