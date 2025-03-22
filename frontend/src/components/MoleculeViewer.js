@@ -107,6 +107,7 @@ const MoleculeViewer = ({
 
     return result;
   };
+
   const enableViewerInteractions = (viewer) => {
     if (!viewer) return;
     
@@ -191,6 +192,170 @@ const MoleculeViewer = ({
       y: sum.y / atoms.length,
       z: sum.z / atoms.length
     };
+  };
+
+  // Calculate covalent bonds between atoms based on distance and element types
+  const calculateCovalentBonds = (atoms) => {
+    const bonds = [];
+    
+    // Define covalent radii for common elements (in Angstroms)
+    const covalentRadii = {
+      'H': 0.31, 'C': 0.76, 'N': 0.71, 'O': 0.66, 'F': 0.57, 
+      'P': 1.07, 'S': 1.05, 'Cl': 1.02, 'Br': 1.20
+    };
+    
+    // Maximum bond distance factor (multiplier for sum of covalent radii)
+    const bondDistanceFactor = 1.3;
+    
+    // Check all possible atom pairs
+    for (let i = 0; i < atoms.length; i++) {
+      for (let j = i + 1; j < atoms.length; j++) {
+        const atom1 = atoms[i];
+        const atom2 = atoms[j];
+        
+        // Calculate distance between atoms
+        const distance = Math.sqrt(
+          Math.pow(atom1.x - atom2.x, 2) +
+          Math.pow(atom1.y - atom2.y, 2) +
+          Math.pow(atom1.z - atom2.z, 2)
+        );
+        
+        // Get covalent radii (using default if element not in table)
+        const radius1 = covalentRadii[atom1.element] || 0.75;
+        const radius2 = covalentRadii[atom2.element] || 0.75;
+        
+        // Calculate bond threshold as sum of covalent radii with tolerance
+        const bondThreshold = (radius1 + radius2) * bondDistanceFactor;
+        
+        // Check if distance is within bond threshold
+        if (distance <= bondThreshold) {
+          bonds.push({
+            atom1Index: i,
+            atom2Index: j,
+            distance: distance
+          });
+        }
+      }
+    }
+    
+    return bonds;
+  };
+
+  // Calculate hydrogen bonds between donor-H and acceptor atoms
+  const calculateHydrogenBonds = (atoms) => {
+    const hBonds = [];
+    const hBondLengthMax = 3.2; // Maximum H-bond length in Angstroms
+    const hBondLengthMin = 1.5; // Minimum length to avoid counting covalent bonds
+    
+    // Identify potential hydrogen bond donors (H attached to O, N)
+    const donors = [];
+    const acceptors = [];
+    
+    // Find all H atoms that are bonded to O or N (potential donors)
+    for (let i = 0; i < atoms.length; i++) {
+      if (atoms[i].element === 'H') {
+        // Check if H is bonded to O or N
+        for (let j = 0; j < atoms.length; j++) {
+          if (i !== j && (atoms[j].element === 'O' || atoms[j].element === 'N')) {
+            const distance = Math.sqrt(
+              Math.pow(atoms[i].x - atoms[j].x, 2) +
+              Math.pow(atoms[i].y - atoms[j].y, 2) +
+              Math.pow(atoms[i].z - atoms[j].z, 2)
+            );
+            
+            // If H is close enough to O/N, it's a potential donor
+            if (distance < 1.2) { // Typical H-O/H-N bond length
+              donors.push({
+                hIndex: i,
+                donorHeavyIndex: j // The O or N atom index
+              });
+            }
+          }
+        }
+      }
+    }
+    
+    // Find all potential acceptors (O or N atoms with lone pairs)
+    for (let i = 0; i < atoms.length; i++) {
+      if (atoms[i].element === 'O' || atoms[i].element === 'N') {
+        acceptors.push(i);
+      }
+    }
+    
+    // Check for hydrogen bonds between donors and acceptors
+    for (const donor of donors) {
+      for (const acceptorIndex of acceptors) {
+        // Skip if acceptor is the donor atom itself
+        if (acceptorIndex === donor.donorHeavyIndex) continue;
+        
+        const hAtom = atoms[donor.hIndex];
+        const acceptorAtom = atoms[acceptorIndex];
+        
+        // Calculate H to acceptor distance
+        const distance = Math.sqrt(
+          Math.pow(hAtom.x - acceptorAtom.x, 2) +
+          Math.pow(hAtom.y - acceptorAtom.y, 2) +
+          Math.pow(hAtom.z - acceptorAtom.z, 2)
+        );
+        
+        // Check if distance is within hydrogen bond range
+        if (distance >= hBondLengthMin && distance <= hBondLengthMax) {
+          // Calculate angles to check for linearity
+          const donorAtom = atoms[donor.donorHeavyIndex];
+          
+          // Calculate vectors for angle determination
+          const donorToH = {
+            x: hAtom.x - donorAtom.x,
+            y: hAtom.y - donorAtom.y,
+            z: hAtom.z - donorAtom.z
+          };
+          
+          const hToAcceptor = {
+            x: acceptorAtom.x - hAtom.x,
+            y: acceptorAtom.y - hAtom.y,
+            z: acceptorAtom.z - hAtom.z
+          };
+          
+          // Normalize vectors
+          const donorToHMag = Math.sqrt(
+            donorToH.x * donorToH.x + donorToH.y * donorToH.y + donorToH.z * donorToH.z
+          );
+          const hToAcceptorMag = Math.sqrt(
+            hToAcceptor.x * hToAcceptor.x + hToAcceptor.y * hToAcceptor.y + hToAcceptor.z * hToAcceptor.z
+          );
+          
+          const donorToHNorm = {
+            x: donorToH.x / donorToHMag,
+            y: donorToH.y / donorToHMag,
+            z: donorToH.z / donorToHMag
+          };
+          
+          const hToAcceptorNorm = {
+            x: hToAcceptor.x / hToAcceptorMag,
+            y: hToAcceptor.y / hToAcceptorMag,
+            z: hToAcceptor.z / hToAcceptorMag
+          };
+          
+          // Calculate dot product to get cosine of angle
+          const dotProduct = 
+            donorToHNorm.x * hToAcceptorNorm.x + 
+            donorToHNorm.y * hToAcceptorNorm.y + 
+            donorToHNorm.z * hToAcceptorNorm.z;
+          
+          // For hydrogen bond, angle should be reasonably linear (cos > 0.7 is < 45°)
+          if (dotProduct > 0.7) {
+            hBonds.push({
+              hIndex: donor.hIndex,
+              donorHeavyIndex: donor.donorHeavyIndex,
+              acceptorIndex: acceptorIndex,
+              distance: distance
+            });
+          }
+        }
+      }
+    }
+    
+    return hBonds;
   };
 
   // Function to store current camera state
@@ -284,6 +449,50 @@ const MoleculeViewer = ({
           // Add molecule1 with its own model
           let model1 = viewerInstance.addModel();
           model1.addAtoms(m1Data);
+          
+          // Calculate covalent bonds
+          const covalentBonds1 = calculateCovalentBonds(molecule1);
+          
+          // Add covalent bonds as cylinders instead of using addBond
+          covalentBonds1.forEach(bond => {
+            const atom1 = molecule1[bond.atom1Index];
+            const atom2 = molecule1[bond.atom2Index];
+            
+            viewerInstance.addCylinder({
+              start: { x: atom1.x, y: atom1.y, z: atom1.z },
+              end: { x: atom2.x, y: atom2.y, z: atom2.z },
+              radius: isMobile ? 0.12 : 0.15,
+              fromCap: 1,
+              toCap: 1,
+              color: "0x38bdf8"  // Blue for molecule 1
+            });
+          });
+          
+          // Calculate and visualize hydrogen bonds
+          const hydrogenBonds1 = calculateHydrogenBonds(molecule1);
+          
+          // Add hydrogen bonds visualization with dashed lines
+          hydrogenBonds1.forEach(bond => {
+            viewerInstance.addCylinder({
+              start: {
+                x: molecule1[bond.hIndex].x,
+                y: molecule1[bond.hIndex].y,
+                z: molecule1[bond.hIndex].z
+              },
+              end: {
+                x: molecule1[bond.acceptorIndex].x,
+                y: molecule1[bond.acceptorIndex].y,
+                z: molecule1[bond.acceptorIndex].z
+              },
+              radius: isMobile ? 0.05 : 0.07,  // Thinner than covalent bonds
+              fromCap: 1,
+              toCap: 1,
+              color: "0xFFFFFF",  // White color for hydrogen bonds
+              dashed: true,
+              dashLength: 0.15,   // Length of dash segments
+              gapLength: 0.15,    // Length of gaps
+            });
+          });
 
           // Add element labels for molecule 1
           molecule1.forEach((atom) => {
@@ -344,6 +553,71 @@ const MoleculeViewer = ({
           // Add molecule2 with its own model
           let model2 = viewerInstance.addModel();
           model2.addAtoms(m2Data);
+
+          // Get properly transformed coordinates with rotation and offset applied
+          const transformedMolecule2 = molecule2.map(atom => {
+            // Apply transformation as in the existing code
+            let x = atom.x, y = atom.y, z = atom.z;
+            
+            if (molecule2Rotation && (molecule2Rotation.x !== 0 || molecule2Rotation.y !== 0 || molecule2Rotation.z !== 0)) {
+              const coords = [x, y, z];
+              const rotated = applyRotation(coords, molecule2Rotation, centerOfMass);
+              x = rotated[0];
+              y = rotated[1];
+              z = rotated[2];
+            }
+            
+            return {
+              element: atom.element,
+              x: x + molecule2Offset.x,
+              y: y + molecule2Offset.y,
+              z: z + molecule2Offset.z
+            };
+          });
+          
+          // Calculate bonds for transformed coordinates
+          const covalentBonds2 = calculateCovalentBonds(transformedMolecule2);
+          
+          // Add covalent bonds using cylinders instead of addBond
+          covalentBonds2.forEach(bond => {
+            const atom1 = transformedMolecule2[bond.atom1Index];
+            const atom2 = transformedMolecule2[bond.atom2Index];
+            
+            viewerInstance.addCylinder({
+              start: { x: atom1.x, y: atom1.y, z: atom1.z },
+              end: { x: atom2.x, y: atom2.y, z: atom2.z },
+              radius: isMobile ? 0.12 : 0.15,
+              fromCap: 1,
+              toCap: 1,
+              color: "0x10b981"  // Green for molecule 2
+            });
+          });
+          
+          // Calculate hydrogen bonds
+          const hydrogenBonds2 = calculateHydrogenBonds(transformedMolecule2);
+          
+          // Add hydrogen bond visualization
+          hydrogenBonds2.forEach(bond => {
+            viewerInstance.addCylinder({
+              start: {
+                x: transformedMolecule2[bond.hIndex].x,
+                y: transformedMolecule2[bond.hIndex].y,
+                z: transformedMolecule2[bond.hIndex].z
+              },
+              end: {
+                x: transformedMolecule2[bond.acceptorIndex].x,
+                y: transformedMolecule2[bond.acceptorIndex].y,
+                z: transformedMolecule2[bond.acceptorIndex].z
+              },
+              radius: isMobile ? 0.05 : 0.07,  
+              fromCap: 1,
+              toCap: 1,
+              color: "0xFFFFFF",  
+              dashed: true,
+              dashLength: 0.15,   
+              gapLength: 0.15,   
+            });
+          });
 
           // Add element labels for molecule2
           molecule2.forEach((atom) => {
@@ -412,7 +686,8 @@ const MoleculeViewer = ({
           },
           stick: {
             radius: isMobile ? 0.12 : 0.15,
-            color: "0x38bdf8"
+            color: "0x38bdf8",
+            smooth: true
           },
         });
 
@@ -424,9 +699,67 @@ const MoleculeViewer = ({
           },
           stick: {
             radius: isMobile ? 0.12 : 0.15,
-            color: "0x10b981"
+            color: "0x10b981",
+            smooth: true
           },
         });
+
+        // Add a legend for bond types
+        if (molecule1 || molecule2) {
+          // Add legend in top-right corner
+          const legendX = 15;
+          const legendY = -15;
+          const legendZ = 0;
+          
+          // Legend title
+          viewerInstance.addLabel("Bond Types:", {
+            position: { x: legendX, y: legendY, z: legendZ },
+            fontSize: isMobile ? 12 : 14,
+            fontColor: "white",
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
+            borderRadius: 4,
+            padding: 4,
+            inFront: true,
+            fixedPosition: true,
+          });
+          
+          // Covalent bond example
+          viewerInstance.addCylinder({
+            start: { x: legendX - 5, y: legendY - 3, z: legendZ },
+            end: { x: legendX, y: legendY - 3, z: legendZ },
+            radius: isMobile ? 0.12 : 0.15,
+            color: molecule1 ? "0x38bdf8" : "0x10b981",
+          });
+          
+          viewerInstance.addLabel("Covalent", {
+            position: { x: legendX + 5, y: legendY - 3, z: legendZ },
+            fontSize: isMobile ? 10 : 12,
+            fontColor: "white",
+            backgroundColor: "transparent",
+            inFront: true,
+            fixedPosition: true,
+          });
+          
+          // Hydrogen bond example
+          viewerInstance.addCylinder({
+            start: { x: legendX - 5, y: legendY - 6, z: legendZ },
+            end: { x: legendX, y: legendY - 6, z: legendZ },
+            radius: isMobile ? 0.05 : 0.07,
+            color: "0xFFFFFF",
+            dashed: true,
+            dashLength: 0.15,
+            gapLength: 0.15,
+          });
+          
+          viewerInstance.addLabel("Hydrogen", {
+            position: { x: legendX + 5, y: legendY - 6, z: legendZ },
+            fontSize: isMobile ? 10 : 12,
+            fontColor: "white",
+            backgroundColor: "transparent",
+            inFront: true,
+            fixedPosition: true,
+          });
+        }
 
         // Handle mouse interaction behavior and positioning mode
         try {
