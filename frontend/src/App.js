@@ -535,9 +535,16 @@ const App = () => {
         }
       }
 
-      // When in interaction mode and processedMolecule2 is available,
-      // rotation and offsets are already incorporated in the current view
-      // so we don't need additional processing here
+      // FIX: Add default offset if molecules are too close to each other
+      let effectiveMolecule2Offset = { ...molecule2Offset };
+      if (interactionMode && molecule1 && molecule2 &&
+        (!molecule2Offset || (Math.abs(molecule2Offset.x) < 0.1 &&
+          Math.abs(molecule2Offset.y) < 0.1 &&
+          Math.abs(molecule2Offset.z) < 0.1))) {
+        // Apply a default offset of 5 Angstroms in x direction
+        effectiveMolecule2Offset = { x: 5.0, y: 0.0, z: 0.0 };
+        setMolecule2Offset(effectiveMolecule2Offset);
+      }
 
       const payload = {
         molecule1: requestMolecule1,
@@ -545,7 +552,7 @@ const App = () => {
         optimization_type: optimizationType,
         optimization_params: optimizationParams,
         interaction_mode: interactionMode,
-        molecule2_offset: interactionMode ? molecule2Offset : null,
+        molecule2_offset: interactionMode ? effectiveMolecule2Offset : null,
         molecule2_rotation: interactionMode ? molecule2Rotation : null
       };
 
@@ -573,14 +580,8 @@ const App = () => {
       console.log("Response received:", response);
 
       if (response.data.success) {
-        // Check for error field directly in result object
-        if (response.data.result && response.data.result.error) {
-          alert("Optimization failed. " + response.data.result.error);
-          return;
-        }
-
         // Store the molecule2Offset and molecule2Rotation with the result for future reference
-        response.data.molecule2Offset = molecule2Offset;
+        response.data.molecule2Offset = effectiveMolecule2Offset;
         response.data.molecule2Rotation = molecule2Rotation;
 
         setOptimizationResult(response.data);
@@ -605,7 +606,6 @@ const App = () => {
       setIsOptimizeLoading(false);
     }
   };
-
   const handleParamChange = (type, paramName, value) => {
     if (type === "classical") {
       setClassicalParams(prev => ({

@@ -465,6 +465,17 @@ def optimize_classical_combined(molecule1_atoms, molecule2_atoms, params=None):
                 logger.info(f"Detected identical or very similar molecules (RMSD={rmsd}Å), applying displacement")
                 # Apply a 3Å displacement to second molecule to avoid instability
                 molecule2_atoms = displace_molecule(molecule2_atoms, magnitude=3.0)
+                
+            # FIX: Add safety check for molecular separation
+            center1 = np.mean([[atom["x"], atom["y"], atom["z"]] for atom in molecule1_atoms], axis=0)
+            center2 = np.mean([[atom["x"], atom["y"], atom["z"]] for atom in molecule2_atoms], axis=0)
+            distance = np.sqrt(np.sum((center1 - center2)**2))
+            
+            # If centers are too close, add separation
+            if distance < 3.0:  # Minimum 3 Angstroms between centers
+                logger.info(f"Molecules too close (distance={distance}Å), applying automatic separation")
+                displacement_vector = np.array([5.0, 0.0, 0.0])
+                molecule2_atoms = displace_molecule(molecule2_atoms, displacement_vector=displacement_vector)
         
         # Combine atoms from both molecules, tracking their origins
         all_atoms = []
@@ -912,8 +923,7 @@ def optimize_classical_combined(molecule1_atoms, molecule2_atoms, params=None):
                 "library": "OpenMM",
                 "status": "failed"
             }
-        }      
-
+        }
 
 def optimize_quantum(atoms, params=None):
     """
@@ -1154,6 +1164,17 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None):
                 logger.info(f"Detected identical or very similar molecules (RMSD={rmsd}Å), applying displacement")
                 # Apply a 3Å displacement to second molecule to avoid instability
                 molecule2_atoms = displace_molecule(molecule2_atoms, magnitude=3.0)
+                
+            # FIX: Add safety check for molecular separation
+            center1 = np.mean([[atom["x"], atom["y"], atom["z"]] for atom in molecule1_atoms], axis=0)
+            center2 = np.mean([[atom["x"], atom["y"], atom["z"]] for atom in molecule2_atoms], axis=0)
+            distance = np.sqrt(np.sum((center1 - center2)**2))
+            
+            # If centers are too close, add separation
+            if distance < 3.0:  # Minimum 3 Angstroms between centers
+                logger.info(f"Molecules too close (distance={distance}Å), applying automatic separation")
+                displacement_vector = np.array([5.0, 0.0, 0.0])
+                molecule2_atoms = displace_molecule(molecule2_atoms, displacement_vector=displacement_vector)
         
         # Combine atoms from both molecules, tracking their origins
         all_atoms = []
@@ -1532,7 +1553,6 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None):
                 "status": "failed"
             }
         }
-
 
 def extract_molecule_atoms(molecule_data):
     """
