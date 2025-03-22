@@ -458,14 +458,6 @@ def optimize_classical_combined(molecule1_atoms, molecule2_atoms, params=None):
         is_similar = False
         rmsd = None
         
-        if molecule1_atoms and molecule2_atoms:
-            is_similar, rmsd = are_molecules_similar(molecule1_atoms, molecule2_atoms)
-            
-            if is_similar:
-                logger.info(f"Detected identical or very similar molecules (RMSD={rmsd}Å), applying displacement")
-                # Apply a 3Å displacement to second molecule to avoid instability
-                molecule2_atoms = displace_molecule(molecule2_atoms, magnitude=3.0)
-        
         # Combine atoms from both molecules, tracking their origins
         all_atoms = []
         atom_origins = []  # Track which molecule each atom came from (1 or 2)
@@ -1146,14 +1138,6 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None):
         # Check if molecules are too similar (causes numerical instability)
         is_similar = False
         rmsd = None
-        
-        if molecule1_atoms and molecule2_atoms:
-            is_similar, rmsd = are_molecules_similar(molecule1_atoms, molecule2_atoms)
-            
-            if is_similar:
-                logger.info(f"Detected identical or very similar molecules (RMSD={rmsd}Å), applying displacement")
-                # Apply a 3Å displacement to second molecule to avoid instability
-                molecule2_atoms = displace_molecule(molecule2_atoms, magnitude=3.0)
         
         # Combine atoms from both molecules, tracking their origins
         all_atoms = []
