@@ -888,18 +888,18 @@ def optimize_classical_combined(molecule1_atoms, molecule2_atoms, params=None):
                 "molecule1_atom_count": len(molecule1_atoms) if molecule1_atoms else 0,
                 "molecule2_atom_count": len(molecule2_atoms) if molecule2_atoms else 0,
                 "iterations_performed": iterations_performed,
-                "final_energy_kj_mol": final_energy,
-                "initial_energy_kj_mol": start_energy,
-                "energy_change_kj_mol": abs(start_energy - final_energy),
+                "final_energy_kj_mol": float(final_energy),
+                "initial_energy_kj_mol": float(start_energy),
+                "energy_change_kj_mol": float(abs(start_energy - final_energy)),
                 "duration_seconds": duration,
                 "convergence": "energy_minimized",
-                "identical_molecules_detected": is_similar,
-                "molecule_rmsd": rmsd,
+                "identical_molecules_detected": bool(is_similar),  # Convert NumPy boolean to Python boolean
+                "molecule_rmsd": float(rmsd) if rmsd is not None else None,
                 "bonds_detected": len(bonds),
                 "intermolecular_bonds": intermolecular_bonds,
                 "angles_detected": len(angles),
-                "initial_interaction_energy_kj_mol": initial_interaction_energy,
-                "interaction_energy_kj_mol": final_interaction_energy
+                "initial_interaction_energy_kj_mol": float(initial_interaction_energy) if initial_interaction_energy is not None else None,
+                "interaction_energy_kj_mol": float(final_interaction_energy) if final_interaction_energy is not None else None
             }
         }
         
@@ -1003,8 +1003,8 @@ def optimize_quantum(atoms, params=None):
             # Store current state in history
             optimization_history.append({
                 'iteration': iteration,
-                'energy': current_energy,
-                'gradient_norm': np.linalg.norm(gradients)
+                'energy': float(current_energy),
+                'gradient_norm': float(np.linalg.norm(gradients))
             })
             
             # Get coordinates
@@ -1096,7 +1096,7 @@ def optimize_quantum(atoms, params=None):
                 "theory_level": f"RHF/{basis}",
                 "final_energy_hartree": float(current_energy),
                 "iterations": iteration,
-                "converged": converged,
+                "converged": bool(converged),  # Convert NumPy boolean to Python boolean
                 "duration_seconds": duration,
                 "optimization_history": optimization_history
             }
@@ -1505,8 +1505,8 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None):
                 "molecules": 2 if molecule1_atoms and molecule2_atoms else 1,
                 "molecule1_atom_count": len(molecule1_atoms) if molecule1_atoms else 0,
                 "molecule2_atom_count": len(molecule2_atoms) if molecule2_atoms else 0,
-                "identical_molecules_detected": is_similar,
-                "molecule_rmsd": rmsd,
+                "identical_molecules_detected": bool(is_similar),  # Convert NumPy boolean to Python boolean
+                "molecule_rmsd": float(rmsd) if rmsd is not None else None,
                 "theory_level": f"RHF/{basis}",
                 "final_energy_hartree": float(current_energy),
                 "initial_molecule1_energy_hartree": float(initial_energy1) if initial_energy1 is not None else None,
@@ -1514,7 +1514,7 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None):
                 "final_molecule1_energy_hartree": float(final_energy1) if final_energy1 is not None else None,
                 "final_molecule2_energy_hartree": float(final_energy2) if final_energy2 is not None else None,
                 "iterations": iteration,
-                "converged": converged,
+                "converged": bool(converged),  # Convert NumPy boolean to Python boolean
                 "duration_seconds": duration,
                 "initial_interaction_energy_hartree": float(initial_interaction_energy) if initial_interaction_energy is not None else None,
                 "interaction_energy_hartree": float(final_interaction_energy) if final_interaction_energy is not None else None,
