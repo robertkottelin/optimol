@@ -112,19 +112,24 @@ const MoleculeViewer = ({
     if (!viewer) return;
     
     try {
-      // Remove the overlay if it exists
+      // First ensure current_hover is properly nullified
+      if (viewer.current_hover) {
+        viewer.current_hover = null;
+      }
+      
+      // Remove overlay
       const viewerElement = viewerRef.current;
       const overlay = viewerElement.querySelector('.event-blocker-overlay');
       if (overlay) {
         viewerElement.removeChild(overlay);
       }
       
-      // Re-enable hoverable
-      viewer.setHoverable({}, true);
-      viewer.setClickable({}, true);
-      
-      // Reset viewer state
+      // Reinitialize viewer events AFTER hover state is reset
       viewer.render();
+      
+      // Enable hover with empty callback to prevent undefined function calls
+      const emptyCallback = function() {};
+      viewer.setHoverable({}, true, emptyCallback, emptyCallback);
     } catch (e) {
       console.error("Error enabling viewer interactions:", e);
     }
@@ -134,10 +139,13 @@ const MoleculeViewer = ({
     if (!viewer) return;
     
     try {
-      // Completely remove hover functionality first
+      // Properly disable hover by setting false WITHOUT callbacks
       viewer.setHoverable({}, false);
       
-      // Create a transparent overlay to block all mouse events
+      // Explicitly null the hover state
+      viewer.current_hover = null;
+      
+      // Create event-blocking overlay
       const viewerElement = viewerRef.current;
       let overlay = viewerElement.querySelector('.event-blocker-overlay');
       
@@ -150,30 +158,19 @@ const MoleculeViewer = ({
         overlay.style.width = '100%';
         overlay.style.height = '100%';
         overlay.style.zIndex = '100';
-        overlay.style.cursor = 'not-allowed';
         
-        // Add the overlay to the viewer container
+        // Attach event handlers to overlay
+        overlay.addEventListener('mousemove', e => e.stopPropagation(), true);
+        overlay.addEventListener('mousedown', e => e.stopPropagation(), true);
+        overlay.addEventListener('mouseup', e => e.stopPropagation(), true);
+        
         viewerElement.appendChild(overlay);
       }
-      
-      // Add a simple mouse handler to prevent events from reaching the viewer
-      overlay.onmousemove = (e) => {
-        e.stopPropagation();
-        return false;
-      };
-      
-      // Ensure viewer doesn't process mouse events by setting null handlers
-      viewer.mouseStartCallback = null;
-      viewer.mouseMoveCallback = null;
-      viewer.mouseUpCallback = null;
-      
-      // Reset current_hover to prevent callback errors
-      viewer.current_hover = null;
     } catch (e) {
       console.error("Error disabling viewer interactions:", e);
     }
   };
-  
+    
   // Calculate center of mass for a molecule
   const calculateCenterOfMass = (atoms) => {
     if (!atoms || atoms.length === 0) return { x: 0, y: 0, z: 0 };
