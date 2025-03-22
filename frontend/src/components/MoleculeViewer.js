@@ -19,6 +19,47 @@ const MoleculeViewer = ({
   const [isInitialRender, setIsInitialRender] = useState(true);
   const viewerIdRef = useRef(`molecule-viewer-${Math.random().toString(36).substr(2, 9)}`);
   const cameraStateRef = useRef(null);
+  const [showLegend, setShowLegend] = useState(true);
+
+  // Static bond legend styles
+  const bondLegendStyle = {
+    position: 'absolute',
+    top: '10px',
+    left: '10px',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    color: 'white',
+    padding: '8px',
+    borderRadius: '5px',
+    zIndex: 50,
+    pointerEvents: 'none',
+    fontSize: isMobile ? '11px' : '12px',
+    maxWidth: isMobile ? '150px' : '200px',
+    border: '1px solid rgba(255, 255, 255, 0.1)'
+  };
+
+  const legendTitleStyle = {
+    fontWeight: 'bold',
+    marginBottom: '5px'
+  };
+
+  const bondTypeStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    marginBottom: '3px'
+  };
+
+  const bondLineStyle = (color, isDashed) => ({
+    width: '25px',
+    height: isDashed ? '1px' : '2px',
+    backgroundColor: color,
+    marginRight: '8px',
+    position: 'relative',
+    ...(isDashed && {
+      backgroundImage: `linear-gradient(to right, ${color} 50%, transparent 50%)`,
+      backgroundSize: '6px 100%',
+      backgroundRepeat: 'repeat-x',
+    })
+  });
 
   // Control button styles
   const positionControlButtonStyle = {
@@ -637,12 +678,9 @@ const MoleculeViewer = ({
       return;
     }
 
-    // Set up viewer instance only once with enhanced quality settings
+    // Set up viewer instance only once
     const viewer = $3Dmol.createViewer(viewerRef.current, {
       backgroundColor: "rgb(15, 23, 42)",
-      antialias: true,               // Enable anti-aliasing for smoother edges
-      preserveDrawingBuffer: true,   // Helps with rendering quality
-      defaultcolors: $3Dmol.elementColors.rasmol // Enhanced color scheme
     });
 
     // Store viewer instance for later use
@@ -712,8 +750,7 @@ const MoleculeViewer = ({
               radius: isMobile ? 0.12 : 0.15,
               fromCap: 1,
               toCap: 1,
-              color: "0x38bdf8",  // Blue for molecule 1
-              resolution: 20      // Increased cylinder resolution for smoother appearance
+              color: "0x38bdf8"  // Blue for molecule 1
             });
           });
           
@@ -740,7 +777,6 @@ const MoleculeViewer = ({
               dashed: true,
               dashLength: 0.15,   // Length of dash segments
               gapLength: 0.15,    // Length of gaps
-              resolution: 20      // Increased resolution
             });
           });
 
@@ -839,8 +875,7 @@ const MoleculeViewer = ({
               radius: isMobile ? 0.12 : 0.15,
               fromCap: 1,
               toCap: 1,
-              color: "0x10b981",  // Green for molecule 2
-              resolution: 20      // Higher resolution
+              color: "0x10b981"  // Green for molecule 2
             });
           });
           
@@ -866,8 +901,7 @@ const MoleculeViewer = ({
               color: "0xFFFFFF",  
               dashed: true,
               dashLength: 0.15,   
-              gapLength: 0.15,
-              resolution: 20      // Higher resolution
+              gapLength: 0.15,   
             });
           });
 
@@ -971,7 +1005,6 @@ const MoleculeViewer = ({
               dashed: true,
               dashLength: 0.15,
               gapLength: 0.15,
-              resolution: 20      // Higher resolution
             });
             
             // Add a label for the hydrogen bond if needed
@@ -994,34 +1027,29 @@ const MoleculeViewer = ({
         }
 
         // Style both molecules - must be done after adding all models
-        // Enhanced styling with higher quality settings
         viewerInstance.setStyle({ properties: { molecule: 1 } }, {
           sphere: {
-            radius: isMobile ? 0.35 : 0.4,     // Slightly larger spheres
-            scale: isMobile ? 0.9 : 1.0,       // Full scale for non-mobile
-            color: "0x38bdf8",                 // Blue for molecule 1
-            resolution: 32                      // Higher resolution spheres
+            radius: isMobile ? 0.30 : 0.35,
+            scale: isMobile ? 0.85 : 0.9,
+            color: "0x38bdf8"  // Blue for molecule 1
           },
           stick: {
-            radius: isMobile ? 0.15 : 0.18,    // Slightly thicker sticks for better visibility
+            radius: isMobile ? 0.12 : 0.15,
             color: "0x38bdf8",
-            smooth: true,
-            quality: 5                         // Higher quality sticks rendering
+            smooth: true
           },
         });
 
         viewerInstance.setStyle({ properties: { molecule: 2 } }, {
           sphere: {
-            radius: isMobile ? 0.35 : 0.4,     // Slightly larger spheres
-            scale: isMobile ? 0.9 : 1.0,       // Full scale for non-mobile
-            color: "0x10b981",                 // Green for molecule 2
-            resolution: 32                      // Higher resolution spheres
+            radius: isMobile ? 0.30 : 0.35,
+            scale: isMobile ? 0.85 : 0.9,
+            color: "0x10b981"  // Green for molecule 2
           },
           stick: {
-            radius: isMobile ? 0.15 : 0.18,    // Slightly thicker sticks
+            radius: isMobile ? 0.12 : 0.15,
             color: "0x10b981",
-            smooth: true,
-            quality: 5                         // Higher quality sticks rendering
+            smooth: true
           },
         });
 
@@ -1052,10 +1080,6 @@ const MoleculeViewer = ({
           console.error("3DMol interaction handler error:", e);
         }
 
-        // Enhanced lighting settings for better 3D appearance
-        viewerInstance.setLightingIntensity(0.85);  // Slightly reduced to avoid overexposure
-        viewerInstance.setSurfaceMaterialStyle({ambient: 0.4, diffuse: 0.6, specular: 0.9, shininess: 100});
-        
         // Initial view or restore camera
         if (isInitialRender) {
           viewerInstance.zoomTo();
@@ -1064,15 +1088,9 @@ const MoleculeViewer = ({
           restoreCameraState(viewerInstance, cameraStateRef.current);
         }
 
-        // Force render and resize with quality settings
-        viewerInstance.render(5);  // Explicitly setting a higher quality render pass
+        // Force render and resize
+        viewerInstance.render();
         viewerInstance.resize();
-        
-        // Additional render for better quality
-        setTimeout(() => {
-          viewerInstance.render(5);
-        }, 10);
-        
       } catch (error) {
         console.error("Error rendering molecule:", error);
       }
@@ -1088,7 +1106,7 @@ const MoleculeViewer = ({
           if (tempCameraState) {
             restoreCameraState(viewer, tempCameraState);
           } else {
-            viewer.render(5);  // Higher quality render on resize
+            viewer.render();
           }
         }
       }
@@ -1182,65 +1200,41 @@ const MoleculeViewer = ({
     };
   }, [positioningMode, molecule2, molecule2Offset, molecule2Rotation, onMoleculeMove, onMoleculeRotate]);
 
-  // Render bond type legend as fixed HTML element
-  const renderBondLegend = () => {
-    if (!molecule1 && !molecule2) return null;
-    
+  // Static bond legend component
+  const BondLegend = () => {
     return (
-      <div style={{
-        position: 'absolute',
-        top: '10px',
-        left: '10px',
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-        color: 'white',
-        padding: '10px',
-        borderRadius: '6px',
-        fontSize: isMobile ? '11px' : '13px',
-        zIndex: 50,
-        pointerEvents: 'none',
-        backdropFilter: 'blur(5px)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)'
-      }}>
-        <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Bond Types:</div>
+      <div style={bondLegendStyle}>
+        <div style={legendTitleStyle}>Bond Types:</div>
         
-        {/* Covalent bond */}
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
-          <div style={{ 
-            width: '25px', 
-            height: '4px', 
-            borderRadius: '2px',
-            backgroundColor: molecule1 ? '#38bdf8' : '#10b981',
-            marginRight: '8px'
-          }}></div>
+        <div style={bondTypeStyle}>
+          <div style={bondLineStyle("#38bdf8", false)}></div>
           <span>Covalent</span>
         </div>
         
-        {/* Hydrogen bond */}
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
-          <div style={{ 
-            width: '25px', 
-            height: '2px', 
-            borderRadius: '1px',
-            background: 'repeating-linear-gradient(90deg, white, white 3px, transparent 3px, transparent 6px)',
-            marginRight: '8px'
-          }}></div>
+        <div style={bondTypeStyle}>
+          <div style={bondLineStyle("#FFFFFF", true)}></div>
           <span>Hydrogen</span>
         </div>
         
-        {/* Intermolecular hydrogen bond (shown only when both molecules present) */}
         {molecule1 && molecule2 && (
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <div style={{ 
-              width: '25px', 
-              height: '2px', 
-              borderRadius: '1px',
-              background: 'repeating-linear-gradient(90deg, #FFD700, #FFD700 3px, transparent 3px, transparent 6px)',
-              marginRight: '8px'
-            }}></div>
+          <div style={bondTypeStyle}>
+            <div style={bondLineStyle("#FFD700", true)}></div>
             <span>Intermolecular H-bond</span>
           </div>
         )}
+        
+        <div style={{ 
+          marginTop: '5px', 
+          fontSize: isMobile ? '10px' : '11px',
+          color: 'rgba(255, 255, 255, 0.7)' 
+        }}>
+          <span 
+            onClick={() => setShowLegend(!showLegend)} 
+            style={{ cursor: 'pointer', textDecoration: 'underline' }}
+          >
+            {showLegend ? "Hide" : "Show"} Legend
+          </span>
+        </div>
       </div>
     );
   };
@@ -1400,8 +1394,8 @@ const MoleculeViewer = ({
           }}
         ></div>
 
-        {/* Render the HTML-based static bond legend */}
-        {renderBondLegend()}
+        {/* Static Bond Legend Overlay */}
+        {(molecule1 || molecule2) && showLegend && <BondLegend />}
 
         {positioningMode && molecule2 && (
           <div style={{
@@ -1414,9 +1408,7 @@ const MoleculeViewer = ({
             color: 'white',
             fontSize: '12px',
             pointerEvents: 'none',
-            zIndex: 20,
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)'
+            zIndex: 20
           }}>
             <div>Offset: X: {molecule2Offset.x.toFixed(2)}, Y: {molecule2Offset.y.toFixed(2)}, Z: {molecule2Offset.z.toFixed(2)}</div>
             <div>Rotation: X: {molecule2Rotation.x}°, Y: {molecule2Rotation.y}°, Z: {molecule2Rotation.z}°</div>
