@@ -518,7 +518,59 @@ const App = () => {
         };
       }
 
-      // Prepare molecule2Data for optimization request with current rotation and offset
+      // Helper functions for coordinate transformations
+      const calculateCenterOfMass = (atoms) => {
+        if (!atoms || atoms.length === 0) return { x: 0, y: 0, z: 0 };
+        const sum = atoms.reduce((acc, atom) => ({
+          x: acc.x + atom.x,
+          y: acc.y + atom.y,
+          z: acc.z + atom.z
+        }), { x: 0, y: 0, z: 0 });
+        return {
+          x: sum.x / atoms.length,
+          y: sum.y / atoms.length,
+          z: sum.z / atoms.length
+        };
+      };
+
+      const applyRotation = (coords, rotation, centerOfMass) => {
+        // Convert degrees to radians
+        const radX = rotation.x * Math.PI / 180;
+        const radY = rotation.y * Math.PI / 180;
+        const radZ = rotation.z * Math.PI / 180;
+
+        // Translate to origin (center of mass)
+        const centered = [
+          coords[0] - centerOfMass.x,
+          coords[1] - centerOfMass.y,
+          coords[2] - centerOfMass.z
+        ];
+
+        // Apply rotations (ZYX order)
+        // Z-axis rotation
+        let nx = centered[0] * Math.cos(radZ) - centered[1] * Math.sin(radZ);
+        let ny = centered[0] * Math.sin(radZ) + centered[1] * Math.cos(radZ);
+        let nz = centered[2];
+
+        // Y-axis rotation
+        let mx = nx * Math.cos(radY) + nz * Math.sin(radY);
+        let my = ny;
+        let mz = -nx * Math.sin(radY) + nz * Math.cos(radY);
+
+        // X-axis rotation
+        let rx = mx;
+        let ry = my * Math.cos(radX) - mz * Math.sin(radX);
+        let rz = my * Math.sin(radX) + mz * Math.cos(radX);
+
+        // Translate back from origin
+        return [
+          rx + centerOfMass.x,
+          ry + centerOfMass.y,
+          rz + centerOfMass.z
+        ];
+      };
+
+      // Prepare molecule2Data for optimization request
       let requestMolecule2 = null;
       let processedMolecule2 = null;
 
@@ -528,23 +580,48 @@ const App = () => {
           atoms: molecule2
         };
 
-        // Process molecule2 data with offset and rotation for API request if needed
+        // CHANGED: Apply transformations directly to processedMolecule2 atoms
         if (interactionMode) {
-          // Deep clone molecule2Data to avoid modifying the original
-          processedMolecule2 = JSON.parse(JSON.stringify(requestMolecule2));
+          // Calculate center of mass for rotation
+          const centerOfMass = calculateCenterOfMass(molecule2);
+
+          // Clone and transform molecule2 atoms
+          const transformedAtoms = molecule2.map(atom => {
+            // Deep clone atom
+            const newAtom = { ...atom };
+
+            // Apply rotation if needed
+            if (molecule2Rotation && (molecule2Rotation.x !== 0 || molecule2Rotation.y !== 0 || molecule2Rotation.z !== 0)) {
+              const coords = [atom.x, atom.y, atom.z];
+              const rotated = applyRotation(coords, molecule2Rotation, centerOfMass);
+              newAtom.x = rotated[0];
+              newAtom.y = rotated[1];
+              newAtom.z = rotated[2];
+            }
+
+            // Apply offset
+            newAtom.x += molecule2Offset.x;
+            newAtom.y += molecule2Offset.y;
+            newAtom.z += molecule2Offset.z;
+
+            return newAtom;
+          });
+
+          // Create transformed molecule
+          processedMolecule2 = {
+            atoms: transformedAtoms
+          };
         }
       }
 
-      // When in interaction mode and processedMolecule2 is available,
-      // rotation and offsets are already incorporated in the current view
-      // so we don't need additional processing here
-
+      // CHANGED: Payload now uses directly transformed coordinates
       const payload = {
         molecule1: requestMolecule1,
-        molecule2: interactionMode ? (processedMolecule2 || requestMolecule2) : null,
+        molecule2: interactionMode ? processedMolecule2 : null,
         optimization_type: optimizationType,
         optimization_params: optimizationParams,
         interaction_mode: interactionMode,
+        // Keep these for backward compatibility with backend
         molecule2_offset: interactionMode ? molecule2Offset : null,
         molecule2_rotation: interactionMode ? molecule2Rotation : null
       };
@@ -573,12 +650,6 @@ const App = () => {
       console.log("Response received:", response);
 
       if (response.data.success) {
-        // Check for error field directly in result object
-        if (response.data.result && response.data.result.error) {
-          alert("Optimization failed. " + response.data.result.error);
-          return;
-        }
-
         // Store the molecule2Offset and molecule2Rotation with the result for future reference
         response.data.molecule2Offset = molecule2Offset;
         response.data.molecule2Rotation = molecule2Rotation;
