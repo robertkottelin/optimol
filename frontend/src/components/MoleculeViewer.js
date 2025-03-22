@@ -637,9 +637,12 @@ const MoleculeViewer = ({
       return;
     }
 
-    // Set up viewer instance only once
+    // Set up viewer instance only once with enhanced quality settings
     const viewer = $3Dmol.createViewer(viewerRef.current, {
       backgroundColor: "rgb(15, 23, 42)",
+      antialias: true,               // Enable anti-aliasing for smoother edges
+      preserveDrawingBuffer: true,   // Helps with rendering quality
+      defaultcolors: $3Dmol.elementColors.rasmol // Enhanced color scheme
     });
 
     // Store viewer instance for later use
@@ -709,7 +712,8 @@ const MoleculeViewer = ({
               radius: isMobile ? 0.12 : 0.15,
               fromCap: 1,
               toCap: 1,
-              color: "0x38bdf8"  // Blue for molecule 1
+              color: "0x38bdf8",  // Blue for molecule 1
+              resolution: 20      // Increased cylinder resolution for smoother appearance
             });
           });
           
@@ -736,6 +740,7 @@ const MoleculeViewer = ({
               dashed: true,
               dashLength: 0.15,   // Length of dash segments
               gapLength: 0.15,    // Length of gaps
+              resolution: 20      // Increased resolution
             });
           });
 
@@ -834,7 +839,8 @@ const MoleculeViewer = ({
               radius: isMobile ? 0.12 : 0.15,
               fromCap: 1,
               toCap: 1,
-              color: "0x10b981"  // Green for molecule 2
+              color: "0x10b981",  // Green for molecule 2
+              resolution: 20      // Higher resolution
             });
           });
           
@@ -860,7 +866,8 @@ const MoleculeViewer = ({
               color: "0xFFFFFF",  
               dashed: true,
               dashLength: 0.15,   
-              gapLength: 0.15,   
+              gapLength: 0.15,
+              resolution: 20      // Higher resolution
             });
           });
 
@@ -964,6 +971,7 @@ const MoleculeViewer = ({
               dashed: true,
               dashLength: 0.15,
               gapLength: 0.15,
+              resolution: 20      // Higher resolution
             });
             
             // Add a label for the hydrogen bond if needed
@@ -986,33 +994,36 @@ const MoleculeViewer = ({
         }
 
         // Style both molecules - must be done after adding all models
+        // Enhanced styling with higher quality settings
         viewerInstance.setStyle({ properties: { molecule: 1 } }, {
           sphere: {
-            radius: isMobile ? 0.30 : 0.35,
-            scale: isMobile ? 0.85 : 0.9,
-            color: "0x38bdf8"  // Blue for molecule 1
+            radius: isMobile ? 0.35 : 0.4,     // Slightly larger spheres
+            scale: isMobile ? 0.9 : 1.0,       // Full scale for non-mobile
+            color: "0x38bdf8",                 // Blue for molecule 1
+            resolution: 32                      // Higher resolution spheres
           },
           stick: {
-            radius: isMobile ? 0.12 : 0.15,
+            radius: isMobile ? 0.15 : 0.18,    // Slightly thicker sticks for better visibility
             color: "0x38bdf8",
-            smooth: true
+            smooth: true,
+            quality: 5                         // Higher quality sticks rendering
           },
         });
 
         viewerInstance.setStyle({ properties: { molecule: 2 } }, {
           sphere: {
-            radius: isMobile ? 0.30 : 0.35,
-            scale: isMobile ? 0.85 : 0.9,
-            color: "0x10b981"  // Green for molecule 2
+            radius: isMobile ? 0.35 : 0.4,     // Slightly larger spheres
+            scale: isMobile ? 0.9 : 1.0,       // Full scale for non-mobile
+            color: "0x10b981",                 // Green for molecule 2
+            resolution: 32                      // Higher resolution spheres
           },
           stick: {
-            radius: isMobile ? 0.12 : 0.15,
+            radius: isMobile ? 0.15 : 0.18,    // Slightly thicker sticks
             color: "0x10b981",
-            smooth: true
+            smooth: true,
+            quality: 5                         // Higher quality sticks rendering
           },
         });
-
-        // --- REMOVED 3DMOL LEGEND HERE (previously was here) ---
 
         // Handle mouse interaction behavior and positioning mode
         try {
@@ -1041,6 +1052,10 @@ const MoleculeViewer = ({
           console.error("3DMol interaction handler error:", e);
         }
 
+        // Enhanced lighting settings for better 3D appearance
+        viewerInstance.setLightingIntensity(0.85);  // Slightly reduced to avoid overexposure
+        viewerInstance.setSurfaceMaterialStyle({ambient: 0.4, diffuse: 0.6, specular: 0.9, shininess: 100});
+        
         // Initial view or restore camera
         if (isInitialRender) {
           viewerInstance.zoomTo();
@@ -1049,9 +1064,15 @@ const MoleculeViewer = ({
           restoreCameraState(viewerInstance, cameraStateRef.current);
         }
 
-        // Force render and resize
-        viewerInstance.render();
+        // Force render and resize with quality settings
+        viewerInstance.render(5);  // Explicitly setting a higher quality render pass
         viewerInstance.resize();
+        
+        // Additional render for better quality
+        setTimeout(() => {
+          viewerInstance.render(5);
+        }, 10);
+        
       } catch (error) {
         console.error("Error rendering molecule:", error);
       }
@@ -1067,7 +1088,7 @@ const MoleculeViewer = ({
           if (tempCameraState) {
             restoreCameraState(viewer, tempCameraState);
           } else {
-            viewer.render();
+            viewer.render(5);  // Higher quality render on resize
           }
         }
       }
@@ -1172,19 +1193,21 @@ const MoleculeViewer = ({
         left: '10px',
         backgroundColor: 'rgba(0, 0, 0, 0.7)',
         color: 'white',
-        padding: '8px',
+        padding: '10px',
         borderRadius: '6px',
         fontSize: isMobile ? '11px' : '13px',
         zIndex: 50,
         pointerEvents: 'none',
-        backdropFilter: 'blur(3px)',
+        backdropFilter: 'blur(5px)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)'
       }}>
-        <div style={{ fontWeight: 'bold', marginBottom: '6px' }}>Bond Types:</div>
+        <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Bond Types:</div>
         
         {/* Covalent bond */}
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
           <div style={{ 
-            width: '20px', 
+            width: '25px', 
             height: '4px', 
             borderRadius: '2px',
             backgroundColor: molecule1 ? '#38bdf8' : '#10b981',
@@ -1194,12 +1217,12 @@ const MoleculeViewer = ({
         </div>
         
         {/* Hydrogen bond */}
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
           <div style={{ 
-            width: '20px', 
+            width: '25px', 
             height: '2px', 
             borderRadius: '1px',
-            background: 'repeating-linear-gradient(90deg, white, white 2px, transparent 2px, transparent 4px)',
+            background: 'repeating-linear-gradient(90deg, white, white 3px, transparent 3px, transparent 6px)',
             marginRight: '8px'
           }}></div>
           <span>Hydrogen</span>
@@ -1209,10 +1232,10 @@ const MoleculeViewer = ({
         {molecule1 && molecule2 && (
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <div style={{ 
-              width: '20px', 
+              width: '25px', 
               height: '2px', 
               borderRadius: '1px',
-              background: 'repeating-linear-gradient(90deg, #FFD700, #FFD700 2px, transparent 2px, transparent 4px)',
+              background: 'repeating-linear-gradient(90deg, #FFD700, #FFD700 3px, transparent 3px, transparent 6px)',
               marginRight: '8px'
             }}></div>
             <span>Intermolecular H-bond</span>
@@ -1391,7 +1414,9 @@ const MoleculeViewer = ({
             color: 'white',
             fontSize: '12px',
             pointerEvents: 'none',
-            zIndex: 20
+            zIndex: 20,
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)'
           }}>
             <div>Offset: X: {molecule2Offset.x.toFixed(2)}, Y: {molecule2Offset.y.toFixed(2)}, Z: {molecule2Offset.z.toFixed(2)}</div>
             <div>Rotation: X: {molecule2Rotation.x}°, Y: {molecule2Rotation.y}°, Z: {molecule2Rotation.z}°</div>
