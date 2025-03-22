@@ -35,14 +35,14 @@ const SubscriptionForm = ({ onSuccess, isMobile, isAuthenticated }) => {
   const elements = useElements();
   const [isSubscribeLoading, setIsSubscribeLoading] = useState(false);
   const [error, setError] = useState("");
-  const { currentUser, token, registerAndSubscribe } = useContext(AuthContext);
+  const { currentUser, token, registerAndSubscribe, login } = useContext(AuthContext);
   
   // Form states for guest registration
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   
-  const apiBaseUrl = "https://optimizemolecule.com";
+  const apiBaseUrl = "/api";
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -91,56 +91,93 @@ const SubscriptionForm = ({ onSuccess, isMobile, isAuthenticated }) => {
       // Different handling based on authentication status
       if (isAuthenticated) {
         // User is already authenticated, use regular subscription flow
-        const response = await axios.post(
-          `${apiBaseUrl}/subscribe`, 
-          { paymentMethodId: paymentMethod.id },
-          { 
-            withCredentials: true,
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': token ? `Bearer ${token}` : ''
-            }
-          }
-        );
-
-        if (response.data.success) {
-          const { clientSecret } = response.data;
-
-          // Confirm subscription with Stripe
-          const { error: confirmError } = await stripe.confirmCardPayment(clientSecret);
-
-          if (confirmError) {
-            setError(`Subscription error: ${confirmError.message}`);
-          } else {
-            console.log("Subscription successful");
-            onSuccess();  // Notify parent component
-          }
-        } else {
-          setError(`Subscription error: ${response.data.error || "Unknown error"}`);
-        }
+        await handleAuthenticatedSubscription(paymentMethod.id);
       } else {
-        // User is not authenticated, use register-and-subscribe flow
-        const result = await registerAndSubscribe(email, password, paymentMethod.id);
-        
-        if (result.success) {
-          // Confirm subscription with Stripe
-          const { error: confirmError } = await stripe.confirmCardPayment(result.clientSecret);
-
-          if (confirmError) {
-            setError(`Subscription error: ${confirmError.message}`);
-          } else {
-            console.log("Registration and subscription successful");
-            onSuccess();  // Notify parent component
-          }
-        } else {
-          setError(result.error);
-        }
+        // User is not authenticated, attempt to log in first before registration
+        await handleUnauthenticatedSubscription(paymentMethod.id);
       }
     } catch (err) {
       console.error("Error in subscription process:", err);
       setError(`Subscription error: ${err.response?.data?.error || err.message || "Unknown error"}`);
     } finally {
       setIsSubscribeLoading(false);
+    }
+  };
+
+  // Handle subscription for authenticated users
+  const handleAuthenticatedSubscription = async (paymentMethodId) => {
+    const response = await axios.post(
+      `${apiBaseUrl}/subscribe`, 
+      { paymentMethodId },
+      { 
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
+        }
+      }
+    );
+
+    if (response.data.success) {
+      const { clientSecret } = response.data;
+
+      // Confirm subscription with Stripe
+      const { error: confirmError } = await stripe.confirmCardPayment(clientSecret);
+
+      if (confirmError) {
+        setError(`Subscription error: ${confirmError.message}`);
+      } else {
+        console.log("Subscription successful");
+        onSuccess();  // Notify parent component
+      }
+    } else {
+      setError(`Subscription error: ${response.data.error || "Unknown error"}`);
+    }
+  };
+
+  // Handle subscription for unauthenticated users with login attempt
+  const handleUnauthenticatedSubscription = async (paymentMethodId) => {
+    // Try logging in first to check if user already exists
+    try {
+      const loginResult = await login(email, password);
+      
+      if (loginResult.success) {
+        // User already exists and credentials are correct
+        // Proceed with subscription as authenticated user
+        console.log("Existing user logged in, proceeding with subscription");
+        await handleAuthenticatedSubscription(paymentMethodId);
+        return;
+      } 
+      
+      // Login failed, check if it's because of wrong password or user doesn't exist
+      if (loginResult.error && loginResult.error.includes("password")) {
+        // Likely wrong password for existing account
+        setError("Account already exists with this email. Please use correct password.");
+        return;
+      }
+      
+      // If we reach here, user likely doesn't exist, proceed with registration
+      console.log("New user, proceeding with registration and subscription");
+    } catch (loginErr) {
+      console.error("Login attempt error:", loginErr);
+      // Continue with registration process regardless of login error
+    }
+
+    // Proceed with registration and subscription for new user
+    const result = await registerAndSubscribe(email, password, paymentMethodId);
+    
+    if (result.success) {
+      // Confirm subscription with Stripe
+      const { error: confirmError } = await stripe.confirmCardPayment(result.clientSecret);
+
+      if (confirmError) {
+        setError(`Subscription error: ${confirmError.message}`);
+      } else {
+        console.log("Registration and subscription successful");
+        onSuccess();  // Notify parent component
+      }
+    } else {
+      setError(result.error);
     }
   };
 
