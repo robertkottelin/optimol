@@ -19,6 +19,7 @@ const MoleculeViewer = ({
   const [isInitialRender, setIsInitialRender] = useState(true);
   const viewerIdRef = useRef(`molecule-viewer-${Math.random().toString(36).substr(2, 9)}`);
   const cameraStateRef = useRef(null);
+  const [showBondLengths, setShowBondLengths] = useState(true);
 
   // Control button styles
   const positionControlButtonStyle = {
@@ -703,6 +704,20 @@ const MoleculeViewer = ({
             const atom1 = molecule1[bond.atom1Index];
             const atom2 = molecule1[bond.atom2Index];
             
+            // Calculate midpoint for label positioning
+            const midpoint = {
+              x: (atom1.x + atom2.x) / 2,
+              y: (atom1.y + atom2.y) / 2,
+              z: (atom1.z + atom2.z) / 2
+            };
+            
+            // Calculate slight offset for better label visibility
+            const offsetVector = {
+              x: (atom2.y - atom1.y) * 0.1, // Create perpendicular offset
+              y: (atom1.x - atom2.x) * 0.1,
+              z: 0.2 // Small Z offset
+            };
+            
             viewerInstance.addCylinder({
               start: { x: atom1.x, y: atom1.y, z: atom1.z },
               end: { x: atom2.x, y: atom2.y, z: atom2.z },
@@ -711,6 +726,23 @@ const MoleculeViewer = ({
               toCap: 1,
               color: "0x38bdf8"  // Blue for molecule 1
             });
+            
+            // Add bond length label
+            if (showBondLengths) {
+              viewerInstance.addLabel(`${bond.distance.toFixed(2)}Å`, {
+                position: {
+                  x: midpoint.x + offsetVector.x,
+                  y: midpoint.y + offsetVector.y,
+                  z: midpoint.z + offsetVector.z
+                },
+                fontSize: isMobile ? 8 : 10,
+                fontColor: "white",
+                backgroundColor: "rgba(56, 189, 248, 0.5)", // Semi-transparent blue background
+                borderRadius: 10,
+                padding: 1,
+                inFront: true
+              });
+            }
           });
           
           // Calculate and visualize hydrogen bonds
@@ -718,16 +750,40 @@ const MoleculeViewer = ({
           
           // Add hydrogen bonds visualization with dashed lines
           hydrogenBonds1.forEach(bond => {
+            const hAtom = molecule1[bond.hIndex];
+            const acceptorAtom = molecule1[bond.acceptorIndex];
+            
+            // Calculate midpoint for label positioning
+            const midpoint = {
+              x: (hAtom.x + acceptorAtom.x) / 2,
+              y: (hAtom.y + acceptorAtom.y) / 2,
+              z: (hAtom.z + acceptorAtom.z) / 2
+            };
+            
+            // Calculate perpendicular offset for label placement
+            const bondVector = {
+              x: acceptorAtom.x - hAtom.x,
+              y: acceptorAtom.y - hAtom.y,
+              z: acceptorAtom.z - hAtom.z
+            };
+            
+            // Create perpendicular vector for offset (simplified approach)
+            const offsetVector = {
+              x: -bondVector.y * 0.15,
+              y: bondVector.x * 0.15,
+              z: 0.2
+            };
+            
             viewerInstance.addCylinder({
               start: {
-                x: molecule1[bond.hIndex].x,
-                y: molecule1[bond.hIndex].y,
-                z: molecule1[bond.hIndex].z
+                x: hAtom.x,
+                y: hAtom.y,
+                z: hAtom.z
               },
               end: {
-                x: molecule1[bond.acceptorIndex].x,
-                y: molecule1[bond.acceptorIndex].y,
-                z: molecule1[bond.acceptorIndex].z
+                x: acceptorAtom.x,
+                y: acceptorAtom.y,
+                z: acceptorAtom.z
               },
               radius: isMobile ? 0.05 : 0.07,  // Thinner than covalent bonds
               fromCap: 1,
@@ -737,6 +793,23 @@ const MoleculeViewer = ({
               dashLength: 0.15,   // Length of dash segments
               gapLength: 0.15,    // Length of gaps
             });
+            
+            // Add hydrogen bond length label
+            if (showBondLengths) {
+              viewerInstance.addLabel(`${bond.distance.toFixed(2)}Å`, {
+                position: {
+                  x: midpoint.x + offsetVector.x,
+                  y: midpoint.y + offsetVector.y,
+                  z: midpoint.z + offsetVector.z
+                },
+                fontSize: isMobile ? 8 : 10,
+                fontColor: "white",
+                backgroundColor: "rgba(255, 255, 255, 0.3)", // Semi-transparent white background
+                borderRadius: 10,
+                padding: 1,
+                inFront: true
+              });
+            }
           });
 
           // Add element labels for molecule 1
@@ -800,7 +873,7 @@ const MoleculeViewer = ({
           model2.addAtoms(m2Data);
 
           // Get properly transformed coordinates with rotation and offset applied
-          const transformedMolecule2 = molecule2.map(atom => {
+          transformedMolecule2 = molecule2.map(atom => {
             // Apply transformation as in the existing code
             let x = atom.x, y = atom.y, z = atom.z;
             
@@ -828,6 +901,20 @@ const MoleculeViewer = ({
             const atom1 = transformedMolecule2[bond.atom1Index];
             const atom2 = transformedMolecule2[bond.atom2Index];
             
+            // Calculate midpoint for label positioning
+            const midpoint = {
+              x: (atom1.x + atom2.x) / 2,
+              y: (atom1.y + atom2.y) / 2,
+              z: (atom1.z + atom2.z) / 2
+            };
+            
+            // Calculate slight offset for better label visibility
+            const offsetVector = {
+              x: (atom2.y - atom1.y) * 0.1, // Create perpendicular offset
+              y: (atom1.x - atom2.x) * 0.1,
+              z: 0.2 // Small Z offset
+            };
+            
             viewerInstance.addCylinder({
               start: { x: atom1.x, y: atom1.y, z: atom1.z },
               end: { x: atom2.x, y: atom2.y, z: atom2.z },
@@ -836,6 +923,23 @@ const MoleculeViewer = ({
               toCap: 1,
               color: "0x10b981"  // Green for molecule 2
             });
+            
+            // Add bond length label
+            if (showBondLengths) {
+              viewerInstance.addLabel(`${bond.distance.toFixed(2)}Å`, {
+                position: {
+                  x: midpoint.x + offsetVector.x,
+                  y: midpoint.y + offsetVector.y,
+                  z: midpoint.z + offsetVector.z
+                },
+                fontSize: isMobile ? 8 : 10,
+                fontColor: "white",
+                backgroundColor: "rgba(16, 185, 129, 0.5)", // Semi-transparent green background
+                borderRadius: 10,
+                padding: 1,
+                inFront: true
+              });
+            }
           });
           
           // Calculate hydrogen bonds
@@ -843,16 +947,40 @@ const MoleculeViewer = ({
           
           // Add hydrogen bond visualization
           hydrogenBonds2.forEach(bond => {
+            const hAtom = transformedMolecule2[bond.hIndex];
+            const acceptorAtom = transformedMolecule2[bond.acceptorIndex];
+            
+            // Calculate midpoint for label positioning
+            const midpoint = {
+              x: (hAtom.x + acceptorAtom.x) / 2,
+              y: (hAtom.y + acceptorAtom.y) / 2,
+              z: (hAtom.z + acceptorAtom.z) / 2
+            };
+            
+            // Calculate perpendicular offset for label placement
+            const bondVector = {
+              x: acceptorAtom.x - hAtom.x,
+              y: acceptorAtom.y - hAtom.y,
+              z: acceptorAtom.z - hAtom.z
+            };
+            
+            // Create perpendicular vector for offset (simplified approach)
+            const offsetVector = {
+              x: -bondVector.y * 0.15,
+              y: bondVector.x * 0.15,
+              z: 0.2
+            };
+            
             viewerInstance.addCylinder({
               start: {
-                x: transformedMolecule2[bond.hIndex].x,
-                y: transformedMolecule2[bond.hIndex].y,
-                z: transformedMolecule2[bond.hIndex].z
+                x: hAtom.x,
+                y: hAtom.y,
+                z: hAtom.z
               },
               end: {
-                x: transformedMolecule2[bond.acceptorIndex].x,
-                y: transformedMolecule2[bond.acceptorIndex].y,
-                z: transformedMolecule2[bond.acceptorIndex].z
+                x: acceptorAtom.x,
+                y: acceptorAtom.y,
+                z: acceptorAtom.z
               },
               radius: isMobile ? 0.05 : 0.07,  
               fromCap: 1,
@@ -862,6 +990,23 @@ const MoleculeViewer = ({
               dashLength: 0.15,   
               gapLength: 0.15,   
             });
+            
+            // Add hydrogen bond length label
+            if (showBondLengths) {
+              viewerInstance.addLabel(`${bond.distance.toFixed(2)}Å`, {
+                position: {
+                  x: midpoint.x + offsetVector.x,
+                  y: midpoint.y + offsetVector.y,
+                  z: midpoint.z + offsetVector.z
+                },
+                fontSize: isMobile ? 8 : 10,
+                fontColor: "white", 
+                backgroundColor: "rgba(255, 255, 255, 0.3)", // Semi-transparent white background
+                borderRadius: 10,
+                padding: 1,
+                inFront: true
+              });
+            }
           });
 
           // Add element labels for molecule2
@@ -926,9 +1071,6 @@ const MoleculeViewer = ({
         // Move this section AFTER both molecule1 and molecule2 have been fully processed
         // This ensures transformedMolecule2 is properly initialized before use
         if (molecule1 && molecule2 && transformedMolecule2 && Array.isArray(molecule1) && Array.isArray(transformedMolecule2)) {
-          console.log("Calculating intermolecular hydrogen bonds with:", 
-                     "molecule1.length:", molecule1.length, 
-                     "transformedMolecule2.length:", transformedMolecule2.length);
           // Calculate intermolecular hydrogen bonds
           const intermolecularHBonds = calculateIntermolecularHydrogenBonds(molecule1, transformedMolecule2);
           
@@ -971,17 +1113,17 @@ const MoleculeViewer = ({
               gapLength: 0.15,
             });
             
-            // Add a label for the hydrogen bond if needed
-            if (bond.distance <= 2.5) { // Only label stronger H-bonds
+            // Add a label for the hydrogen bond - now for all intermolecular H-bonds
+            if (showBondLengths) {
               viewerInstance.addLabel(`${bond.distance.toFixed(2)}Å`, {
                 position: {
                   x: (startX + endX) / 2,
-                  y: (startY + endY) / 2,
+                  y: (startY + endY) / 2 + 0.2, // Small vertical offset
                   z: (startZ + endZ) / 2
                 },
                 fontSize: isMobile ? 8 : 10,
                 fontColor: "white",
-                backgroundColor: "rgba(255, 215, 0, 0.5)",
+                backgroundColor: "rgba(255, 215, 0, 0.5)", // Semi-transparent gold background
                 borderRadius: 10,
                 padding: 2,
                 inFront: true,
@@ -989,8 +1131,6 @@ const MoleculeViewer = ({
             }
           });
         }
-
-        // No longer need 3D-based legend as we're using a static HTML overlay instead
 
         // Style both molecules - must be done after adding all models
         viewerInstance.setStyle({ properties: { molecule: 1 } }, {
@@ -1085,7 +1225,7 @@ const MoleculeViewer = ({
       window.removeEventListener('resize', handleResize);
       clearTimeout(timer);
     };
-  }, [atoms, isMobile, molecule2Offset, molecule2Rotation, positioningMode, viewerInstance, isInitialRender]);
+  }, [atoms, isMobile, molecule2Offset, molecule2Rotation, positioningMode, viewerInstance, isInitialRender, showBondLengths]);
 
   // Effect to handle keyboard events for positioning mode
   useEffect(() => {
@@ -1288,6 +1428,35 @@ const MoleculeViewer = ({
           </div>
         </div>
       )}
+
+      {/* Bond Length Display Toggle */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        marginBottom: '8px', 
+        padding: '8px',
+        backgroundColor: 'rgba(15, 23, 42, 0.7)',
+        borderRadius: '8px',
+        border: '1px solid rgba(255, 255, 255, 0.1)'
+      }}>
+        <label style={{
+          display: 'flex',
+          alignItems: 'center',
+          cursor: 'pointer'
+        }}>
+          <input
+            type="checkbox"
+            checked={showBondLengths}
+            onChange={(e) => setShowBondLengths(e.target.checked)}
+            style={{
+              marginRight: '8px',
+              cursor: 'pointer',
+              accentColor: '#38bdf8'
+            }}
+          />
+          <span>Show Bond Lengths (Å)</span>
+        </label>
+      </div>
 
       <div
         ref={containerRef}
