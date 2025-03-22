@@ -922,7 +922,7 @@ const MoleculeViewer = ({
           }
         }
 
-                  // Calculate and visualize intermolecular hydrogen bonds
+        // Calculate and visualize intermolecular hydrogen bonds
         // Move this section AFTER both molecule1 and molecule2 have been fully processed
         // This ensures transformedMolecule2 is properly initialized before use
         if (molecule1 && molecule2 && transformedMolecule2 && Array.isArray(molecule1) && Array.isArray(transformedMolecule2)) {
@@ -990,6 +990,8 @@ const MoleculeViewer = ({
           });
         }
 
+        // No longer need 3D-based legend as we're using a static HTML overlay instead
+
         // Style both molecules - must be done after adding all models
         viewerInstance.setStyle({ properties: { molecule: 1 } }, {
           sphere: {
@@ -1016,85 +1018,6 @@ const MoleculeViewer = ({
             smooth: true
           },
         });
-
-        // Add a legend for bond types
-        if (molecule1 || molecule2) {
-          // Add legend in top-right corner
-          const legendX = 15;
-          const legendY = -15;
-          const legendZ = 0;
-          
-          // Legend title
-          viewerInstance.addLabel("Bond Types:", {
-            position: { x: legendX, y: legendY, z: legendZ },
-            fontSize: isMobile ? 12 : 14,
-            fontColor: "white",
-            backgroundColor: "rgba(0, 0, 0, 0.7)",
-            borderRadius: 4,
-            padding: 4,
-            inFront: true,
-            fixedPosition: true,
-          });
-          
-          // Covalent bond example
-          viewerInstance.addCylinder({
-            start: { x: legendX - 5, y: legendY - 3, z: legendZ },
-            end: { x: legendX, y: legendY - 3, z: legendZ },
-            radius: isMobile ? 0.12 : 0.15,
-            color: molecule1 ? "0x38bdf8" : "0x10b981",
-          });
-          
-          viewerInstance.addLabel("Covalent", {
-            position: { x: legendX + 5, y: legendY - 3, z: legendZ },
-            fontSize: isMobile ? 10 : 12,
-            fontColor: "white",
-            backgroundColor: "transparent",
-            inFront: true,
-            fixedPosition: true,
-          });
-          
-          // Hydrogen bond example
-          viewerInstance.addCylinder({
-            start: { x: legendX - 5, y: legendY - 6, z: legendZ },
-            end: { x: legendX, y: legendY - 6, z: legendZ },
-            radius: isMobile ? 0.05 : 0.07,
-            color: "0xFFFFFF",
-            dashed: true,
-            dashLength: 0.15,
-            gapLength: 0.15,
-          });
-          
-          viewerInstance.addLabel("Hydrogen", {
-            position: { x: legendX + 5, y: legendY - 6, z: legendZ },
-            fontSize: isMobile ? 10 : 12,
-            fontColor: "white",
-            backgroundColor: "transparent",
-            inFront: true,
-            fixedPosition: true,
-          });
-          
-          // Add intermolecular hydrogen bond to legend if both molecules are present
-          if (molecule1 && molecule2) {
-            viewerInstance.addCylinder({
-              start: { x: legendX - 5, y: legendY - 9, z: legendZ },
-              end: { x: legendX, y: legendY - 9, z: legendZ },
-              radius: isMobile ? 0.05 : 0.07,
-              color: "0xFFD700",
-              dashed: true,
-              dashLength: 0.15,
-              gapLength: 0.15,
-            });
-            
-            viewerInstance.addLabel("Intermolecular H-bond", {
-              position: { x: legendX + 5, y: legendY - 9, z: legendZ },
-              fontSize: isMobile ? 10 : 12,
-              fontColor: "white",
-              backgroundColor: "transparent",
-              inFront: true,
-              fixedPosition: true,
-            });
-          }
-        }
 
         // Handle mouse interaction behavior and positioning mode
         try {
@@ -1397,6 +1320,61 @@ const MoleculeViewer = ({
             pointerEvents: "auto"
           }}
         ></div>
+
+        {/* Static Bond Legend Overlay */}
+        {(molecule1 || molecule2) && (
+          <div style={{
+            position: 'absolute',
+            top: '10px',
+            left: '10px',
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            borderRadius: '5px',
+            padding: '8px 10px',
+            color: 'white',
+            fontSize: '12px',
+            pointerEvents: 'none',
+            zIndex: 20,
+            maxWidth: isMobile ? '160px' : '180px'
+          }}>
+            <div style={{ fontWeight: 'bold', marginBottom: '6px' }}>Bond Types:</div>
+            
+            {/* Covalent Bond */}
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
+              <div style={{ 
+                width: '30px', 
+                height: isMobile ? '4px' : '5px', 
+                backgroundColor: molecule1 ? '#38bdf8' : '#10b981',
+                borderRadius: '4px',
+                marginRight: '8px'
+              }}></div>
+              <div>Covalent</div>
+            </div>
+            
+            {/* Hydrogen Bond */}
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
+              <div style={{ 
+                width: '30px', 
+                height: '0', 
+                borderTop: isMobile ? '2px dashed white' : '3px dashed white',
+                marginRight: '8px'
+              }}></div>
+              <div>Hydrogen</div>
+            </div>
+            
+            {/* Intermolecular Hydrogen Bond - only show if both molecules present */}
+            {molecule1 && molecule2 && (
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div style={{ 
+                  width: '30px', 
+                  height: '0', 
+                  borderTop: isMobile ? '2px dashed #FFD700' : '3px dashed #FFD700',
+                  marginRight: '8px'
+                }}></div>
+                <div>Intermolecular H-bond</div>
+              </div>
+            )}
+          </div>
+        )}
 
         {positioningMode && molecule2 && (
           <div style={{
