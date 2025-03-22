@@ -178,12 +178,12 @@ export const TEST_MOLECULES = {
   methanol: {
     file1: {
       atoms: [
-        { id: 1, element: "C", x: 5.0000, y: 0.0000, z: 0.0000 },
-        { id: 2, element: "O", x: 6.4000, y: 0.0000, z: 0.0000 },
-        { id: 3, element: "H", x: 5.4000, y: 1.0000, z: 0.0000 },
-        { id: 4, element: "H", x: 5.4000, y: -0.5000, z: 0.8800 },
-        { id: 5, element: "H", x: 5.4000, y: -0.5000, z: -0.8800 },
-        { id: 6, element: "H", x: 6.7500, y: -0.9000, z: 0.0000 }
+        { id: 1, element: "C", x: 0.0000, y: 0.0000, z: 0.0000 },
+        { id: 2, element: "O", x: 1.4000, y: 0.0000, z: 0.0000 },
+        { id: 3, element: "H", x: -0.4000, y: 1.0000, z: 0.0000 },
+        { id: 4, element: "H", x: -0.4000, y: -0.5000, z: 0.8800 },
+        { id: 5, element: "H", x: -0.4000, y: -0.5000, z: -0.8800 },
+        { id: 6, element: "H", x: 1.7500, y: -0.9000, z: 0.0000 }
       ],
       metadata: {
         name: "Methanol",
