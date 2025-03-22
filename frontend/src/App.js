@@ -454,16 +454,16 @@ const App = () => {
       alert("Please upload or select both molecules for interaction optimization.");
       return;
     }
-
+  
     // For single molecule mode, at least one molecule must be loaded
     if (!interactionMode && !molecule1Data && !molecule2Data) {
       alert("Please upload or select at least one molecule.");
       return;
     }
-
+  
     // Get the current atoms based on the active view for subsequent optimizations
     const { molecule1, molecule2 } = getAtoms();
-
+  
     // For quantum optimization, check molecule size limits
     if (optimizationType === "quantum") {
       const sizeValidation = validateQuantumMoleculeSize(molecule1, molecule2, interactionMode);
@@ -472,20 +472,20 @@ const App = () => {
         return;
       }
     }
-
+  
     setIsOptimizeLoading(true);
-
+  
     try {
       // Get the correct parameters based on selected optimization type
       const optimizationParams =
         optimizationType === "classical" ? { ...classicalParams } : { ...quantumParams };
-
+  
       // Apply iteration limits for all users
       if (optimizationType === "classical") {
         const maxIterations = isSubscribed
           ? ITERATION_LIMITS.subscribed.classical
           : ITERATION_LIMITS.unsubscribed.classical;
-
+  
         optimizationParams.max_iterations = Math.min(
           optimizationParams.max_iterations,
           maxIterations
@@ -494,22 +494,18 @@ const App = () => {
         const maxIterations = isSubscribed
           ? ITERATION_LIMITS.subscribed.quantum
           : ITERATION_LIMITS.unsubscribed.quantum;
-
+  
         optimizationParams.max_iterations = Math.min(
           optimizationParams.max_iterations,
           maxIterations
         );
-
+  
         if (!isSubscribed && (optimizationParams.basis === "6-311g" || optimizationParams.basis === "cc-pvdz")) {
           optimizationParams.basis = "6-31g";
         }
       }
-
-      // CRITICAL: Use the current atoms based on the active view for subsequent optimizations
-      // This ensures we're using already optimized positions when optimizing again
-      const { molecule1, molecule2 } = getAtoms();
-
-      // Prepare molecule1Data for optimization request - use current view's atoms
+  
+      // Prepare molecule1Data for optimization request
       let requestMolecule1 = null;
       if (molecule1) {
         // Create a deep clone of the source data to avoid modifying it directly
@@ -517,7 +513,7 @@ const App = () => {
           atoms: molecule1
         };
       }
-
+  
       // Helper functions for coordinate transformations
       const calculateCenterOfMass = (atoms) => {
         if (!atoms || atoms.length === 0) return { x: 0, y: 0, z: 0 };
@@ -532,36 +528,36 @@ const App = () => {
           z: sum.z / atoms.length
         };
       };
-
+  
       const applyRotation = (coords, rotation, centerOfMass) => {
         // Convert degrees to radians
         const radX = rotation.x * Math.PI / 180;
         const radY = rotation.y * Math.PI / 180;
         const radZ = rotation.z * Math.PI / 180;
-
+  
         // Translate to origin (center of mass)
         const centered = [
           coords[0] - centerOfMass.x,
           coords[1] - centerOfMass.y,
           coords[2] - centerOfMass.z
         ];
-
+  
         // Apply rotations (ZYX order)
         // Z-axis rotation
         let nx = centered[0] * Math.cos(radZ) - centered[1] * Math.sin(radZ);
         let ny = centered[0] * Math.sin(radZ) + centered[1] * Math.cos(radZ);
         let nz = centered[2];
-
+  
         // Y-axis rotation
         let mx = nx * Math.cos(radY) + nz * Math.sin(radY);
         let my = ny;
         let mz = -nx * Math.sin(radY) + nz * Math.cos(radY);
-
+  
         // X-axis rotation
         let rx = mx;
         let ry = my * Math.cos(radX) - mz * Math.sin(radX);
         let rz = my * Math.sin(radX) + mz * Math.cos(radX);
-
+  
         // Translate back from origin
         return [
           rx + centerOfMass.x,
@@ -569,52 +565,60 @@ const App = () => {
           rz + centerOfMass.z
         ];
       };
-
+  
       // Prepare molecule2Data for optimization request
       let requestMolecule2 = null;
       let processedMolecule2 = null;
-
+  
       if (molecule2) {
         // Create base molecule2 data
         requestMolecule2 = {
           atoms: molecule2
         };
-
-        // CHANGED: Apply transformations directly to processedMolecule2 atoms
+  
+        // MODIFIED: Only apply transformations if viewing original coordinates
+        // For optimized view, coordinates already include transformations
         if (interactionMode) {
-          // Calculate center of mass for rotation
-          const centerOfMass = calculateCenterOfMass(molecule2);
-
-          // Clone and transform molecule2 atoms
-          const transformedAtoms = molecule2.map(atom => {
-            // Deep clone atom
-            const newAtom = { ...atom };
-
-            // Apply rotation if needed
-            if (molecule2Rotation && (molecule2Rotation.x !== 0 || molecule2Rotation.y !== 0 || molecule2Rotation.z !== 0)) {
-              const coords = [atom.x, atom.y, atom.z];
-              const rotated = applyRotation(coords, molecule2Rotation, centerOfMass);
-              newAtom.x = rotated[0];
-              newAtom.y = rotated[1];
-              newAtom.z = rotated[2];
-            }
-
-            // Apply offset
-            newAtom.x += molecule2Offset.x;
-            newAtom.y += molecule2Offset.y;
-            newAtom.z += molecule2Offset.z;
-
-            return newAtom;
-          });
-
-          // Create transformed molecule
-          processedMolecule2 = {
-            atoms: transformedAtoms
-          };
+          if (activeView === "original") {
+            // Calculate center of mass for rotation
+            const centerOfMass = calculateCenterOfMass(molecule2);
+  
+            // Clone and transform molecule2 atoms
+            const transformedAtoms = molecule2.map(atom => {
+              // Deep clone atom
+              const newAtom = { ...atom };
+  
+              // Apply rotation if needed
+              if (molecule2Rotation && (molecule2Rotation.x !== 0 || molecule2Rotation.y !== 0 || molecule2Rotation.z !== 0)) {
+                const coords = [atom.x, atom.y, atom.z];
+                const rotated = applyRotation(coords, molecule2Rotation, centerOfMass);
+                newAtom.x = rotated[0];
+                newAtom.y = rotated[1];
+                newAtom.z = rotated[2];
+              }
+  
+              // Apply offset
+              newAtom.x += molecule2Offset.x;
+              newAtom.y += molecule2Offset.y;
+              newAtom.z += molecule2Offset.z;
+  
+              return newAtom;
+            });
+  
+            // Create transformed molecule
+            processedMolecule2 = {
+              atoms: transformedAtoms
+            };
+          } else {
+            // For optimized view, use coordinates as-is without additional transformations
+            processedMolecule2 = {
+              atoms: molecule2.map(atom => ({ ...atom }))
+            };
+          }
         }
       }
-
-      // CHANGED: Payload now uses directly transformed coordinates
+  
+      // Payload now uses conditional transformation based on active view
       const payload = {
         molecule1: requestMolecule1,
         molecule2: interactionMode ? processedMolecule2 : null,
@@ -622,41 +626,42 @@ const App = () => {
         optimization_params: optimizationParams,
         interaction_mode: interactionMode,
         // Keep these for backward compatibility with backend
-        molecule2_offset: interactionMode ? molecule2Offset : null,
-        molecule2_rotation: interactionMode ? molecule2Rotation : null
+        // Pass zero values when using optimized coordinates to avoid backend re-applying them
+        molecule2_offset: interactionMode ? (activeView === "original" ? molecule2Offset : { x: 0, y: 0, z: 0 }) : null,
+        molecule2_rotation: interactionMode ? (activeView === "original" ? molecule2Rotation : { x: 0, y: 0, z: 0 }) : null
       };
-
+  
       console.log('Optimization payload:', JSON.stringify(payload, null, 2));
       console.log("Attempting request to:", `${apiBaseUrl}/optimize-molecule`);
-
+  
       // Token is handled by axios interceptor in AuthContext if user is authenticated
       const headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       };
-
+  
       // Add Authorization token only if authenticated
       if (isAuthenticated && token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-
+  
       const response = await axios({
         method: 'post',
         url: `${apiBaseUrl}/optimize-molecule`,
         data: payload,
         headers: headers
       });
-
+  
       console.log("Response received:", response);
-
+  
       if (response.data.success) {
         // Store the molecule2Offset and molecule2Rotation with the result for future reference
         response.data.molecule2Offset = molecule2Offset;
         response.data.molecule2Rotation = molecule2Rotation;
-
+  
         setOptimizationResult(response.data);
         setActiveView("optimized");
-
+  
         // Disable positioning mode after optimization
         if (positioningMode) {
           setPositioningMode(false);
@@ -676,7 +681,7 @@ const App = () => {
       setIsOptimizeLoading(false);
     }
   };
-
+  
   const handleParamChange = (type, paramName, value) => {
     if (type === "classical") {
       setClassicalParams(prev => ({
