@@ -153,6 +153,46 @@ export const TEST_MOLECULES = {
     }
   },
   
+  // Acetic Acid molecule structure
+  aceticAcid: {
+    file1: {
+      atoms: [
+        { id: 1, element: "C", x: 0.0000, y: 0.0000, z: 0.0000 },
+        { id: 2, element: "C", x: 1.5000, y: 0.0000, z: 0.0000 },
+        { id: 3, element: "O", x: 2.1500, y: 1.0500, z: 0.0000 },
+        { id: 4, element: "O", x: 2.1500, y: -1.1500, z: 0.0000 },
+        { id: 5, element: "H", x: -0.4000, y: 1.0000, z: 0.0000 },
+        { id: 6, element: "H", x: -0.4000, y: -0.5000, z: 0.8800 },
+        { id: 7, element: "H", x: -0.4000, y: -0.5000, z: -0.8800 },
+        { id: 8, element: "H", x: 3.1200, y: -1.1000, z: 0.0000 }
+      ],
+      metadata: {
+        name: "Acetic Acid",
+        formula: "CH₃COOH",
+        description: "Acetic acid with carboxyl group positioned for hydrogen bonding"
+      }
+    }
+  },
+  
+  // Methanol molecule structure
+  methanol: {
+    file1: {
+      atoms: [
+        { id: 1, element: "C", x: 0.0000, y: 0.0000, z: 0.0000 },
+        { id: 2, element: "O", x: 1.4000, y: 0.0000, z: 0.0000 },
+        { id: 3, element: "H", x: -0.4000, y: 1.0000, z: 0.0000 },
+        { id: 4, element: "H", x: -0.4000, y: -0.5000, z: 0.8800 },
+        { id: 5, element: "H", x: -0.4000, y: -0.5000, z: -0.8800 },
+        { id: 6, element: "H", x: 1.7500, y: -0.9000, z: 0.0000 }
+      ],
+      metadata: {
+        name: "Methanol",
+        formula: "CH₃OH",
+        description: "Methanol with hydroxyl group positioned for hydrogen bonding"
+      }
+    }
+  },
+  
   // Ibuprofen molecule structure
   ibuprofen: {
     file1: {

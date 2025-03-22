@@ -433,7 +433,7 @@ const App = () => {
           (newType === "classical" && optimizationResult.result.metadata?.method === "classical_molecular_dynamics") ||
           (newType === "quantum" && optimizationResult.result.metadata?.method === "quantum_chemistry")
         );
-        
+
         // Only reset view if the optimization result doesn't match the new type
         if (!resultMatchesNewType) {
           setActiveView("original");
@@ -444,9 +444,9 @@ const App = () => {
         setActiveView("original");
       }
     }
-  
+
     setOptimizationType(newType);
-  };  
+  };
 
   const handleOptimize = async () => {
     // For interaction mode, ensure both molecules are loaded
@@ -573,6 +573,12 @@ const App = () => {
       console.log("Response received:", response);
 
       if (response.data.success) {
+        // Check for error field directly in result object
+        if (response.data.result && response.data.result.error) {
+          alert("Optimization failed. " + response.data.result.error);
+          return;
+        }
+
         // Store the molecule2Offset and molecule2Rotation with the result for future reference
         response.data.molecule2Offset = molecule2Offset;
         response.data.molecule2Rotation = molecule2Rotation;
@@ -986,7 +992,7 @@ const App = () => {
             Advanced computational chemistry tools for structure and drug-target energy optimization
           </p>
           <p style={styles.headerSubtitle} className="app-subtitle">
-            -          
+            -
           </p>
           <p style={styles.headerSubtitle} className="app-subtitle">
             Quantum energy optimization for large molecules currently capped at 30 atoms for total system size
@@ -1572,6 +1578,22 @@ const App = () => {
                 Water (H₂O)
               </button>
               <button
+                onClick={() => handleTestMoleculeSelect('aceticAcid')}
+                style={styles.testMoleculeButton}
+                className={`test-molecule-button ${isMobile ? 'mobile-full-width mobile-margin-bottom' : ''}`}
+              >
+                <span style={styles.testMoleculeIcon}><Icons.molecule /></span>
+                Acetic Acid (CH₃COOH)
+              </button>
+              <button
+                onClick={() => handleTestMoleculeSelect('methanol')}
+                style={styles.testMoleculeButton}
+                className={`test-molecule-button ${isMobile ? 'mobile-full-width mobile-margin-bottom' : ''}`}
+              >
+                <span style={styles.testMoleculeIcon}><Icons.molecule /></span>
+                Methanol (CH₃OH)
+              </button>
+              <button
                 onClick={() => handleTestMoleculeSelect('ibuprofen')}
                 style={styles.testMoleculeButton}
                 className={`test-molecule-button ${isMobile ? 'mobile-full-width' : ''}`}
@@ -1580,6 +1602,7 @@ const App = () => {
                 Ibuprofen (C₁₃H₁₈O₂)
               </button>
             </div>
+
           </div>
 
           {/* File Upload Area */}
