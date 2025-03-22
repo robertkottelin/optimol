@@ -355,6 +355,250 @@ const MoleculeViewer = ({
     return hBonds;
   };
 
+  /**
+   * Calculate hydrogen bonds between two different molecules
+   * @param {Array} molecule1 - First molecule atoms
+   * @param {Array} molecule2 - Second molecule atoms (with transformations applied)
+   * @returns {Array} Array of intermolecular hydrogen bonds
+   */
+  const calculateIntermolecularHydrogenBonds = (molecule1, molecule2) => {
+    const hBonds = [];
+    const hBondLengthMax = 3.2; // Maximum H-bond length in Angstroms
+    const hBondLengthMin = 1.5; // Minimum length to avoid counting covalent bonds
+    
+    // Identify donors and acceptors in molecule 1
+    const donors1 = [];
+    const acceptors1 = [];
+    
+    // Find all H atoms in molecule1 that are bonded to O or N (potential donors)
+    for (let i = 0; i < molecule1.length; i++) {
+      if (molecule1[i].element === 'H') {
+        // Check if H is bonded to O or N
+        for (let j = 0; j < molecule1.length; j++) {
+          if (i !== j && (molecule1[j].element === 'O' || molecule1[j].element === 'N')) {
+            const distance = Math.sqrt(
+              Math.pow(molecule1[i].x - molecule1[j].x, 2) +
+              Math.pow(molecule1[i].y - molecule1[j].y, 2) +
+              Math.pow(molecule1[i].z - molecule1[j].z, 2)
+            );
+            
+            // If H is close enough to O/N, it's a potential donor
+            if (distance < 1.2) { // Typical H-O/H-N bond length
+              donors1.push({
+                hIndex: i,
+                donorHeavyIndex: j,
+                molecule: 1 // Mark as belonging to molecule 1
+              });
+            }
+          }
+        }
+      }
+    }
+    
+    // Find all potential acceptors in molecule 1 (O or N atoms)
+    for (let i = 0; i < molecule1.length; i++) {
+      if (molecule1[i].element === 'O' || molecule1[i].element === 'N') {
+        acceptors1.push({
+          index: i,
+          molecule: 1 // Mark as belonging to molecule 1
+        });
+      }
+    }
+    
+    // Identify donors and acceptors in molecule 2
+    const donors2 = [];
+    const acceptors2 = [];
+    
+    // Find all H atoms in molecule2 that are bonded to O or N (potential donors)
+    for (let i = 0; i < molecule2.length; i++) {
+      if (molecule2[i].element === 'H') {
+        // Check if H is bonded to O or N
+        for (let j = 0; j < molecule2.length; j++) {
+          if (i !== j && (molecule2[j].element === 'O' || molecule2[j].element === 'N')) {
+            const distance = Math.sqrt(
+              Math.pow(molecule2[i].x - molecule2[j].x, 2) +
+              Math.pow(molecule2[i].y - molecule2[j].y, 2) +
+              Math.pow(molecule2[i].z - molecule2[j].z, 2)
+            );
+            
+            // If H is close enough to O/N, it's a potential donor
+            if (distance < 1.2) { // Typical H-O/H-N bond length
+              donors2.push({
+                hIndex: i,
+                donorHeavyIndex: j,
+                molecule: 2 // Mark as belonging to molecule 2
+              });
+            }
+          }
+        }
+      }
+    }
+    
+    // Find all potential acceptors in molecule 2 (O or N atoms)
+    for (let i = 0; i < molecule2.length; i++) {
+      if (molecule2[i].element === 'O' || molecule2[i].element === 'N') {
+        acceptors2.push({
+          index: i,
+          molecule: 2 // Mark as belonging to molecule 2
+        });
+      }
+    }
+    
+    // Check for hydrogen bonds from molecule 1 donors to molecule 2 acceptors
+    for (const donor of donors1) {
+      for (const acceptor of acceptors2) {
+        const hAtom = molecule1[donor.hIndex];
+        const acceptorAtom = molecule2[acceptor.index];
+        
+        // Calculate H to acceptor distance
+        const distance = Math.sqrt(
+          Math.pow(hAtom.x - acceptorAtom.x, 2) +
+          Math.pow(hAtom.y - acceptorAtom.y, 2) +
+          Math.pow(hAtom.z - acceptorAtom.z, 2)
+        );
+        
+        // Check if distance is within hydrogen bond range
+        if (distance >= hBondLengthMin && distance <= hBondLengthMax) {
+          // Calculate angles to check for linearity
+          const donorAtom = molecule1[donor.donorHeavyIndex];
+          
+          // Calculate vectors for angle determination
+          const donorToH = {
+            x: hAtom.x - donorAtom.x,
+            y: hAtom.y - donorAtom.y,
+            z: hAtom.z - donorAtom.z
+          };
+          
+          const hToAcceptor = {
+            x: acceptorAtom.x - hAtom.x,
+            y: acceptorAtom.y - hAtom.y,
+            z: acceptorAtom.z - hAtom.z
+          };
+          
+          // Normalize vectors
+          const donorToHMag = Math.sqrt(
+            donorToH.x * donorToH.x + donorToH.y * donorToH.y + donorToH.z * donorToH.z
+          );
+          const hToAcceptorMag = Math.sqrt(
+            hToAcceptor.x * hToAcceptor.x + hToAcceptor.y * hToAcceptor.y + hToAcceptor.z * hToAcceptor.z
+          );
+          
+          const donorToHNorm = {
+            x: donorToH.x / donorToHMag,
+            y: donorToH.y / donorToHMag,
+            z: donorToH.z / donorToHMag
+          };
+          
+          const hToAcceptorNorm = {
+            x: hToAcceptor.x / hToAcceptorMag,
+            y: hToAcceptor.y / hToAcceptorMag,
+            z: hToAcceptor.z / hToAcceptorMag
+          };
+          
+          // Calculate dot product to get cosine of angle
+          const dotProduct = 
+            donorToHNorm.x * hToAcceptorNorm.x + 
+            donorToHNorm.y * hToAcceptorNorm.y + 
+            donorToHNorm.z * hToAcceptorNorm.z;
+          
+          // For hydrogen bond, angle should be reasonably linear (cos > 0.7 is < 45°)
+          if (dotProduct > 0.7) {
+            hBonds.push({
+              donor: {
+                hIndex: donor.hIndex,
+                donorHeavyIndex: donor.donorHeavyIndex,
+                molecule: 1
+              },
+              acceptor: {
+                index: acceptor.index,
+                molecule: 2
+              },
+              distance: distance
+            });
+          }
+        }
+      }
+    }
+    
+    // Check for hydrogen bonds from molecule 2 donors to molecule 1 acceptors
+    for (const donor of donors2) {
+      for (const acceptor of acceptors1) {
+        const hAtom = molecule2[donor.hIndex];
+        const acceptorAtom = molecule1[acceptor.index];
+        
+        // Calculate H to acceptor distance
+        const distance = Math.sqrt(
+          Math.pow(hAtom.x - acceptorAtom.x, 2) +
+          Math.pow(hAtom.y - acceptorAtom.y, 2) +
+          Math.pow(hAtom.z - acceptorAtom.z, 2)
+        );
+        
+        // Check if distance is within hydrogen bond range
+        if (distance >= hBondLengthMin && distance <= hBondLengthMax) {
+          // Calculate angles to check for linearity
+          const donorAtom = molecule2[donor.donorHeavyIndex];
+          
+          // Calculate vectors for angle determination
+          const donorToH = {
+            x: hAtom.x - donorAtom.x,
+            y: hAtom.y - donorAtom.y,
+            z: hAtom.z - donorAtom.z
+          };
+          
+          const hToAcceptor = {
+            x: acceptorAtom.x - hAtom.x,
+            y: acceptorAtom.y - hAtom.y,
+            z: acceptorAtom.z - hAtom.z
+          };
+          
+          // Normalize vectors
+          const donorToHMag = Math.sqrt(
+            donorToH.x * donorToH.x + donorToH.y * donorToH.y + donorToH.z * donorToH.z
+          );
+          const hToAcceptorMag = Math.sqrt(
+            hToAcceptor.x * hToAcceptor.x + hToAcceptor.y * hToAcceptor.y + hToAcceptor.z * hToAcceptor.z
+          );
+          
+          const donorToHNorm = {
+            x: donorToH.x / donorToHMag,
+            y: donorToH.y / donorToHMag,
+            z: donorToH.z / donorToHMag
+          };
+          
+          const hToAcceptorNorm = {
+            x: hToAcceptor.x / hToAcceptorMag,
+            y: hToAcceptor.y / hToAcceptorMag,
+            z: hToAcceptor.z / hToAcceptorMag
+          };
+          
+          // Calculate dot product to get cosine of angle
+          const dotProduct = 
+            donorToHNorm.x * hToAcceptorNorm.x + 
+            donorToHNorm.y * hToAcceptorNorm.y + 
+            donorToHNorm.z * hToAcceptorNorm.z;
+          
+          // For hydrogen bond, angle should be reasonably linear (cos > 0.7 is < 45°)
+          if (dotProduct > 0.7) {
+            hBonds.push({
+              donor: {
+                hIndex: donor.hIndex,
+                donorHeavyIndex: donor.donorHeavyIndex,
+                molecule: 2
+              },
+              acceptor: {
+                index: acceptor.index,
+                molecule: 1
+              },
+              distance: distance
+            });
+          }
+        }
+      }
+    }
+    
+    return hBonds;
+  };
+
   // Function to store current camera state
   const saveCameraState = (viewer) => {
     if (!viewer) return null;
@@ -431,6 +675,10 @@ const MoleculeViewer = ({
 
         // Clear previous content
         viewerInstance.clear();
+        
+        // Initialize transformed molecule2 variable to null at the function scope level
+        // This ensures it's available throughout the entire rendering logic
+        let transformedMolecule2 = null;
 
         // Handle molecule1
         if (molecule1) {
@@ -674,6 +922,74 @@ const MoleculeViewer = ({
           }
         }
 
+                  // Calculate and visualize intermolecular hydrogen bonds
+        // Move this section AFTER both molecule1 and molecule2 have been fully processed
+        // This ensures transformedMolecule2 is properly initialized before use
+        if (molecule1 && molecule2 && transformedMolecule2 && Array.isArray(molecule1) && Array.isArray(transformedMolecule2)) {
+          console.log("Calculating intermolecular hydrogen bonds with:", 
+                     "molecule1.length:", molecule1.length, 
+                     "transformedMolecule2.length:", transformedMolecule2.length);
+          // Calculate intermolecular hydrogen bonds
+          const intermolecularHBonds = calculateIntermolecularHydrogenBonds(molecule1, transformedMolecule2);
+          
+          // Add intermolecular hydrogen bond visualization with dashed lines
+          intermolecularHBonds.forEach(bond => {
+            // Get start coordinates (hydrogen atom)
+            let startX, startY, startZ;
+            if (bond.donor.molecule === 1) {
+              startX = molecule1[bond.donor.hIndex].x;
+              startY = molecule1[bond.donor.hIndex].y;
+              startZ = molecule1[bond.donor.hIndex].z;
+            } else {
+              startX = transformedMolecule2[bond.donor.hIndex].x;
+              startY = transformedMolecule2[bond.donor.hIndex].y;
+              startZ = transformedMolecule2[bond.donor.hIndex].z;
+            }
+            
+            // Get end coordinates (acceptor atom)
+            let endX, endY, endZ;
+            if (bond.acceptor.molecule === 1) {
+              endX = molecule1[bond.acceptor.index].x;
+              endY = molecule1[bond.acceptor.index].y;
+              endZ = molecule1[bond.acceptor.index].z;
+            } else {
+              endX = transformedMolecule2[bond.acceptor.index].x;
+              endY = transformedMolecule2[bond.acceptor.index].y;
+              endZ = transformedMolecule2[bond.acceptor.index].z;
+            }
+            
+            // Add dashed line for hydrogen bond
+            viewerInstance.addCylinder({
+              start: { x: startX, y: startY, z: startZ },
+              end: { x: endX, y: endY, z: endZ },
+              radius: isMobile ? 0.05 : 0.07,  // Thinner than covalent bonds
+              fromCap: 1,
+              toCap: 1,
+              color: "0xFFD700",  // Gold color for intermolecular hydrogen bonds (for distinction)
+              dashed: true,
+              dashLength: 0.15,
+              gapLength: 0.15,
+            });
+            
+            // Add a label for the hydrogen bond if needed
+            if (bond.distance <= 2.5) { // Only label stronger H-bonds
+              viewerInstance.addLabel(`${bond.distance.toFixed(2)}Å`, {
+                position: {
+                  x: (startX + endX) / 2,
+                  y: (startY + endY) / 2,
+                  z: (startZ + endZ) / 2
+                },
+                fontSize: isMobile ? 8 : 10,
+                fontColor: "white",
+                backgroundColor: "rgba(255, 215, 0, 0.5)",
+                borderRadius: 10,
+                padding: 2,
+                inFront: true,
+              });
+            }
+          });
+        }
+
         // Style both molecules - must be done after adding all models
         viewerInstance.setStyle({ properties: { molecule: 1 } }, {
           sphere: {
@@ -756,6 +1072,28 @@ const MoleculeViewer = ({
             inFront: true,
             fixedPosition: true,
           });
+          
+          // Add intermolecular hydrogen bond to legend if both molecules are present
+          if (molecule1 && molecule2) {
+            viewerInstance.addCylinder({
+              start: { x: legendX - 5, y: legendY - 9, z: legendZ },
+              end: { x: legendX, y: legendY - 9, z: legendZ },
+              radius: isMobile ? 0.05 : 0.07,
+              color: "0xFFD700",
+              dashed: true,
+              dashLength: 0.15,
+              gapLength: 0.15,
+            });
+            
+            viewerInstance.addLabel("Intermolecular H-bond", {
+              position: { x: legendX + 5, y: legendY - 9, z: legendZ },
+              fontSize: isMobile ? 10 : 12,
+              fontColor: "white",
+              backgroundColor: "transparent",
+              inFront: true,
+              fixedPosition: true,
+            });
+          }
         }
 
         // Handle mouse interaction behavior and positioning mode
