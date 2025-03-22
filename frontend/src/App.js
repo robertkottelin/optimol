@@ -1824,11 +1824,10 @@ const App = () => {
                   isMobile={isMobile}
                   positioningMode={positioningMode && interactionMode}
                   onMoleculeMove={setMolecule2Offset}
-                  molecule2Offset={molecule2Offset}
-                  molecule2Rotation={molecule2Rotation}
+                  molecule2Offset={activeView === "original" ? molecule2Offset : { x: 0, y: 0, z: 0 }}
+                  molecule2Rotation={activeView === "original" ? molecule2Rotation : { x: 0, y: 0, z: 0 }}
                   onMoleculeRotate={onMoleculeRotate}
                 />
-
                 {interactionMode && molecule1Data && molecule2Data && (
                   <div style={{
                     display: "flex",
