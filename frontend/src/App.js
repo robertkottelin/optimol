@@ -75,7 +75,7 @@ const App = () => {
     if (!molecule) return 0;
     return molecule.length;
   };
-  
+
   // Check if molecule size is within quantum limits
   const validateQuantumMoleculeSize = (molecule1, molecule2, isInteractionMode) => {
     if (isInteractionMode) {
@@ -87,7 +87,7 @@ const App = () => {
           message: `Quantum optimization for molecular interactions is limited to ${QUANTUM_SIZE_LIMITS.interactionTotal} total atoms (current: ${totalAtoms}). Please use classical optimization for larger systems.`
         };
       }
-      
+
       // Check individual molecule sizes
       if (countAtoms(molecule1) > QUANTUM_SIZE_LIMITS.interactionPerMolecule) {
         return {
@@ -95,7 +95,7 @@ const App = () => {
           message: `Molecule 1 exceeds the limit of ${QUANTUM_SIZE_LIMITS.interactionPerMolecule} atoms for quantum interaction optimization (current: ${countAtoms(molecule1)}).`
         };
       }
-      
+
       if (countAtoms(molecule2) > QUANTUM_SIZE_LIMITS.interactionPerMolecule) {
         return {
           valid: false,
@@ -106,7 +106,7 @@ const App = () => {
       // Single molecule mode - check the active molecule
       const activeMolecule = molecule1 || molecule2;
       const atomCount = countAtoms(activeMolecule);
-      
+
       if (atomCount > QUANTUM_SIZE_LIMITS.singleMolecule) {
         return {
           valid: false,
@@ -114,7 +114,7 @@ const App = () => {
         };
       }
     }
-    
+
     return { valid: true };
   };
 
@@ -305,27 +305,27 @@ const App = () => {
 
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
-  
+
     if (!file) {
       alert("Please select a file.");
       return;
     }
-  
+
     const reader = new FileReader();
-  
+
     reader.onload = (e) => {
       try {
         const fileContent = e.target.result;
         const parsedData = JSON.parse(fileContent);
-  
+
         if (!validateMoleculeJSON(parsedData)) {
           alert("Invalid molecule JSON format.");
           return;
         }
-  
+
         // Store file name with the molecule data
         parsedData.filename = file.name;
-  
+
         // Target the active molecule
         if (activeMolecule === 1) {
           setMolecule1Data(parsedData);
@@ -334,7 +334,7 @@ const App = () => {
           // Set a default offset for molecule 2 to appear beside molecule 1
           setMolecule2Offset({ x: 5, y: 0, z: 0 });
         }
-  
+
         setOptimizationResult(null);
         setActiveView("original");
       } catch (error) {
@@ -342,10 +342,10 @@ const App = () => {
         alert("Error processing the file. Check the console for details.");
       }
     };
-  
+
     reader.readAsText(file);
   };
-  
+
   const handleDragOver = (e) => {
     e.preventDefault();
     setIsDragActive(true);
@@ -358,24 +358,24 @@ const App = () => {
   const handleFileDrop = (e) => {
     e.preventDefault();
     setIsDragActive(false);
-  
+
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0];
-  
+
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
           const fileContent = e.target.result;
           const parsedData = JSON.parse(fileContent);
-  
+
           if (!validateMoleculeJSON(parsedData)) {
             alert("Invalid molecule JSON format.");
             return;
           }
-  
+
           // Store file name with the molecule data
           parsedData.filename = file.name;
-  
+
           // Target the active molecule
           if (activeMolecule === 1) {
             setMolecule1Data(parsedData);
@@ -384,7 +384,7 @@ const App = () => {
             // Set a default offset for molecule 2 to appear beside molecule 1
             setMolecule2Offset({ x: 5, y: 0, z: 0 });
           }
-  
+
           setOptimizationResult(null);
           setActiveView("original");
         } catch (error) {
@@ -392,11 +392,11 @@ const App = () => {
           alert("Error processing the file. Check the console for details.");
         }
       };
-  
+
       reader.readAsText(file);
     }
   };
-  
+
 
 
   const validateMoleculeJSON = (data) => {
@@ -438,16 +438,16 @@ const App = () => {
       alert("Please upload or select both molecules for interaction optimization.");
       return;
     }
-  
+
     // For single molecule mode, at least one molecule must be loaded
     if (!interactionMode && !molecule1Data && !molecule2Data) {
       alert("Please upload or select at least one molecule.");
       return;
     }
-    
+
     // Get the current atoms based on the active view for subsequent optimizations
     const { molecule1, molecule2 } = getAtoms();
-    
+
     // For quantum optimization, check molecule size limits
     if (optimizationType === "quantum") {
       const sizeValidation = validateQuantumMoleculeSize(molecule1, molecule2, interactionMode);
@@ -456,20 +456,20 @@ const App = () => {
         return;
       }
     }
-  
+
     setIsOptimizeLoading(true);
-      
+
     try {
       // Get the correct parameters based on selected optimization type
       const optimizationParams =
         optimizationType === "classical" ? { ...classicalParams } : { ...quantumParams };
-  
+
       // Apply iteration limits for all users
       if (optimizationType === "classical") {
         const maxIterations = isSubscribed
           ? ITERATION_LIMITS.subscribed.classical
           : ITERATION_LIMITS.unsubscribed.classical;
-  
+
         optimizationParams.max_iterations = Math.min(
           optimizationParams.max_iterations,
           maxIterations
@@ -478,21 +478,21 @@ const App = () => {
         const maxIterations = isSubscribed
           ? ITERATION_LIMITS.subscribed.quantum
           : ITERATION_LIMITS.unsubscribed.quantum;
-  
+
         optimizationParams.max_iterations = Math.min(
           optimizationParams.max_iterations,
           maxIterations
         );
-  
+
         if (!isSubscribed && (optimizationParams.basis === "6-311g" || optimizationParams.basis === "cc-pvdz")) {
           optimizationParams.basis = "6-31g";
         }
       }
-  
+
       // CRITICAL: Use the current atoms based on the active view for subsequent optimizations
       // This ensures we're using already optimized positions when optimizing again
       const { molecule1, molecule2 } = getAtoms();
-      
+
       // Prepare molecule1Data for optimization request - use current view's atoms
       let requestMolecule1 = null;
       if (molecule1) {
@@ -501,28 +501,28 @@ const App = () => {
           atoms: molecule1
         };
       }
-  
+
       // Prepare molecule2Data for optimization request with current rotation and offset
       let requestMolecule2 = null;
       let processedMolecule2 = null;
-  
+
       if (molecule2) {
         // Create base molecule2 data
         requestMolecule2 = {
           atoms: molecule2
         };
-  
+
         // Process molecule2 data with offset and rotation for API request if needed
         if (interactionMode) {
           // Deep clone molecule2Data to avoid modifying the original
           processedMolecule2 = JSON.parse(JSON.stringify(requestMolecule2));
         }
       }
-  
+
       // When in interaction mode and processedMolecule2 is available,
       // rotation and offsets are already incorporated in the current view
       // so we don't need additional processing here
-  
+
       const payload = {
         molecule1: requestMolecule1,
         molecule2: interactionMode ? (processedMolecule2 || requestMolecule2) : null,
@@ -532,38 +532,38 @@ const App = () => {
         molecule2_offset: interactionMode ? molecule2Offset : null,
         molecule2_rotation: interactionMode ? molecule2Rotation : null
       };
-  
+
       console.log('Optimization payload:', JSON.stringify(payload, null, 2));
       console.log("Attempting request to:", `${apiBaseUrl}/optimize-molecule`);
-  
+
       // Token is handled by axios interceptor in AuthContext if user is authenticated
       const headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       };
-  
+
       // Add Authorization token only if authenticated
       if (isAuthenticated && token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-  
+
       const response = await axios({
         method: 'post',
         url: `${apiBaseUrl}/optimize-molecule`,
         data: payload,
         headers: headers
       });
-  
+
       console.log("Response received:", response);
-  
+
       if (response.data.success) {
         // Store the molecule2Offset and molecule2Rotation with the result for future reference
         response.data.molecule2Offset = molecule2Offset;
         response.data.molecule2Rotation = molecule2Rotation;
-  
+
         setOptimizationResult(response.data);
         setActiveView("optimized");
-  
+
         // Disable positioning mode after optimization
         if (positioningMode) {
           setPositioningMode(false);
@@ -583,7 +583,7 @@ const App = () => {
       setIsOptimizeLoading(false);
     }
   };
-  
+
   const handleParamChange = (type, paramName, value) => {
     if (type === "classical") {
       setClassicalParams(prev => ({
@@ -648,13 +648,13 @@ const App = () => {
   const handleTestMoleculeSelect = (moleculeKey) => {
     if (TEST_MOLECULES[moleculeKey]) {
       const testMoleculeData = { ...TEST_MOLECULES[moleculeKey] };
-  
+
       // Add a molecule name reference - though this is redundant since the test molecules
       // already have metadata.name, this ensures we have a consistent approach
       if (!testMoleculeData.filename) {
         testMoleculeData.filename = testMoleculeData.file1?.metadata?.name || moleculeKey;
       }
-  
+
       if (activeMolecule === 1) {
         setMolecule1Data(testMoleculeData);
       } else {
@@ -740,7 +740,7 @@ const App = () => {
       }
       return null;
     })();
-  
+
     // For molecule2, determine the correct atoms array based on active view
     const atoms2 = (() => {
       if (activeView === "original") {
@@ -757,10 +757,10 @@ const App = () => {
       }
       return null;
     })();
-  
+
     return { molecule1: atoms1, molecule2: atoms2 };
   };
-  
+
   // Toggle auth modal visibility
   const toggleAuthModal = () => {
     setShowAuthModal(!showAuthModal);
@@ -967,7 +967,13 @@ const App = () => {
         <header style={styles.header} className="app-header">
           <h1 style={styles.headerTitle} className="app-title">Molecular Optimization System</h1>
           <p style={styles.headerSubtitle} className="app-subtitle">
-            Advanced computational chemistry tools for structure optimization
+            Advanced computational chemistry tools for structure and drug-target energy optimization
+          </p>
+          <p style={styles.headerSubtitle} className="app-subtitle">
+            -          
+          </p>
+          <p style={styles.headerSubtitle} className="app-subtitle">
+            Quantum energy optimization for large molecules currently capped at 30 atoms for total system size
           </p>
         </header>
 
@@ -1271,6 +1277,8 @@ const App = () => {
                       gap: "6px",
                       cursor: "pointer",
                       transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                      fontSize: "16px", // Increased font size from default
+                      fontWeight: "500" // Added for better visibility
                     }}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
