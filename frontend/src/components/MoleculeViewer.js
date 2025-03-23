@@ -1483,7 +1483,7 @@ const MoleculeViewer = ({
                 accentColor: '#38bdf8'
               }}
             />
-            <span>Show Bond Legend</span>
+            <span>Show Controls and Bond Types</span>
           </label>
         </div>
       </div>
@@ -1536,6 +1536,11 @@ const MoleculeViewer = ({
             zIndex: 20,
             maxWidth: isMobile ? '160px' : '180px'
           }}>
+            <div style={{ fontWeight: 'bold', marginBottom: '6px' }}>Controls:</div>
+            <div style={{ marginBottom: '6px' }}>• Click and drag to rotate</div>
+            <div style={{ marginBottom: '6px' }}>• Scroll to zoom</div>
+            <div style={{ marginBottom: '6px' }}>• Press scroll-wheel to pan. Mobile: two fingers</div>
+
             <div style={{ fontWeight: 'bold', marginBottom: '6px' }}>Bond Types:</div>
 
             {/* Covalent Bond */}
