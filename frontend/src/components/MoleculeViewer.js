@@ -652,7 +652,7 @@ const MoleculeViewer = ({
         panMode: 2  // Use 2 fingers for panning instead of 3
       }
     });
-  
+
     // Store viewer instance for later use
     setViewerInstance(viewer);
     setIsInitialRender(true);
@@ -745,11 +745,8 @@ const MoleculeViewer = ({
                   y: midpoint.y + offsetVector.y,
                   z: midpoint.z + offsetVector.z
                 },
-                fontSize: isMobile ? 8 : 10,
+                fontSize: isMobile ? 10 : 12,
                 fontColor: "white",
-                backgroundColor: "rgba(56, 189, 248, 0.5)", // Semi-transparent blue background
-                borderRadius: 10,
-                padding: 1,
                 inFront: true
               });
             }
@@ -812,11 +809,8 @@ const MoleculeViewer = ({
                   y: midpoint.y + offsetVector.y,
                   z: midpoint.z + offsetVector.z
                 },
-                fontSize: isMobile ? 8 : 10,
+                fontSize: isMobile ? 10 : 12,
                 fontColor: "white",
-                backgroundColor: "rgba(255, 255, 255, 0.3)", // Semi-transparent white background
-                borderRadius: 10,
-                padding: 1,
                 inFront: true
               });
             }
@@ -942,11 +936,8 @@ const MoleculeViewer = ({
                   y: midpoint.y + offsetVector.y,
                   z: midpoint.z + offsetVector.z
                 },
-                fontSize: isMobile ? 8 : 10,
+                fontSize: isMobile ? 10 : 12,
                 fontColor: "white",
-                backgroundColor: "rgba(16, 185, 129, 0.5)", // Semi-transparent green background
-                borderRadius: 10,
-                padding: 1,
                 inFront: true
               });
             }
@@ -1009,11 +1000,8 @@ const MoleculeViewer = ({
                   y: midpoint.y + offsetVector.y,
                   z: midpoint.z + offsetVector.z
                 },
-                fontSize: isMobile ? 8 : 10,
+                fontSize: isMobile ? 10 : 12,
                 fontColor: "white",
-                backgroundColor: "rgba(255, 255, 255, 0.3)", // Semi-transparent white background
-                borderRadius: 10,
-                padding: 1,
                 inFront: true
               });
             }
@@ -1131,11 +1119,8 @@ const MoleculeViewer = ({
                   y: (startY + endY) / 2 + 0.2, // Small vertical offset
                   z: (startZ + endZ) / 2
                 },
-                fontSize: isMobile ? 8 : 10,
+                fontSize: isMobile ? 10 : 12,
                 fontColor: "white",
-                backgroundColor: "rgba(255, 215, 0, 0.5)", // Semi-transparent gold background
-                borderRadius: 10,
-                padding: 2,
                 inFront: true,
               });
             }
@@ -1539,7 +1524,7 @@ const MoleculeViewer = ({
             <div style={{ fontWeight: 'bold', marginBottom: '6px' }}>Controls:</div>
             <div style={{ marginBottom: '6px' }}>• Click and drag to rotate</div>
             <div style={{ marginBottom: '6px' }}>• Scroll to zoom</div>
-            <div style={{ marginBottom: '6px' }}>• Press scroll-wheel to pan. Mobile: two fingers</div>
+            <div style={{ marginBottom: '6px' }}>• Press scroll-wheel to pan. Mobile: pan with three fingers</div>
 
             <div style={{ fontWeight: 'bold', marginBottom: '6px' }}>Bond Types:</div>
 
