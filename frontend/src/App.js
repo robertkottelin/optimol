@@ -1101,7 +1101,8 @@ const App = () => {
                 boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
                 display: "flex",
                 alignItems: "center",
-                gap: "5px"
+                gap: "5px",
+                animation: "float 8s ease-in-out infinite"
               }}
             >
               <Icons.close />
@@ -1139,7 +1140,8 @@ const App = () => {
                 ...styles.cancelSubscriptionButton,
                 opacity: isCancelLoading ? 0.7 : 1,
                 cursor: isCancelLoading ? "not-allowed" : "pointer",
-                position: 'static'
+                position: 'static',
+                animation: "float 8s ease-in-out infinite"
               }}
             >
               {isCancelLoading ? (
