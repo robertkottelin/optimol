@@ -20,6 +20,8 @@ const MoleculeViewer = ({
   const viewerIdRef = useRef(`molecule-viewer-${Math.random().toString(36).substr(2, 9)}`);
   const cameraStateRef = useRef(null);
   const [showBondLengths, setShowBondLengths] = useState(true);
+  const [showBondLegend, setShowBondLegend] = useState(true);
+
 
   // Control button styles
   const positionControlButtonStyle = {
@@ -111,45 +113,45 @@ const MoleculeViewer = ({
 
   const enableViewerInteractions = (viewer) => {
     if (!viewer) return;
-    
+
     try {
       // First ensure current_hover is properly nullified
       if (viewer.current_hover) {
         viewer.current_hover = null;
       }
-      
+
       // Remove overlay
       const viewerElement = viewerRef.current;
       const overlay = viewerElement.querySelector('.event-blocker-overlay');
       if (overlay) {
         viewerElement.removeChild(overlay);
       }
-      
+
       // Reinitialize viewer events AFTER hover state is reset
       viewer.render();
-      
+
       // Enable hover with empty callback to prevent undefined function calls
-      const emptyCallback = function() {};
+      const emptyCallback = function () { };
       viewer.setHoverable({}, true, emptyCallback, emptyCallback);
     } catch (e) {
       console.error("Error enabling viewer interactions:", e);
     }
   };
-  
+
   const disableViewerInteractions = (viewer) => {
     if (!viewer) return;
-    
+
     try {
       // Properly disable hover by setting false WITHOUT callbacks
       viewer.setHoverable({}, false);
-      
+
       // Explicitly null the hover state
       viewer.current_hover = null;
-      
+
       // Create event-blocking overlay
       const viewerElement = viewerRef.current;
       let overlay = viewerElement.querySelector('.event-blocker-overlay');
-      
+
       if (!overlay) {
         overlay = document.createElement('div');
         overlay.className = 'event-blocker-overlay';
@@ -159,19 +161,19 @@ const MoleculeViewer = ({
         overlay.style.width = '100%';
         overlay.style.height = '100%';
         overlay.style.zIndex = '100';
-        
+
         // Attach event handlers to overlay
         overlay.addEventListener('mousemove', e => e.stopPropagation(), true);
         overlay.addEventListener('mousedown', e => e.stopPropagation(), true);
         overlay.addEventListener('mouseup', e => e.stopPropagation(), true);
-        
+
         viewerElement.appendChild(overlay);
       }
     } catch (e) {
       console.error("Error disabling viewer interactions:", e);
     }
   };
-    
+
   // Calculate center of mass for a molecule
   const calculateCenterOfMass = (atoms) => {
     if (!atoms || atoms.length === 0) return { x: 0, y: 0, z: 0 };
@@ -195,36 +197,36 @@ const MoleculeViewer = ({
   // Calculate covalent bonds between atoms based on distance and element types
   const calculateCovalentBonds = (atoms) => {
     const bonds = [];
-    
+
     // Define covalent radii for common elements (in Angstroms)
     const covalentRadii = {
-      'H': 0.31, 'C': 0.76, 'N': 0.71, 'O': 0.66, 'F': 0.57, 
+      'H': 0.31, 'C': 0.76, 'N': 0.71, 'O': 0.66, 'F': 0.57,
       'P': 1.07, 'S': 1.05, 'Cl': 1.02, 'Br': 1.20
     };
-    
+
     // Maximum bond distance factor (multiplier for sum of covalent radii)
     const bondDistanceFactor = 1.3;
-    
+
     // Check all possible atom pairs
     for (let i = 0; i < atoms.length; i++) {
       for (let j = i + 1; j < atoms.length; j++) {
         const atom1 = atoms[i];
         const atom2 = atoms[j];
-        
+
         // Calculate distance between atoms
         const distance = Math.sqrt(
           Math.pow(atom1.x - atom2.x, 2) +
           Math.pow(atom1.y - atom2.y, 2) +
           Math.pow(atom1.z - atom2.z, 2)
         );
-        
+
         // Get covalent radii (using default if element not in table)
         const radius1 = covalentRadii[atom1.element] || 0.75;
         const radius2 = covalentRadii[atom2.element] || 0.75;
-        
+
         // Calculate bond threshold as sum of covalent radii with tolerance
         const bondThreshold = (radius1 + radius2) * bondDistanceFactor;
-        
+
         // Check if distance is within bond threshold
         if (distance <= bondThreshold) {
           bonds.push({
@@ -235,7 +237,7 @@ const MoleculeViewer = ({
         }
       }
     }
-    
+
     return bonds;
   };
 
@@ -244,11 +246,11 @@ const MoleculeViewer = ({
     const hBonds = [];
     const hBondLengthMax = 3.2; // Maximum H-bond length in Angstroms
     const hBondLengthMin = 1.5; // Minimum length to avoid counting covalent bonds
-    
+
     // Identify potential hydrogen bond donors (H attached to O, N)
     const donors = [];
     const acceptors = [];
-    
+
     // Find all H atoms that are bonded to O or N (potential donors)
     for (let i = 0; i < atoms.length; i++) {
       if (atoms[i].element === 'H') {
@@ -260,7 +262,7 @@ const MoleculeViewer = ({
               Math.pow(atoms[i].y - atoms[j].y, 2) +
               Math.pow(atoms[i].z - atoms[j].z, 2)
             );
-            
+
             // If H is close enough to O/N, it's a potential donor
             if (distance < 1.2) { // Typical H-O/H-N bond length
               donors.push({
@@ -272,48 +274,48 @@ const MoleculeViewer = ({
         }
       }
     }
-    
+
     // Find all potential acceptors (O or N atoms with lone pairs)
     for (let i = 0; i < atoms.length; i++) {
       if (atoms[i].element === 'O' || atoms[i].element === 'N') {
         acceptors.push(i);
       }
     }
-    
+
     // Check for hydrogen bonds between donors and acceptors
     for (const donor of donors) {
       for (const acceptorIndex of acceptors) {
         // Skip if acceptor is the donor atom itself
         if (acceptorIndex === donor.donorHeavyIndex) continue;
-        
+
         const hAtom = atoms[donor.hIndex];
         const acceptorAtom = atoms[acceptorIndex];
-        
+
         // Calculate H to acceptor distance
         const distance = Math.sqrt(
           Math.pow(hAtom.x - acceptorAtom.x, 2) +
           Math.pow(hAtom.y - acceptorAtom.y, 2) +
           Math.pow(hAtom.z - acceptorAtom.z, 2)
         );
-        
+
         // Check if distance is within hydrogen bond range
         if (distance >= hBondLengthMin && distance <= hBondLengthMax) {
           // Calculate angles to check for linearity
           const donorAtom = atoms[donor.donorHeavyIndex];
-          
+
           // Calculate vectors for angle determination
           const donorToH = {
             x: hAtom.x - donorAtom.x,
             y: hAtom.y - donorAtom.y,
             z: hAtom.z - donorAtom.z
           };
-          
+
           const hToAcceptor = {
             x: acceptorAtom.x - hAtom.x,
             y: acceptorAtom.y - hAtom.y,
             z: acceptorAtom.z - hAtom.z
           };
-          
+
           // Normalize vectors
           const donorToHMag = Math.sqrt(
             donorToH.x * donorToH.x + donorToH.y * donorToH.y + donorToH.z * donorToH.z
@@ -321,25 +323,25 @@ const MoleculeViewer = ({
           const hToAcceptorMag = Math.sqrt(
             hToAcceptor.x * hToAcceptor.x + hToAcceptor.y * hToAcceptor.y + hToAcceptor.z * hToAcceptor.z
           );
-          
+
           const donorToHNorm = {
             x: donorToH.x / donorToHMag,
             y: donorToH.y / donorToHMag,
             z: donorToH.z / donorToHMag
           };
-          
+
           const hToAcceptorNorm = {
             x: hToAcceptor.x / hToAcceptorMag,
             y: hToAcceptor.y / hToAcceptorMag,
             z: hToAcceptor.z / hToAcceptorMag
           };
-          
+
           // Calculate dot product to get cosine of angle
-          const dotProduct = 
-            donorToHNorm.x * hToAcceptorNorm.x + 
-            donorToHNorm.y * hToAcceptorNorm.y + 
+          const dotProduct =
+            donorToHNorm.x * hToAcceptorNorm.x +
+            donorToHNorm.y * hToAcceptorNorm.y +
             donorToHNorm.z * hToAcceptorNorm.z;
-          
+
           // For hydrogen bond, angle should be reasonably linear (cos > 0.7 is < 45°)
           if (dotProduct > 0.7) {
             hBonds.push({
@@ -352,7 +354,7 @@ const MoleculeViewer = ({
         }
       }
     }
-    
+
     return hBonds;
   };
 
@@ -366,11 +368,11 @@ const MoleculeViewer = ({
     const hBonds = [];
     const hBondLengthMax = 3.2; // Maximum H-bond length in Angstroms
     const hBondLengthMin = 1.5; // Minimum length to avoid counting covalent bonds
-    
+
     // Identify donors and acceptors in molecule 1
     const donors1 = [];
     const acceptors1 = [];
-    
+
     // Find all H atoms in molecule1 that are bonded to O or N (potential donors)
     for (let i = 0; i < molecule1.length; i++) {
       if (molecule1[i].element === 'H') {
@@ -382,7 +384,7 @@ const MoleculeViewer = ({
               Math.pow(molecule1[i].y - molecule1[j].y, 2) +
               Math.pow(molecule1[i].z - molecule1[j].z, 2)
             );
-            
+
             // If H is close enough to O/N, it's a potential donor
             if (distance < 1.2) { // Typical H-O/H-N bond length
               donors1.push({
@@ -395,7 +397,7 @@ const MoleculeViewer = ({
         }
       }
     }
-    
+
     // Find all potential acceptors in molecule 1 (O or N atoms)
     for (let i = 0; i < molecule1.length; i++) {
       if (molecule1[i].element === 'O' || molecule1[i].element === 'N') {
@@ -405,11 +407,11 @@ const MoleculeViewer = ({
         });
       }
     }
-    
+
     // Identify donors and acceptors in molecule 2
     const donors2 = [];
     const acceptors2 = [];
-    
+
     // Find all H atoms in molecule2 that are bonded to O or N (potential donors)
     for (let i = 0; i < molecule2.length; i++) {
       if (molecule2[i].element === 'H') {
@@ -421,7 +423,7 @@ const MoleculeViewer = ({
               Math.pow(molecule2[i].y - molecule2[j].y, 2) +
               Math.pow(molecule2[i].z - molecule2[j].z, 2)
             );
-            
+
             // If H is close enough to O/N, it's a potential donor
             if (distance < 1.2) { // Typical H-O/H-N bond length
               donors2.push({
@@ -434,7 +436,7 @@ const MoleculeViewer = ({
         }
       }
     }
-    
+
     // Find all potential acceptors in molecule 2 (O or N atoms)
     for (let i = 0; i < molecule2.length; i++) {
       if (molecule2[i].element === 'O' || molecule2[i].element === 'N') {
@@ -444,38 +446,38 @@ const MoleculeViewer = ({
         });
       }
     }
-    
+
     // Check for hydrogen bonds from molecule 1 donors to molecule 2 acceptors
     for (const donor of donors1) {
       for (const acceptor of acceptors2) {
         const hAtom = molecule1[donor.hIndex];
         const acceptorAtom = molecule2[acceptor.index];
-        
+
         // Calculate H to acceptor distance
         const distance = Math.sqrt(
           Math.pow(hAtom.x - acceptorAtom.x, 2) +
           Math.pow(hAtom.y - acceptorAtom.y, 2) +
           Math.pow(hAtom.z - acceptorAtom.z, 2)
         );
-        
+
         // Check if distance is within hydrogen bond range
         if (distance >= hBondLengthMin && distance <= hBondLengthMax) {
           // Calculate angles to check for linearity
           const donorAtom = molecule1[donor.donorHeavyIndex];
-          
+
           // Calculate vectors for angle determination
           const donorToH = {
             x: hAtom.x - donorAtom.x,
             y: hAtom.y - donorAtom.y,
             z: hAtom.z - donorAtom.z
           };
-          
+
           const hToAcceptor = {
             x: acceptorAtom.x - hAtom.x,
             y: acceptorAtom.y - hAtom.y,
             z: acceptorAtom.z - hAtom.z
           };
-          
+
           // Normalize vectors
           const donorToHMag = Math.sqrt(
             donorToH.x * donorToH.x + donorToH.y * donorToH.y + donorToH.z * donorToH.z
@@ -483,25 +485,25 @@ const MoleculeViewer = ({
           const hToAcceptorMag = Math.sqrt(
             hToAcceptor.x * hToAcceptor.x + hToAcceptor.y * hToAcceptor.y + hToAcceptor.z * hToAcceptor.z
           );
-          
+
           const donorToHNorm = {
             x: donorToH.x / donorToHMag,
             y: donorToH.y / donorToHMag,
             z: donorToH.z / donorToHMag
           };
-          
+
           const hToAcceptorNorm = {
             x: hToAcceptor.x / hToAcceptorMag,
             y: hToAcceptor.y / hToAcceptorMag,
             z: hToAcceptor.z / hToAcceptorMag
           };
-          
+
           // Calculate dot product to get cosine of angle
-          const dotProduct = 
-            donorToHNorm.x * hToAcceptorNorm.x + 
-            donorToHNorm.y * hToAcceptorNorm.y + 
+          const dotProduct =
+            donorToHNorm.x * hToAcceptorNorm.x +
+            donorToHNorm.y * hToAcceptorNorm.y +
             donorToHNorm.z * hToAcceptorNorm.z;
-          
+
           // For hydrogen bond, angle should be reasonably linear (cos > 0.7 is < 45°)
           if (dotProduct > 0.7) {
             hBonds.push({
@@ -520,38 +522,38 @@ const MoleculeViewer = ({
         }
       }
     }
-    
+
     // Check for hydrogen bonds from molecule 2 donors to molecule 1 acceptors
     for (const donor of donors2) {
       for (const acceptor of acceptors1) {
         const hAtom = molecule2[donor.hIndex];
         const acceptorAtom = molecule1[acceptor.index];
-        
+
         // Calculate H to acceptor distance
         const distance = Math.sqrt(
           Math.pow(hAtom.x - acceptorAtom.x, 2) +
           Math.pow(hAtom.y - acceptorAtom.y, 2) +
           Math.pow(hAtom.z - acceptorAtom.z, 2)
         );
-        
+
         // Check if distance is within hydrogen bond range
         if (distance >= hBondLengthMin && distance <= hBondLengthMax) {
           // Calculate angles to check for linearity
           const donorAtom = molecule2[donor.donorHeavyIndex];
-          
+
           // Calculate vectors for angle determination
           const donorToH = {
             x: hAtom.x - donorAtom.x,
             y: hAtom.y - donorAtom.y,
             z: hAtom.z - donorAtom.z
           };
-          
+
           const hToAcceptor = {
             x: acceptorAtom.x - hAtom.x,
             y: acceptorAtom.y - hAtom.y,
             z: acceptorAtom.z - hAtom.z
           };
-          
+
           // Normalize vectors
           const donorToHMag = Math.sqrt(
             donorToH.x * donorToH.x + donorToH.y * donorToH.y + donorToH.z * donorToH.z
@@ -559,25 +561,25 @@ const MoleculeViewer = ({
           const hToAcceptorMag = Math.sqrt(
             hToAcceptor.x * hToAcceptor.x + hToAcceptor.y * hToAcceptor.y + hToAcceptor.z * hToAcceptor.z
           );
-          
+
           const donorToHNorm = {
             x: donorToH.x / donorToHMag,
             y: donorToH.y / donorToHMag,
             z: donorToH.z / donorToHMag
           };
-          
+
           const hToAcceptorNorm = {
             x: hToAcceptor.x / hToAcceptorMag,
             y: hToAcceptor.y / hToAcceptorMag,
             z: hToAcceptor.z / hToAcceptorMag
           };
-          
+
           // Calculate dot product to get cosine of angle
-          const dotProduct = 
-            donorToHNorm.x * hToAcceptorNorm.x + 
-            donorToHNorm.y * hToAcceptorNorm.y + 
+          const dotProduct =
+            donorToHNorm.x * hToAcceptorNorm.x +
+            donorToHNorm.y * hToAcceptorNorm.y +
             donorToHNorm.z * hToAcceptorNorm.z;
-          
+
           // For hydrogen bond, angle should be reasonably linear (cos > 0.7 is < 45°)
           if (dotProduct > 0.7) {
             hBonds.push({
@@ -596,7 +598,7 @@ const MoleculeViewer = ({
         }
       }
     }
-    
+
     return hBonds;
   };
 
@@ -641,8 +643,16 @@ const MoleculeViewer = ({
     // Set up viewer instance only once
     const viewer = $3Dmol.createViewer(viewerRef.current, {
       backgroundColor: "rgb(15, 23, 42)",
+      control: {
+        dragScale: 0.5,  // Sensitivity for rotation
+        scrollScale: 1.0,  // Sensitivity for zoom
+        touchTranslateScale: 0.3,  // Sensitivity for touch translation
+        doubleClickSpeed: 200,
+        touchpadMode: true,  // Enable better trackpad/touchscreen support
+        panMode: 2  // Use 2 fingers for panning instead of 3
+      }
     });
-
+  
     // Store viewer instance for later use
     setViewerInstance(viewer);
     setIsInitialRender(true);
@@ -676,7 +686,7 @@ const MoleculeViewer = ({
 
         // Clear previous content
         viewerInstance.clear();
-        
+
         // Initialize transformed molecule2 variable to null at the function scope level
         // This ensures it's available throughout the entire rendering logic
         let transformedMolecule2 = null;
@@ -695,29 +705,29 @@ const MoleculeViewer = ({
           // Add molecule1 with its own model
           let model1 = viewerInstance.addModel();
           model1.addAtoms(m1Data);
-          
+
           // Calculate covalent bonds
           const covalentBonds1 = calculateCovalentBonds(molecule1);
-          
+
           // Add covalent bonds as cylinders instead of using addBond
           covalentBonds1.forEach(bond => {
             const atom1 = molecule1[bond.atom1Index];
             const atom2 = molecule1[bond.atom2Index];
-            
+
             // Calculate midpoint for label positioning
             const midpoint = {
               x: (atom1.x + atom2.x) / 2,
               y: (atom1.y + atom2.y) / 2,
               z: (atom1.z + atom2.z) / 2
             };
-            
+
             // Calculate slight offset for better label visibility
             const offsetVector = {
               x: (atom2.y - atom1.y) * 0.1, // Create perpendicular offset
               y: (atom1.x - atom2.x) * 0.1,
               z: 0.2 // Small Z offset
             };
-            
+
             viewerInstance.addCylinder({
               start: { x: atom1.x, y: atom1.y, z: atom1.z },
               end: { x: atom2.x, y: atom2.y, z: atom2.z },
@@ -726,7 +736,7 @@ const MoleculeViewer = ({
               toCap: 1,
               color: "0x38bdf8"  // Blue for molecule 1
             });
-            
+
             // Add bond length label
             if (showBondLengths) {
               viewerInstance.addLabel(`${bond.distance.toFixed(2)}Å`, {
@@ -744,36 +754,36 @@ const MoleculeViewer = ({
               });
             }
           });
-          
+
           // Calculate and visualize hydrogen bonds
           const hydrogenBonds1 = calculateHydrogenBonds(molecule1);
-          
+
           // Add hydrogen bonds visualization with dashed lines
           hydrogenBonds1.forEach(bond => {
             const hAtom = molecule1[bond.hIndex];
             const acceptorAtom = molecule1[bond.acceptorIndex];
-            
+
             // Calculate midpoint for label positioning
             const midpoint = {
               x: (hAtom.x + acceptorAtom.x) / 2,
               y: (hAtom.y + acceptorAtom.y) / 2,
               z: (hAtom.z + acceptorAtom.z) / 2
             };
-            
+
             // Calculate perpendicular offset for label placement
             const bondVector = {
               x: acceptorAtom.x - hAtom.x,
               y: acceptorAtom.y - hAtom.y,
               z: acceptorAtom.z - hAtom.z
             };
-            
+
             // Create perpendicular vector for offset (simplified approach)
             const offsetVector = {
               x: -bondVector.y * 0.15,
               y: bondVector.x * 0.15,
               z: 0.2
             };
-            
+
             viewerInstance.addCylinder({
               start: {
                 x: hAtom.x,
@@ -793,7 +803,7 @@ const MoleculeViewer = ({
               dashLength: 0.15,   // Length of dash segments
               gapLength: 0.15,    // Length of gaps
             });
-            
+
             // Add hydrogen bond length label
             if (showBondLengths) {
               viewerInstance.addLabel(`${bond.distance.toFixed(2)}Å`, {
@@ -876,7 +886,7 @@ const MoleculeViewer = ({
           transformedMolecule2 = molecule2.map(atom => {
             // Apply transformation as in the existing code
             let x = atom.x, y = atom.y, z = atom.z;
-            
+
             if (molecule2Rotation && (molecule2Rotation.x !== 0 || molecule2Rotation.y !== 0 || molecule2Rotation.z !== 0)) {
               const coords = [x, y, z];
               const rotated = applyRotation(coords, molecule2Rotation, centerOfMass);
@@ -884,7 +894,7 @@ const MoleculeViewer = ({
               y = rotated[1];
               z = rotated[2];
             }
-            
+
             return {
               element: atom.element,
               x: x + molecule2Offset.x,
@@ -892,29 +902,29 @@ const MoleculeViewer = ({
               z: z + molecule2Offset.z
             };
           });
-          
+
           // Calculate bonds for transformed coordinates
           const covalentBonds2 = calculateCovalentBonds(transformedMolecule2);
-          
+
           // Add covalent bonds using cylinders instead of addBond
           covalentBonds2.forEach(bond => {
             const atom1 = transformedMolecule2[bond.atom1Index];
             const atom2 = transformedMolecule2[bond.atom2Index];
-            
+
             // Calculate midpoint for label positioning
             const midpoint = {
               x: (atom1.x + atom2.x) / 2,
               y: (atom1.y + atom2.y) / 2,
               z: (atom1.z + atom2.z) / 2
             };
-            
+
             // Calculate slight offset for better label visibility
             const offsetVector = {
               x: (atom2.y - atom1.y) * 0.1, // Create perpendicular offset
               y: (atom1.x - atom2.x) * 0.1,
               z: 0.2 // Small Z offset
             };
-            
+
             viewerInstance.addCylinder({
               start: { x: atom1.x, y: atom1.y, z: atom1.z },
               end: { x: atom2.x, y: atom2.y, z: atom2.z },
@@ -923,7 +933,7 @@ const MoleculeViewer = ({
               toCap: 1,
               color: "0x10b981"  // Green for molecule 2
             });
-            
+
             // Add bond length label
             if (showBondLengths) {
               viewerInstance.addLabel(`${bond.distance.toFixed(2)}Å`, {
@@ -941,36 +951,36 @@ const MoleculeViewer = ({
               });
             }
           });
-          
+
           // Calculate hydrogen bonds
           const hydrogenBonds2 = calculateHydrogenBonds(transformedMolecule2);
-          
+
           // Add hydrogen bond visualization
           hydrogenBonds2.forEach(bond => {
             const hAtom = transformedMolecule2[bond.hIndex];
             const acceptorAtom = transformedMolecule2[bond.acceptorIndex];
-            
+
             // Calculate midpoint for label positioning
             const midpoint = {
               x: (hAtom.x + acceptorAtom.x) / 2,
               y: (hAtom.y + acceptorAtom.y) / 2,
               z: (hAtom.z + acceptorAtom.z) / 2
             };
-            
+
             // Calculate perpendicular offset for label placement
             const bondVector = {
               x: acceptorAtom.x - hAtom.x,
               y: acceptorAtom.y - hAtom.y,
               z: acceptorAtom.z - hAtom.z
             };
-            
+
             // Create perpendicular vector for offset (simplified approach)
             const offsetVector = {
               x: -bondVector.y * 0.15,
               y: bondVector.x * 0.15,
               z: 0.2
             };
-            
+
             viewerInstance.addCylinder({
               start: {
                 x: hAtom.x,
@@ -982,15 +992,15 @@ const MoleculeViewer = ({
                 y: acceptorAtom.y,
                 z: acceptorAtom.z
               },
-              radius: isMobile ? 0.05 : 0.07,  
+              radius: isMobile ? 0.05 : 0.07,
               fromCap: 1,
               toCap: 1,
-              color: "0xFFFFFF",  
+              color: "0xFFFFFF",
               dashed: true,
-              dashLength: 0.15,   
-              gapLength: 0.15,   
+              dashLength: 0.15,
+              gapLength: 0.15,
             });
-            
+
             // Add hydrogen bond length label
             if (showBondLengths) {
               viewerInstance.addLabel(`${bond.distance.toFixed(2)}Å`, {
@@ -1000,7 +1010,7 @@ const MoleculeViewer = ({
                   z: midpoint.z + offsetVector.z
                 },
                 fontSize: isMobile ? 8 : 10,
-                fontColor: "white", 
+                fontColor: "white",
                 backgroundColor: "rgba(255, 255, 255, 0.3)", // Semi-transparent white background
                 borderRadius: 10,
                 padding: 1,
@@ -1073,7 +1083,7 @@ const MoleculeViewer = ({
         if (molecule1 && molecule2 && transformedMolecule2 && Array.isArray(molecule1) && Array.isArray(transformedMolecule2)) {
           // Calculate intermolecular hydrogen bonds
           const intermolecularHBonds = calculateIntermolecularHydrogenBonds(molecule1, transformedMolecule2);
-          
+
           // Add intermolecular hydrogen bond visualization with dashed lines
           intermolecularHBonds.forEach(bond => {
             // Get start coordinates (hydrogen atom)
@@ -1087,7 +1097,7 @@ const MoleculeViewer = ({
               startY = transformedMolecule2[bond.donor.hIndex].y;
               startZ = transformedMolecule2[bond.donor.hIndex].z;
             }
-            
+
             // Get end coordinates (acceptor atom)
             let endX, endY, endZ;
             if (bond.acceptor.molecule === 1) {
@@ -1099,7 +1109,7 @@ const MoleculeViewer = ({
               endY = transformedMolecule2[bond.acceptor.index].y;
               endZ = transformedMolecule2[bond.acceptor.index].z;
             }
-            
+
             // Add dashed line for hydrogen bond
             viewerInstance.addCylinder({
               start: { x: startX, y: startY, z: startZ },
@@ -1112,7 +1122,7 @@ const MoleculeViewer = ({
               dashLength: 0.15,
               gapLength: 0.15,
             });
-            
+
             // Add a label for the hydrogen bond - now for all intermolecular H-bonds
             if (showBondLengths) {
               viewerInstance.addLabel(`${bond.distance.toFixed(2)}Å`, {
@@ -1164,7 +1174,7 @@ const MoleculeViewer = ({
           if (positioningMode) {
             // Use the dedicated function to disable all interactions properly
             disableViewerInteractions(viewerInstance);
-            
+
             // Add positioning mode instructions if needed
             if (molecule2) {
               viewerInstance.addLabel("Use arrow keys to position Molecule 2", {
@@ -1322,7 +1332,7 @@ const MoleculeViewer = ({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h4 style={{ margin: '0 0 8px 0', fontSize: '16px' }}>Position Controls</h4>
           </div>
-          
+
           {/* XY position control buttons */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
             <button
@@ -1348,7 +1358,7 @@ const MoleculeViewer = ({
               </button>
             </div>
           </div>
-          
+
           {/* Z position control buttons */}
           <div style={{ display: 'flex', justifyContent: 'center', gap: '4px', marginTop: '4px' }}>
             <button
@@ -1362,7 +1372,7 @@ const MoleculeViewer = ({
               Z+
             </button>
           </div>
-          
+
           {/* Rotation control buttons */}
           <div style={{ marginTop: '8px', padding: '8px 0', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
             <h4 style={{ margin: '0 0 8px 0', fontSize: '16px' }}>Rotation Controls</h4>
@@ -1405,15 +1415,15 @@ const MoleculeViewer = ({
               </div>
             </div>
           </div>
-          
+
           {/* Reset buttons */}
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
             gap: '8px',
-            marginTop: '8px', 
-            paddingTop: '8px', 
-            borderTop: '1px solid rgba(255, 255, 255, 0.1)' 
+            marginTop: '8px',
+            paddingTop: '8px',
+            borderTop: '1px solid rgba(255, 255, 255, 0.1)'
           }}>
             <button
               onClick={() => onMoleculeMove({ x: 0, y: 0, z: 0 })}
@@ -1430,33 +1440,54 @@ const MoleculeViewer = ({
       )}
 
       {/* Bond Length Display Toggle */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        marginBottom: '8px', 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        marginBottom: '8px',
         padding: '8px',
         backgroundColor: 'rgba(15, 23, 42, 0.7)',
         borderRadius: '8px',
         border: '1px solid rgba(255, 255, 255, 0.1)'
       }}>
-        <label style={{
-          display: 'flex',
-          alignItems: 'center',
-          cursor: 'pointer'
-        }}>
-          <input
-            type="checkbox"
-            checked={showBondLengths}
-            onChange={(e) => setShowBondLengths(e.target.checked)}
-            style={{
-              marginRight: '8px',
-              cursor: 'pointer',
-              accentColor: '#38bdf8'
-            }}
-          />
-          <span>Show Bond Lengths (Å)</span>
-        </label>
+        <div style={{ display: 'flex', gap: isMobile ? '8px' : '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
+          <label style={{
+            display: 'flex',
+            alignItems: 'center',
+            cursor: 'pointer'
+          }}>
+            <input
+              type="checkbox"
+              checked={showBondLengths}
+              onChange={(e) => setShowBondLengths(e.target.checked)}
+              style={{
+                marginRight: '8px',
+                cursor: 'pointer',
+                accentColor: '#38bdf8'
+              }}
+            />
+            <span>Show Bond Lengths (Å)</span>
+          </label>
+
+          <label style={{
+            display: 'flex',
+            alignItems: 'center',
+            cursor: 'pointer'
+          }}>
+            <input
+              type="checkbox"
+              checked={showBondLegend}
+              onChange={(e) => setShowBondLegend(e.target.checked)}
+              style={{
+                marginRight: '8px',
+                cursor: 'pointer',
+                accentColor: '#38bdf8'
+              }}
+            />
+            <span>Show Bond Legend</span>
+          </label>
+        </div>
       </div>
+
 
       <div
         ref={containerRef}
@@ -1491,7 +1522,7 @@ const MoleculeViewer = ({
         ></div>
 
         {/* Static Bond Legend Overlay */}
-        {(molecule1 || molecule2) && (
+        {(molecule1 || molecule2) && showBondLegend && (
           <div style={{
             position: 'absolute',
             top: '10px',
@@ -1506,36 +1537,36 @@ const MoleculeViewer = ({
             maxWidth: isMobile ? '160px' : '180px'
           }}>
             <div style={{ fontWeight: 'bold', marginBottom: '6px' }}>Bond Types:</div>
-            
+
             {/* Covalent Bond */}
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
-              <div style={{ 
-                width: '30px', 
-                height: isMobile ? '4px' : '5px', 
+              <div style={{
+                width: '30px',
+                height: isMobile ? '4px' : '5px',
                 backgroundColor: molecule1 ? '#38bdf8' : '#10b981',
                 borderRadius: '4px',
                 marginRight: '8px'
               }}></div>
               <div>Covalent</div>
             </div>
-            
+
             {/* Hydrogen Bond */}
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
-              <div style={{ 
-                width: '30px', 
-                height: '0', 
+              <div style={{
+                width: '30px',
+                height: '0',
                 borderTop: isMobile ? '2px dashed white' : '3px dashed white',
                 marginRight: '8px'
               }}></div>
               <div>Hydrogen</div>
             </div>
-            
+
             {/* Intermolecular Hydrogen Bond - only show if both molecules present */}
             {molecule1 && molecule2 && (
               <div style={{ display: 'flex', alignItems: 'center' }}>
-                <div style={{ 
-                  width: '30px', 
-                  height: '0', 
+                <div style={{
+                  width: '30px',
+                  height: '0',
                   borderTop: isMobile ? '2px dashed #FFD700' : '3px dashed #FFD700',
                   marginRight: '8px'
                 }}></div>

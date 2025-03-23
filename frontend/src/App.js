@@ -1373,307 +1373,6 @@ const App = () => {
             </div>
           </div>
 
-
-          {/* Positioning Mode Controls */}
-          {interactionMode && molecule1Data && molecule2Data && (
-            <div style={{
-              backgroundColor: "rgba(15, 23, 42, 0.7)",
-              backdropFilter: "blur(12px)",
-              WebkitBackdropFilter: "blur(12px)",
-              borderRadius: "16px",
-              padding: "16px",
-              marginBottom: "16px",
-              border: `1px solid ${positioningMode ? "#38bdf8" : "rgba(255, 255, 255, 0.1)"}`,
-              boxShadow: positioningMode ? `0 0 10px rgba(56, 189, 248, 0.2)` : "0 15px 25px rgba(0, 0, 0, 0.25)",
-            }}>
-              <div style={{
-                display: "flex",
-                flexDirection: isMobile ? "column" : "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: "16px",
-              }}>
-                <div style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                }}>
-                  <button
-                    onClick={() => setPositioningMode(!positioningMode)}
-                    style={{
-                      backgroundColor: positioningMode ? "rgba(56, 189, 248, 0.2)" : "rgba(15, 23, 42, 0.7)",
-                      color: positioningMode ? "#38bdf8" : "#94a3b8",
-                      border: `1px solid ${positioningMode ? "rgba(56, 189, 248, 0.3)" : "transparent"}`,
-                      padding: "4px 16px",
-                      borderRadius: "8px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                      cursor: "pointer",
-                      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                      fontSize: "16px", // Increased font size from default
-                      fontWeight: "500" // Added for better visibility
-                    }}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M5 9l4-4 4 4M9 5v14M19 15l-4 4-4-4M15 19V5" />
-                    </svg>
-                    {positioningMode ? "Disable Positioning Mode" : "Enable Positioning Mode"}
-                  </button>
-                </div>
-
-                {positioningMode && (
-                  <div style={{
-                    display: "flex",
-                    gap: "8px",
-                    alignItems: "center",
-                    flexWrap: isMobile ? "wrap" : "nowrap",
-                    justifyContent: isMobile ? "center" : "flex-end",
-                    width: isMobile ? "100%" : "auto",
-                  }}>
-                    <button
-                      onClick={() => setMolecule2Offset({ x: 0, y: 0, z: 0 })}
-                      style={{
-                        backgroundColor: "rgba(15, 23, 42, 0.7)",
-                        color: "#94a3b8",
-                        border: "1px solid rgba(255, 255, 255, 0.1)",
-                        padding: "4px 8px",
-                        borderRadius: "8px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Reset Position
-                    </button>
-
-                    <div style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px",
-                    }}>
-                      <span>X:</span>
-                      <input
-                        type="number"
-                        value={molecule2Offset.x.toFixed(2)}
-                        onChange={(e) => setMolecule2Offset({
-                          ...molecule2Offset,
-                          x: parseFloat(e.target.value)
-                        })}
-                        style={{
-                          width: "70px",
-                          backgroundColor: "rgba(15, 23, 42, 0.7)",
-                          color: "#f0f4f8",
-                          border: "1px solid rgba(255, 255, 255, 0.1)",
-                          borderRadius: "4px",
-                          padding: "4px 4px",
-                        }}
-                        step="0.5"
-                      />
-                    </div>
-
-                    <div style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px",
-                    }}>
-                      <span>Y:</span>
-                      <input
-                        type="number"
-                        value={molecule2Offset.y.toFixed(2)}
-                        onChange={(e) => setMolecule2Offset({
-                          ...molecule2Offset,
-                          y: parseFloat(e.target.value)
-                        })}
-                        style={{
-                          width: "70px",
-                          backgroundColor: "rgba(15, 23, 42, 0.7)",
-                          color: "#f0f4f8",
-                          border: "1px solid rgba(255, 255, 255, 0.1)",
-                          borderRadius: "4px",
-                          padding: "4px 4px",
-                        }}
-                        step="0.5"
-                      />
-                    </div>
-
-                    <div style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px",
-                    }}>
-                      <span>Z:</span>
-                      <input
-                        type="number"
-                        value={molecule2Offset.z.toFixed(2)}
-                        onChange={(e) => setMolecule2Offset({
-                          ...molecule2Offset,
-                          z: parseFloat(e.target.value)
-                        })}
-                        style={{
-                          width: "70px",
-                          backgroundColor: "rgba(15, 23, 42, 0.7)",
-                          color: "#f0f4f8",
-                          border: "1px solid rgba(255, 255, 255, 0.1)",
-                          borderRadius: "4px",
-                          padding: "4px 4px",
-                        }}
-                        step="0.5"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Rotation Controls */}
-              {positioningMode && (
-                <div style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "8px",
-                  padding: "8px",
-                  backgroundColor: "rgba(15, 23, 42, 0.7)",
-                  borderRadius: "8px",
-                  marginTop: "8px",
-                }}>
-                  <div style={{ fontWeight: "600", marginBottom: "4px" }}>Rotation (degrees):</div>
-                  <div style={{
-                    display: "flex",
-                    gap: "8px",
-                    flexWrap: isMobile ? "wrap" : "nowrap",
-                    justifyContent: isMobile ? "center" : "flex-start",
-                  }}>
-                    <div style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px",
-                    }}>
-                      <span>RX:</span>
-                      <input
-                        type="number"
-                        value={molecule2Rotation.x}
-                        onChange={(e) => setMolecule2Rotation({
-                          ...molecule2Rotation,
-                          x: parseFloat(e.target.value) % 360
-                        })}
-                        style={{
-                          width: "70px",
-                          backgroundColor: "rgba(15, 23, 42, 0.7)",
-                          color: "#f0f4f8",
-                          border: "1px solid rgba(255, 255, 255, 0.1)",
-                          borderRadius: "4px",
-                          padding: "4px 4px",
-                        }}
-                        step="15"
-                      />
-                    </div>
-
-                    <div style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px",
-                    }}>
-                      <span>RY:</span>
-                      <input
-                        type="number"
-                        value={molecule2Rotation.y}
-                        onChange={(e) => setMolecule2Rotation({
-                          ...molecule2Rotation,
-                          y: parseFloat(e.target.value) % 360
-                        })}
-                        style={{
-                          width: "70px",
-                          backgroundColor: "rgba(15, 23, 42, 0.7)",
-                          color: "#f0f4f8",
-                          border: "1px solid rgba(255, 255, 255, 0.1)",
-                          borderRadius: "4px",
-                          padding: "4px 4px",
-                        }}
-                        step="15"
-                      />
-                    </div>
-
-                    <div style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px",
-                    }}>
-                      <span>RZ:</span>
-                      <input
-                        type="number"
-                        value={molecule2Rotation.z}
-                        onChange={(e) => setMolecule2Rotation({
-                          ...molecule2Rotation,
-                          z: parseFloat(e.target.value) % 360
-                        })}
-                        style={{
-                          width: "70px",
-                          backgroundColor: "rgba(15, 23, 42, 0.7)",
-                          color: "#f0f4f8",
-                          border: "1px solid rgba(255, 255, 255, 0.1)",
-                          borderRadius: "4px",
-                          padding: "4px 4px",
-                        }}
-                        step="15"
-                      />
-                    </div>
-
-                    <button
-                      onClick={() => setMolecule2Rotation({ x: 0, y: 0, z: 0 })}
-                      style={{
-                        backgroundColor: "rgba(15, 23, 42, 0.7)",
-                        color: "#94a3b8",
-                        border: "1px solid rgba(255, 255, 255, 0.1)",
-                        padding: "4px 8px",
-                        borderRadius: "8px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Reset Rotation
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {positioningMode && (
-                <div style={{
-                  backgroundColor: "rgba(56, 189, 248, 0.1)",
-                  marginTop: "8px",
-                  padding: "8px",
-                  borderRadius: "8px",
-                  fontSize: "0.85rem",
-                  color: "#94a3b8",
-                  border: "1px solid rgba(56, 189, 248, 0.2)",
-                }}>
-
-                  <p style={{ margin: 0 }}>
-                    <strong>Controls:</strong> Use keyboard to position Molecule 2: <kbd style={{
-                      backgroundColor: "rgba(255, 255, 255, 0.1)",
-                      padding: "2px 5px",
-                      borderRadius: "3px",
-                      fontSize: "0.8rem"
-                    }}>←→</kbd> (X-axis), <kbd style={{
-                      backgroundColor: "rgba(255, 255, 255, 0.1)",
-                      padding: "2px 5px",
-                      borderRadius: "3px",
-                      fontSize: "0.8rem"
-                    }}>↑↓</kbd> (Y-axis), <kbd style={{
-                      backgroundColor: "rgba(255, 255, 255, 0.1)",
-                      padding: "2px 5px",
-                      borderRadius: "3px",
-                      fontSize: "0.8rem"
-                    }}>PgUp/PgDn</kbd> (Z-axis).
-                    Hold <kbd style={{
-                      backgroundColor: "rgba(255, 255, 255, 0.1)",
-                      padding: "2px 5px",
-                      borderRadius: "3px",
-                      fontSize: "0.8rem"
-                    }}>Shift</kbd> + arrows for rotation.
-                  </p>
-
-                </div>
-              )}
-            </div>
-          )}
-
           {/* Test Molecules Buttons */}
           <div style={styles.testMoleculesContainer} className={isMobile ? 'mobile-smaller-padding' : ''}>
             <h3 style={styles.testMoleculesTitle}>
@@ -1824,6 +1523,307 @@ const App = () => {
                   isMobile={isMobile}
                 />
               )}
+
+              {/* Positioning Mode Controls */}
+              {interactionMode && molecule1Data && molecule2Data && (
+                <div style={{
+                  backgroundColor: "rgba(15, 23, 42, 0.7)",
+                  backdropFilter: "blur(12px)",
+                  WebkitBackdropFilter: "blur(12px)",
+                  borderRadius: "16px",
+                  padding: "16px",
+                  marginBottom: "16px",
+                  border: `1px solid ${positioningMode ? "#38bdf8" : "rgba(255, 255, 255, 0.1)"}`,
+                  boxShadow: positioningMode ? `0 0 10px rgba(56, 189, 248, 0.2)` : "0 15px 25px rgba(0, 0, 0, 0.25)",
+                }}>
+                  <div style={{
+                    display: "flex",
+                    flexDirection: isMobile ? "column" : "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "16px",
+                  }}>
+                    <div style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}>
+                      <button
+                        onClick={() => setPositioningMode(!positioningMode)}
+                        style={{
+                          backgroundColor: positioningMode ? "rgba(56, 189, 248, 0.2)" : "rgba(15, 23, 42, 0.7)",
+                          color: positioningMode ? "#38bdf8" : "#94a3b8",
+                          border: `1px solid ${positioningMode ? "rgba(56, 189, 248, 0.3)" : "transparent"}`,
+                          padding: "4px 16px",
+                          borderRadius: "8px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          cursor: "pointer",
+                          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                          fontSize: "16px", // Increased font size from default
+                          fontWeight: "500" // Added for better visibility
+                        }}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M5 9l4-4 4 4M9 5v14M19 15l-4 4-4-4M15 19V5" />
+                        </svg>
+                        {positioningMode ? "Disable Positioning Mode" : "Enable Positioning Mode"}
+                      </button>
+                    </div>
+
+                    {positioningMode && (
+                      <div style={{
+                        display: "flex",
+                        gap: "8px",
+                        alignItems: "center",
+                        flexWrap: isMobile ? "wrap" : "nowrap",
+                        justifyContent: isMobile ? "center" : "flex-end",
+                        width: isMobile ? "100%" : "auto",
+                      }}>
+                        <button
+                          onClick={() => setMolecule2Offset({ x: 0, y: 0, z: 0 })}
+                          style={{
+                            backgroundColor: "rgba(15, 23, 42, 0.7)",
+                            color: "#94a3b8",
+                            border: "1px solid rgba(255, 255, 255, 0.1)",
+                            padding: "4px 8px",
+                            borderRadius: "8px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Reset Position
+                        </button>
+
+                        <div style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}>
+                          <span>X:</span>
+                          <input
+                            type="number"
+                            value={molecule2Offset.x.toFixed(2)}
+                            onChange={(e) => setMolecule2Offset({
+                              ...molecule2Offset,
+                              x: parseFloat(e.target.value)
+                            })}
+                            style={{
+                              width: "70px",
+                              backgroundColor: "rgba(15, 23, 42, 0.7)",
+                              color: "#f0f4f8",
+                              border: "1px solid rgba(255, 255, 255, 0.1)",
+                              borderRadius: "4px",
+                              padding: "4px 4px",
+                            }}
+                            step="0.5"
+                          />
+                        </div>
+
+                        <div style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}>
+                          <span>Y:</span>
+                          <input
+                            type="number"
+                            value={molecule2Offset.y.toFixed(2)}
+                            onChange={(e) => setMolecule2Offset({
+                              ...molecule2Offset,
+                              y: parseFloat(e.target.value)
+                            })}
+                            style={{
+                              width: "70px",
+                              backgroundColor: "rgba(15, 23, 42, 0.7)",
+                              color: "#f0f4f8",
+                              border: "1px solid rgba(255, 255, 255, 0.1)",
+                              borderRadius: "4px",
+                              padding: "4px 4px",
+                            }}
+                            step="0.5"
+                          />
+                        </div>
+
+                        <div style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}>
+                          <span>Z:</span>
+                          <input
+                            type="number"
+                            value={molecule2Offset.z.toFixed(2)}
+                            onChange={(e) => setMolecule2Offset({
+                              ...molecule2Offset,
+                              z: parseFloat(e.target.value)
+                            })}
+                            style={{
+                              width: "70px",
+                              backgroundColor: "rgba(15, 23, 42, 0.7)",
+                              color: "#f0f4f8",
+                              border: "1px solid rgba(255, 255, 255, 0.1)",
+                              borderRadius: "4px",
+                              padding: "4px 4px",
+                            }}
+                            step="0.5"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Rotation Controls */}
+                  {positioningMode && (
+                    <div style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "8px",
+                      padding: "8px",
+                      backgroundColor: "rgba(15, 23, 42, 0.7)",
+                      borderRadius: "8px",
+                      marginTop: "8px",
+                    }}>
+                      <div style={{ fontWeight: "600", marginBottom: "4px" }}>Rotation (degrees):</div>
+                      <div style={{
+                        display: "flex",
+                        gap: "8px",
+                        flexWrap: isMobile ? "wrap" : "nowrap",
+                        justifyContent: isMobile ? "center" : "flex-start",
+                      }}>
+                        <div style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}>
+                          <span>RX:</span>
+                          <input
+                            type="number"
+                            value={molecule2Rotation.x}
+                            onChange={(e) => setMolecule2Rotation({
+                              ...molecule2Rotation,
+                              x: parseFloat(e.target.value) % 360
+                            })}
+                            style={{
+                              width: "70px",
+                              backgroundColor: "rgba(15, 23, 42, 0.7)",
+                              color: "#f0f4f8",
+                              border: "1px solid rgba(255, 255, 255, 0.1)",
+                              borderRadius: "4px",
+                              padding: "4px 4px",
+                            }}
+                            step="15"
+                          />
+                        </div>
+
+                        <div style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}>
+                          <span>RY:</span>
+                          <input
+                            type="number"
+                            value={molecule2Rotation.y}
+                            onChange={(e) => setMolecule2Rotation({
+                              ...molecule2Rotation,
+                              y: parseFloat(e.target.value) % 360
+                            })}
+                            style={{
+                              width: "70px",
+                              backgroundColor: "rgba(15, 23, 42, 0.7)",
+                              color: "#f0f4f8",
+                              border: "1px solid rgba(255, 255, 255, 0.1)",
+                              borderRadius: "4px",
+                              padding: "4px 4px",
+                            }}
+                            step="15"
+                          />
+                        </div>
+
+                        <div style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}>
+                          <span>RZ:</span>
+                          <input
+                            type="number"
+                            value={molecule2Rotation.z}
+                            onChange={(e) => setMolecule2Rotation({
+                              ...molecule2Rotation,
+                              z: parseFloat(e.target.value) % 360
+                            })}
+                            style={{
+                              width: "70px",
+                              backgroundColor: "rgba(15, 23, 42, 0.7)",
+                              color: "#f0f4f8",
+                              border: "1px solid rgba(255, 255, 255, 0.1)",
+                              borderRadius: "4px",
+                              padding: "4px 4px",
+                            }}
+                            step="15"
+                          />
+                        </div>
+
+                        <button
+                          onClick={() => setMolecule2Rotation({ x: 0, y: 0, z: 0 })}
+                          style={{
+                            backgroundColor: "rgba(15, 23, 42, 0.7)",
+                            color: "#94a3b8",
+                            border: "1px solid rgba(255, 255, 255, 0.1)",
+                            padding: "4px 8px",
+                            borderRadius: "8px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Reset Rotation
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {positioningMode && (
+                    <div style={{
+                      backgroundColor: "rgba(56, 189, 248, 0.1)",
+                      marginTop: "8px",
+                      padding: "8px",
+                      borderRadius: "8px",
+                      fontSize: "0.85rem",
+                      color: "#94a3b8",
+                      border: "1px solid rgba(56, 189, 248, 0.2)",
+                    }}>
+
+                      <p style={{ margin: 0 }}>
+                        <strong>Controls:</strong> Use keyboard to position Molecule 2: <kbd style={{
+                          backgroundColor: "rgba(255, 255, 255, 0.1)",
+                          padding: "2px 5px",
+                          borderRadius: "3px",
+                          fontSize: "0.8rem"
+                        }}>←→</kbd> (X-axis), <kbd style={{
+                          backgroundColor: "rgba(255, 255, 255, 0.1)",
+                          padding: "2px 5px",
+                          borderRadius: "3px",
+                          fontSize: "0.8rem"
+                        }}>↑↓</kbd> (Y-axis), <kbd style={{
+                          backgroundColor: "rgba(255, 255, 255, 0.1)",
+                          padding: "2px 5px",
+                          borderRadius: "3px",
+                          fontSize: "0.8rem"
+                        }}>PgUp/PgDn</kbd> (Z-axis).
+                        Hold <kbd style={{
+                          backgroundColor: "rgba(255, 255, 255, 0.1)",
+                          padding: "2px 5px",
+                          borderRadius: "3px",
+                          fontSize: "0.8rem"
+                        }}>Shift</kbd> + arrows for rotation.
+                      </p>
+
+                    </div>
+                  )}
+                </div>
+              )}
+
 
               {/* Visualization */}
               <div style={styles.visualizationContainer} className={`glass ${isMobile ? 'mobile-smaller-padding' : ''}`}>
