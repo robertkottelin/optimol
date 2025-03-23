@@ -59,6 +59,8 @@ const App = () => {
   const [quantumParams, setQuantumParams] = useState({ ...defaultQuantumParams });
   const [showAdvancedParams, setShowAdvancedParams] = useState(false);
   const [isHowToUseVisible, setIsHowToUseVisible] = useState(false);
+  const [isTheoryVisible, setIsTheoryVisible] = useState(false);
+  const [isAboutUsVisible, setIsAboutUsVisible] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSubscribeLoading, setIsSubscribeLoading] = useState(false);
@@ -68,8 +70,10 @@ const App = () => {
   const [serverHealth, setServerHealth] = useState(null);
   const [isCheckingHealth, setIsCheckingHealth] = useState(false);
   const [serverHealthDetails, setServerHealthDetails] = useState(null);
-  // FIXED: Moved howToUseContent useState before conditional return
+  // FIXED: Moved content states before conditional return
   const [howToUseContent, setHowToUseContent] = useState("");
+  const [theoryContent, setTheoryContent] = useState("");
+  const [aboutUsContent, setAboutUsContent] = useState("");
   const [applyDefaultOffset, setApplyDefaultOffset] = useState(true);
 
 
@@ -155,6 +159,40 @@ const App = () => {
       });
   }, []);
 
+  useEffect(() => {
+    // Load theory documentation
+    fetch(`${process.env.PUBLIC_URL}/theory.md`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Theory documentation not found');
+        }
+        return response.text();
+      })
+      .then(text => setTheoryContent(text))
+      .catch(error => {
+        console.error("Failed to load theory:", error);
+        // Fallback content
+        setTheoryContent("# Theory\n\nTheory documentation is currently unavailable.");
+      });
+  }, []);
+
+  useEffect(() => {
+    // Load about us content
+    fetch(`${process.env.PUBLIC_URL}/about-us.md`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('About Us content not found');
+        }
+        return response.text();
+      })
+      .then(text => setAboutUsContent(text))
+      .catch(error => {
+        console.error("Failed to load about us:", error);
+        // Fallback content
+        setAboutUsContent("# About Us\n\nInformation is currently unavailable.");
+      });
+  }, []);
+
   // Apply limits on initial load and whenever subscription status changes
   useEffect(() => {
     if (!isLoading) {
@@ -204,11 +242,29 @@ const App = () => {
 
   const handleShowHowToUse = () => {
     setIsHowToUseVisible(true);
+    setIsTheoryVisible(false);
+    setIsAboutUsVisible(false);
+    setIsMobileMenuOpen(false);
+  };
+
+  const handleShowTheory = () => {
+    setIsHowToUseVisible(false);
+    setIsTheoryVisible(true);
+    setIsAboutUsVisible(false);
+    setIsMobileMenuOpen(false);
+  };
+
+  const handleShowAboutUs = () => {
+    setIsHowToUseVisible(false);
+    setIsTheoryVisible(false);
+    setIsAboutUsVisible(true);
     setIsMobileMenuOpen(false);
   };
 
   const handleClosePopup = () => {
     setIsHowToUseVisible(false);
+    setIsTheoryVisible(false);
+    setIsAboutUsVisible(false);
   };
 
   const toggleMobileMenu = () => {
@@ -931,12 +987,41 @@ const App = () => {
             style={{
               ...styles.howToUseButton,
               position: 'static',
-              marginRight: '5px'
+              marginRight: '5px',
+              background: "linear-gradient(145deg, rgba(56, 189, 248, 0.9), rgba(37, 99, 235, 0.9))"
             }}
             className="float howToUseButton"
           >
             <span style={styles.howToUseIcon}><Icons.book /></span>
-            Documentation & Theory
+            How To Use
+          </button>
+
+          <button
+            onClick={handleShowTheory}
+            style={{
+              ...styles.howToUseButton,
+              position: 'static',
+              marginRight: '5px',
+              background: "linear-gradient(145deg, rgba(16, 185, 129, 0.9), rgba(5, 150, 105, 0.9))"
+            }}
+            className="float theoryButton"
+          >
+            <span style={styles.howToUseIcon}><Icons.quantum /></span>
+            Theory
+          </button>
+
+          <button
+            onClick={handleShowAboutUs}
+            style={{
+              ...styles.howToUseButton,
+              position: 'static',
+              marginRight: '5px',
+              background: "linear-gradient(145deg, rgba(99, 102, 241, 0.9), rgba(79, 70, 229, 0.9))"
+            }}
+            className="float aboutUsButton"
+          >
+            <span style={styles.howToUseIcon}><Icons.info /></span>
+            About Us
           </button>
 
           <button
@@ -2007,7 +2092,21 @@ const App = () => {
             onClick={handleShowHowToUse}
           >
             <span className="mobile-nav-icon"><Icons.book /></span>
-            Help
+            How To Use
+          </button>
+          <button
+            className="mobile-nav-button"
+            onClick={handleShowTheory}
+          >
+            <span className="mobile-nav-icon"><Icons.quantum /></span>
+            Theory
+          </button>
+          <button
+            className="mobile-nav-button"
+            onClick={handleShowAboutUs}
+          >
+            <span className="mobile-nav-icon"><Icons.info /></span>
+            About Us
           </button>
           <button
             className="mobile-nav-button"
@@ -2093,6 +2192,52 @@ const App = () => {
             <div style={styles.popupScroll}>
               <ReactMarkdown>
                 {howToUseContent}
+              </ReactMarkdown>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Theory Popup */}
+      {isTheoryVisible && (
+        <div style={styles.popup} className="popup-overlay">
+          <div
+            style={styles.popupContent}
+            className={`popup-content glass ${isMobile ? 'mobile-smaller-padding' : ''}`}
+          >
+            <button
+              onClick={handleClosePopup}
+              style={styles.popupClose}
+            >
+              <Icons.close />
+            </button>
+
+            <div style={styles.popupScroll}>
+              <ReactMarkdown>
+                {theoryContent}
+              </ReactMarkdown>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* About Us Popup */}
+      {isAboutUsVisible && (
+        <div style={styles.popup} className="popup-overlay">
+          <div
+            style={styles.popupContent}
+            className={`popup-content glass ${isMobile ? 'mobile-smaller-padding' : ''}`}
+          >
+            <button
+              onClick={handleClosePopup}
+              style={styles.popupClose}
+            >
+              <Icons.close />
+            </button>
+
+            <div style={styles.popupScroll}>
+              <ReactMarkdown>
+                {aboutUsContent}
               </ReactMarkdown>
             </div>
           </div>
