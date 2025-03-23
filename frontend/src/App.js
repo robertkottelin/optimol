@@ -1083,7 +1083,7 @@ const App = () => {
             -
           </p>
           <p style={styles.headerSubtitle} className="app-subtitle">
-            Quantum energy optimization for large molecules currently capped at 30 atoms for total system size
+            Quantum energy optimization currently capped at 30 atoms total due to computational complexity. Will add more powerful servers and control of only quantum optimizing a subset of the system soon.
           </p>
         </header>
 
@@ -1868,6 +1868,8 @@ const App = () => {
                   molecule2Offset={activeView === "original" ? molecule2Offset : { x: 0, y: 0, z: 0 }}
                   molecule2Rotation={activeView === "original" ? molecule2Rotation : { x: 0, y: 0, z: 0 }}
                   onMoleculeRotate={onMoleculeRotate}
+                  molecule1Name={getMoleculeName(molecule1Data)}
+                  molecule2Name={getMoleculeName(molecule2Data)}
                 />
                 {interactionMode && molecule1Data && molecule2Data && (
                   <div style={{

@@ -9,7 +9,9 @@ const MoleculeViewer = ({
   onMoleculeMove,
   molecule2Offset,
   molecule2Rotation,
-  onMoleculeRotate
+  onMoleculeRotate,
+  molecule1Name,
+  molecule2Name
 }) => {
   const viewerRef = useRef();
   const containerRef = useRef();
@@ -831,7 +833,8 @@ const MoleculeViewer = ({
 
           // Add molecule1 label if in interaction mode
           if (molecule1 && molecule2) {
-            viewerInstance.addLabel("Molecule 1 (Fixed)", {
+            const displayName = molecule1Name || "Unknown Molecule";
+            viewerInstance.addLabel(`${displayName}`, {
               position: { x: molecule1[0].x, y: molecule1[0].y, z: molecule1[0].z + 5 },
               fontSize: isMobile ? 14 : 16,
               fontColor: "white",
@@ -1048,7 +1051,8 @@ const MoleculeViewer = ({
               labelZ = rotated[2];
             }
 
-            viewerInstance.addLabel("Molecule 2 (Use Arrow Keys)", {
+            const displayName = molecule2Name || "Unknown Molecule";
+            viewerInstance.addLabel(`${displayName} (Position with Arrow Keys)`, {
               position: {
                 x: labelX + molecule2Offset.x,
                 y: labelY + molecule2Offset.y,
