@@ -209,6 +209,7 @@ const RegisterForm = ({ toggleForm, onAuthSuccess }) => { // Add onAuthSuccess p
         <button
           type="submit"
           disabled={isLoading}
+          className="float"
           style={{
             width: "100%",
             padding: "12px",

@@ -1048,7 +1048,7 @@ const App = () => {
               alignItems: serverHealthDetails ? "flex-start" : "center",
               minWidth: serverHealthDetails ? "180px" : "auto"
             }}
-            className="health-check-button"
+            className="health-check-button float"
           >
             {isCheckingHealth ? (
               <>
@@ -1122,7 +1122,8 @@ const App = () => {
                 boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
                 display: "flex",
                 alignItems: "center",
-                gap: "5px"
+                gap: "5px",
+                animation: "float 8s ease-in-out infinite"
               }}
             >
               <Icons.verified />

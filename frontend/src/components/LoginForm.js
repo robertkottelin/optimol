@@ -155,6 +155,7 @@ const LoginForm = ({ toggleForm, onAuthSuccess }) => { // Add onAuthSuccess para
         <button
           type="submit"
           disabled={isLoading}
+          className="float"
           style={{
             width: "100%",
             padding: "12px",
