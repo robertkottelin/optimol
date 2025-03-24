@@ -1,14 +1,16 @@
 # Use a lightweight base image with Python and Conda
 FROM continuumio/miniconda3:latest
 
-# Install system dependencies required by Qiskit-Aer
+# Install system dependencies required by Qiskit-Aer and supervisor
 RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
     libstdc++6 \
     libopenblas-dev \
     liblapack-dev \
-    && apt-get clean
+    supervisor \
+    && apt-get clean \
+    && mkdir -p /var/log/supervisor
 
 # Set working directory
 WORKDIR /app
@@ -33,10 +35,13 @@ COPY . .
 RUN grep -q "from sqlalchemy import text" app.py || sed -i '/^from flask import/a from sqlalchemy import text' app.py && \
     sed -i "s/db\.session\.execute(['\"]SELECT 1['\"])/db.session.execute(text('SELECT 1'))/" app.py
 
+# Add supervisor configuration
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
 # Expose the Flask port
 EXPOSE 5000
 
 COPY .env .
 
-# Start the Flask application
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app", "--timeout", "300", "--workers", "4"]
+# Start supervisor which will manage Flask and Celery processes
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

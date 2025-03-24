@@ -27,6 +27,7 @@ jobs:
       run: |
         cd backend
         echo "STRIPE_SECRET=${{ secrets.STRIPE_SECRET }}" > .env
+        echo "REDIS_URL=redis://optimol-redis:6379/0" >> .env
 
     - name: Build and tag Docker image
       run: |

@@ -16,5 +16,6 @@ dependencies:
       - gunicorn
       - flask-sqlalchemy
       - flask-jwt-extended
-      - celery
-      - redis
+      - celery==5.2.7  # Specify version for consistency
+      - redis==4.5.4   # Specify version for consistency
+      - flower==1.2.0  # Optional: For monitoring tasks

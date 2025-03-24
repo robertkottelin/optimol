@@ -76,6 +76,8 @@ const App = () => {
   const [aboutUsContent, setAboutUsContent] = useState("");
   const [applyDefaultOffset, setApplyDefaultOffset] = useState(true);
 
+  const [taskStatus, setTaskStatus] = useState(null);
+  const [statusPollInterval, setStatusPollInterval] = useState(null);
 
   const countAtoms = (molecule) => {
     if (!molecule) return 0;
@@ -199,6 +201,15 @@ const App = () => {
       applyIterationLimits(isSubscribed);
     }
   }, [isLoading, isSubscribed]);
+
+  useEffect(() => {
+    // Cleanup function for component unmount
+    return () => {
+      if (statusPollInterval) {
+        clearInterval(statusPollInterval);
+      }
+    };
+  }, [statusPollInterval]);
 
   // Helper function to consistently apply iteration limits
   const applyIterationLimits = (isUserSubscribed) => {
@@ -640,8 +651,7 @@ const App = () => {
           atoms: molecule2
         };
 
-        // MODIFIED: Only apply transformations if viewing original coordinates
-        // For optimized view, coordinates already include transformations
+        // Only apply transformations if viewing original coordinates
         if (interactionMode) {
           if (activeView === "original") {
             // Calculate center of mass for rotation
@@ -718,20 +728,24 @@ const App = () => {
 
       console.log("Response received:", response);
 
+      // Handle task-based response (new asynchronous processing flow)
       if (response.data.success) {
-        // Store the molecule2Offset and molecule2Rotation with the result for future reference
-        response.data.molecule2Offset = molecule2Offset;
-        response.data.molecule2Rotation = molecule2Rotation;
+        const taskId = response.data.task_id;
+        const estimatedTime = response.data.estimated_time || 60; // seconds
 
-        setOptimizationResult(response.data);
-        setActiveView("optimized");
+        // Show task status to user
+        setTaskStatus({
+          id: taskId,
+          status: 'pending',
+          message: `Optimization in queue... (Estimated completion: ${Math.ceil(estimatedTime / 60)} min)`,
+          progress: 0
+        });
 
-        // Disable positioning mode after optimization
-        if (positioningMode) {
-          setPositioningMode(false);
-        }
+        // Begin polling for task status
+        pollTaskStatus(taskId);
       } else {
         alert("Optimization failed. " + (response.data.error || ""));
+        setIsOptimizeLoading(false);
       }
     } catch (error) {
       console.error("Error optimizing molecule:", error);
@@ -741,10 +755,102 @@ const App = () => {
         request: error.request
       });
       alert("Error optimizing molecule: " + (error.response?.data?.error || error.message));
-    } finally {
       setIsOptimizeLoading(false);
     }
   };
+
+  // Helper function to poll task status
+  const pollTaskStatus = async (taskId) => {
+    try {
+      // Using interval to poll status every 3 seconds
+      const intervalId = setInterval(async () => {
+        try {
+          const statusResponse = await axios({
+            method: 'get',
+            url: `${apiBaseUrl}/optimization-status/${taskId}`,
+            headers: {
+              'Accept': 'application/json',
+              'Authorization': isAuthenticated && token ? `Bearer ${token}` : undefined
+            }
+          });
+
+          const taskData = statusResponse.data;
+          console.log(`Task ${taskId} status update:`, taskData);
+
+          // Update status display
+          setTaskStatus(prevStatus => ({
+            ...prevStatus,
+            status: taskData.status,
+            message: getStatusMessage(taskData.status),
+            progress: taskData.progress || calculateProgressFromStatus(taskData.status)
+          }));
+
+          // Handle task completion or failure
+          if (taskData.status === 'completed' && taskData.result) {
+            clearInterval(intervalId);
+
+            // Store the molecule2Offset and molecule2Rotation with the result
+            const result = {
+              ...taskData.result,
+              molecule2Offset: molecule2Offset,
+              molecule2Rotation: molecule2Rotation
+            };
+
+            setOptimizationResult({
+              result: result,
+              success: true
+            });
+
+            setActiveView("optimized");
+            setIsOptimizeLoading(false);
+
+            // Disable positioning mode after optimization
+            if (positioningMode) {
+              setPositioningMode(false);
+            }
+          } else if (taskData.status === 'failed' || taskData.status === 'cancelled') {
+            clearInterval(intervalId);
+            alert("Optimization failed: " + (taskData.error || "Unknown error"));
+            setIsOptimizeLoading(false);
+          }
+        } catch (pollError) {
+          console.error("Error polling task status:", pollError);
+          // Don't stop polling on temporary errors - backend might still be processing
+        }
+      }, 3000);
+
+      // Store interval ID to clear on component unmount
+      setStatusPollInterval(intervalId);
+
+    } catch (error) {
+      console.error("Error setting up task polling:", error);
+      alert("Failed to track optimization status: " + error.message);
+      setIsOptimizeLoading(false);
+    }
+  };
+
+  // Helper function to determine status message
+  const getStatusMessage = (status) => {
+    switch (status) {
+      case 'pending': return 'Task queued - waiting for processing...';
+      case 'running': return 'Optimization in progress...';
+      case 'completed': return 'Optimization completed successfully!';
+      case 'failed': return 'Optimization failed. Please try again.';
+      case 'cancelled': return 'Optimization was cancelled.';
+      default: return 'Checking optimization status...';
+    }
+  };
+
+  // Helper function to estimate progress based on status
+  const calculateProgressFromStatus = (status) => {
+    switch (status) {
+      case 'pending': return 0.1;
+      case 'running': return 0.5;
+      case 'completed': return 1.0;
+      default: return 0;
+    }
+  };
+
 
   const handleParamChange = (type, paramName, value) => {
     if (type === "classical") {
@@ -2018,6 +2124,34 @@ const App = () => {
                   </div>
                 )}
               </div>
+
+              {taskStatus && (
+                <div style={{
+                  marginTop: "10px",
+                  padding: "10px",
+                  backgroundColor: taskStatus.status === 'failed' ? "rgba(244, 63, 94, 0.1)" :
+                    taskStatus.status === 'completed' ? "rgba(16, 185, 129, 0.1)" : "rgba(56, 189, 248, 0.1)",
+                  borderRadius: "8px",
+                  border: `1px solid ${taskStatus.status === 'failed' ? "rgba(244, 63, 94, 0.3)" :
+                    taskStatus.status === 'completed' ? "rgba(16, 185, 129, 0.3)" : "rgba(56, 189, 248, 0.3)"}`,
+                }}>
+                  <div style={{ marginBottom: "5px" }}>{taskStatus.message}</div>
+                  <div style={{
+                    height: "4px",
+                    backgroundColor: "rgba(255, 255, 255, 0.2)",
+                    borderRadius: "2px",
+                    overflow: "hidden"
+                  }}>
+                    <div style={{
+                      height: "100%",
+                      width: `${taskStatus.progress * 100}%`,
+                      backgroundColor: taskStatus.status === 'failed' ? "#f43f5e" :
+                        taskStatus.status === 'completed' ? "#10b981" : "#38bdf8",
+                      transition: "width 0.3s ease"
+                    }}></div>
+                  </div>
+                </div>
+              )}
 
               {/* Optimization Results */}
               {optimizationResult && (
