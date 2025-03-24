@@ -59,7 +59,7 @@ QUANTUM_ATOM_THRESHOLDS = {
 
 class Optimization(db.Model):
     """Optimization record model for tracking molecular optimizations."""
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.String(36), primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # Modified to allow null for non-subscribers
     optimization_type = db.Column(db.String(50), nullable=False)  # 'classical' or 'quantum'
     parameters = db.Column(db.Text, nullable=False)  # JSON string of parameters
