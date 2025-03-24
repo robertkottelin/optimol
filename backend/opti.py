@@ -1558,6 +1558,7 @@ def optimize_molecule():
     """
     Endpoint to optimize molecular structures using either classical or quantum methods.
     Now supports both single molecule optimization and interaction between two molecules.
+    Tasks are processed asynchronously through a Celery queue.
     
     Expected request format:
     {
@@ -1582,6 +1583,13 @@ def optimize_molecule():
             }
         },
         "interaction_mode": true/false  // Whether to optimize molecular interaction
+    }
+    
+    Returns:
+    {
+        "task_id": "uuid-task-id",  // ID to check task status
+        "status": "pending",        // Initial task status
+        "estimated_time": X         // Estimated time in seconds (approximate)
     }
     """
     try:
@@ -1669,36 +1677,60 @@ def optimize_molecule():
                   f"molecule1_atoms={len(molecule1_atoms) if molecule1_atoms else 0}, "
                   f"molecule2_atoms={len(molecule2_atoms) if molecule2_atoms else 0}")
         
-        # Check for similar/identical molecules if in interaction mode
-        if interaction_mode and molecule1_atoms and molecule2_atoms:
-            is_similar, rmsd = are_molecules_similar(molecule1_atoms, molecule2_atoms)
-            if is_similar:
-                logger.info(f"Detected identical or very similar molecules (RMSD={rmsd}Å) in interaction mode")
+        # Import task functions only when needed
+        from tasks import (
+            optimize_classical_task,
+            optimize_quantum_task,
+            optimize_classical_combined_task,
+            optimize_quantum_combined_task
+        )
         
-        # Perform requested optimization with parameters
-        result = None
+        # Determine which task to use and submit it to the queue
+        task = None
+        estimated_time = 60  # Default estimated time in seconds
+        
         if interaction_mode:
-            # For molecular interaction, use the combined optimization functions
+            # For molecular interaction, use the combined optimization tasks
             if optimization_type == "classical":
-                result = optimize_classical_combined(molecule1_atoms, molecule2_atoms, optimization_params)
+                task = optimize_classical_combined_task.apply_async(
+                    args=[molecule1_atoms, molecule2_atoms, optimization_params, user_id],
+                    queue='classical'
+                )
+                # Estimate processing time based on molecule size and parameters
+                molecule_size = (len(molecule1_atoms) if molecule1_atoms else 0) + \
+                              (len(molecule2_atoms) if molecule2_atoms else 0)
+                estimated_time = min(300, molecule_size * optimization_params.get('max_iterations', 1000) / 1000)
             elif optimization_type == "quantum":
-                result = optimize_quantum_combined(molecule1_atoms, molecule2_atoms, optimization_params)
+                task = optimize_quantum_combined_task.apply_async(
+                    args=[molecule1_atoms, molecule2_atoms, optimization_params, user_id],
+                    queue='quantum'
+                )
+                # Quantum calculations take longer
+                molecule_size = (len(molecule1_atoms) if molecule1_atoms else 0) + \
+                              (len(molecule2_atoms) if molecule2_atoms else 0)
+                estimated_time = min(1800, molecule_size * optimization_params.get('max_iterations', 10) * 30)
         else:
-            # For single molecule optimization, use the original functions
-            # Use molecule1 if available, otherwise use molecule2
+            # For single molecule optimization, use the standard tasks
             atoms = molecule1_atoms if molecule1_atoms else molecule2_atoms
             if optimization_type == "classical":
-                result = optimize_classical(atoms, optimization_params)
+                task = optimize_classical_task.apply_async(
+                    args=[atoms, optimization_params, user_id],
+                    queue='classical'
+                )
+                # Estimate processing time based on molecule size and parameters
+                estimated_time = min(180, len(atoms) * optimization_params.get('max_iterations', 1000) / 2000)
             elif optimization_type == "quantum":
-                result = optimize_quantum(atoms, optimization_params)
+                task = optimize_quantum_task.apply_async(
+                    args=[atoms, optimization_params, user_id],
+                    queue='quantum'
+                )
+                # Quantum calculations take longer
+                estimated_time = min(900, len(atoms) * optimization_params.get('max_iterations', 10) * 20)
         
-        # Check if optimization was successful
-        if result and "error" in result:
-            logger.error(f"Optimization failed: {result['error']}")
-        
-        # Store optimization results in database
+        # Store optimization request in database
         try:
             optimization = Optimization(
+                id=task.id,  # Use task ID as optimization ID
                 user_id=user_id,
                 optimization_type=optimization_type,
                 parameters=json.dumps({
@@ -1707,23 +1739,110 @@ def optimize_molecule():
                     "molecule1_atom_count": len(molecule1_atoms) if molecule1_atoms else 0,
                     "molecule2_atom_count": len(molecule2_atoms) if molecule2_atoms else 0
                 }),
-                result=json.dumps(result)
+                result=None  # Result will be updated when task completes
             )
             db.session.add(optimization)
             db.session.commit()
-            optimization_id = optimization.id
         except Exception as db_error:
             logger.error(f"Database error: {str(db_error)}")
             # Continue without database storage
-            optimization_id = None
         
-        # Return results
+        # Return task ID and estimated processing time
         return jsonify({
-            "success": True if not (result and "error" in result) else False,
-            "optimizationId": optimization_id,
-            "result": result
-        }), 200
+            "success": True,
+            "task_id": task.id,
+            "status": "pending",
+            "estimated_time": int(estimated_time)
+        }), 202  # 202 Accepted
         
     except Exception as e:
         logger.error(f"Unexpected error in optimize_molecule endpoint: {str(e)}", exc_info=True)
         return jsonify({"error": str(e)}), 500
+
+@opti_bp.route('/optimization-status/<task_id>', methods=['GET'])
+def optimization_status(task_id):
+    """
+    Endpoint to check the status of an optimization task.
+    
+    Returns:
+    {
+        "task_id": "uuid-task-id",
+        "status": "pending|running|completed|failed|cancelled",
+        "progress": 0.5,  // Optional: progress from 0 to 1
+        "result": {...}   // Only present if status is "completed"
+    }
+    """
+    try:
+        # First, check if we have the task in our database
+        optimization = Optimization.query.get(task_id)
+        
+        # Check if user has permission to access this task
+        user_id = None
+        try:
+            verify_jwt_in_request(optional=True)
+            user_identity = get_jwt_identity()
+            if user_identity:
+                user_id = int(user_identity) if isinstance(user_identity, str) else user_identity
+        except Exception:
+            pass
+        
+        # If optimization record exists and has result, return it
+        if optimization:
+            # Check permissions if user_id is provided
+            if optimization.user_id and user_id and optimization.user_id != user_id:
+                return jsonify({
+                    "error": "You don't have permission to access this optimization task"
+                }), 403
+                
+            # If we have a result, task is complete
+            if optimization.result:
+                return jsonify({
+                    "task_id": task_id,
+                    "status": "completed",
+                    "result": json.loads(optimization.result)
+                }), 200
+        
+        # If task not in database or no result yet, check with Celery
+        # Import Celery app and task status constants
+        from tasks import celery, TASK_STATUS
+        
+        # Get task result by ID
+        task_result = celery.AsyncResult(task_id)
+        
+        # Map Celery task state to our status enum
+        status = TASK_STATUS.get(task_result.state, 'pending')
+        
+        # Prepare response based on task state
+        response = {
+            "task_id": task_id,
+            "status": status
+        }
+        
+        # If task has failed, include error information
+        if status == 'failed' and task_result.info:
+            if isinstance(task_result.info, Exception):
+                response["error"] = str(task_result.info)
+            else:
+                response["error"] = "Unknown error occurred"
+                
+        # If task is complete, include result
+        elif status == 'completed' and task_result.result:
+            response["result"] = task_result.result
+            
+            # Update database with result if not already there
+            if optimization and not optimization.result:
+                try:
+                    optimization.result = json.dumps(task_result.result)
+                    db.session.commit()
+                except Exception as db_error:
+                    logger.error(f"Database error updating result: {str(db_error)}")
+        
+        # Add progress info if available
+        if hasattr(task_result, 'info') and isinstance(task_result.info, dict) and 'progress' in task_result.info:
+            response["progress"] = task_result.info['progress']
+            
+        return jsonify(response), 200
+        
+    except Exception as e:
+        logger.error(f"Error getting task status: {str(e)}", exc_info=True)
+        return jsonify({"error": str(e), "status": "error"}), 500

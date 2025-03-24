@@ -6,6 +6,7 @@ import json
 from dotenv import load_dotenv
 from extensions import db
 from flask_jwt_extended import JWTManager
+from celery_config import make_celery
 
 # Function to load configuration from JSON file
 def load_config(config_file='config.json'):
@@ -25,6 +26,7 @@ config = load_config()
 # Configure SQLAlchemy with settings from config file
 app.config['SQLALCHEMY_DATABASE_URI'] = config.get('SQLALCHEMY_DATABASE_URI', 'sqlite:///users.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = config.get('SQLALCHEMY_TRACK_MODIFICATIONS', False)
+app.config['TIMEOUT'] = 600
 
 # JWT Configuration
 app.config['JWT_TOKEN_LOCATION'] = ['headers', 'cookies']
@@ -45,6 +47,10 @@ jwt = JWTManager(app)
 # Initialize extensions
 db.init_app(app)
 load_dotenv()
+
+# Configure Celery
+# This is an instance that can be used within Flask app context
+celery = make_celery(app)
 
 # CORS Configuration
 CORS_CONFIG = {
@@ -81,12 +87,13 @@ def after_request(response):
 @app.route('/me', methods=['OPTIONS'])
 @app.route('/login', methods=['OPTIONS'])
 @app.route('/register', methods=['OPTIONS'])
-@app.route('/register-and-subscribe', methods=['OPTIONS'])  # Add new combined endpoint
+@app.route('/register-and-subscribe', methods=['OPTIONS'])
 @app.route('/logout', methods=['OPTIONS']) 
 @app.route('/subscribe', methods=['OPTIONS'])
 @app.route('/check-subscription', methods=['OPTIONS'])
 @app.route('/cancel-subscription', methods=['OPTIONS'])
 @app.route('/optimize-molecule', methods=['OPTIONS'])
+@app.route('/optimization-status/<task_id>', methods=['OPTIONS'])  # New endpoint
 def handle_cors_preflight():
     response = jsonify({})
     origin = request.headers.get('Origin')

@@ -39,4 +39,4 @@ EXPOSE 5000
 COPY .env .
 
 # Start the Flask application
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "3", "--timeout", "300", "app:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app", "--timeout", "300", "--workers", "4"]

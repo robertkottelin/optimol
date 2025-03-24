@@ -66,6 +66,11 @@ sudo systemctl restart nginx
 
 EOF
 
+# make executable:
+```bash
+chmod +x deploy.sh
+```
+
 # run automation script
 ./deploy.sh
 

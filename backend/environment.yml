@@ -16,3 +16,5 @@ dependencies:
       - gunicorn
       - flask-sqlalchemy
       - flask-jwt-extended
+      - celery
+      - redis

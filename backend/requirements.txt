@@ -6,3 +6,5 @@ stripe
 openmm
 pyscf
 flask_sqlalchemy
+celery
+redis
