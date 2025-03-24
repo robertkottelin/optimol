@@ -5,6 +5,13 @@ import json
 import logging
 from datetime import datetime
 
+import os
+import sys
+# Add application directory to Python path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from celery_config import make_celery
+
 # Configure logging
 logger = logging.getLogger(__name__)
 

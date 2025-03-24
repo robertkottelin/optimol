@@ -51,6 +51,7 @@ docker run -d \
 # Check logs
 docker logs optimol-backend
 docker logs optimol-frontend
+docker logs optimol-redis
 
 # SSH in to droplet
 ssh root@64.227.122.193
