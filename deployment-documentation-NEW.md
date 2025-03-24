@@ -53,6 +53,65 @@ docker logs optimol-backend
 docker logs optimol-frontend
 docker logs optimol-redis
 
+# NEW AUTOMATION
+cat > deploy.sh << 'EOF'
+#!/bin/bash
+
+# Stop and remove existing containers
+docker stop optimol-frontend optimol-backend optimol-redis || true
+docker rm optimol-frontend optimol-backend optimol-redis || true
+
+docker image prune -af
+
+# Pull latest images
+docker pull robertkottelin/optimize-molecule:frontend-latest
+docker pull robertkottelin/optimize-molecule:backend-latest
+docker pull redis:7-alpine
+
+# Create Docker network if not exists
+docker network create optimol-network || true
+
+# Run Redis container
+docker run -d \
+  --name optimol-redis \
+  --restart unless-stopped \
+  --network optimol-network \
+  -v optimol_redis_data:/data \
+  redis:7-alpine redis-server --appendonly yes
+
+# Run backend container
+docker run -d \
+  --name optimol-backend \
+  --restart unless-stopped \
+  --network optimol-network \
+  -p 5000:5000 \
+  -v /opt/optimol/.env:/app/.env \
+  -v optimol_data:/app/instance \
+  -e REDIS_URL=redis://optimol-redis:6379/0 \
+  robertkottelin/optimize-molecule:backend-latest
+
+# Run frontend container
+docker run -d \
+  --name optimol-frontend \
+  --restart unless-stopped \
+  -p 3000:3000 \
+  --network optimol-network \
+  robertkottelin/optimize-molecule:frontend-latest
+
+# Check logs
+docker logs optimol-backend
+docker logs optimol-frontend
+docker logs optimol-redis
+EOF
+
+# make executable:
+chmod +x deploy.sh
+
+# run automation script
+./deploy.sh
+
+==================== OLD ====================
+
 # SSH in to droplet
 ssh root@64.227.122.193
 # Stop and remove existing containers

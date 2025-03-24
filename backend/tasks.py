@@ -4,6 +4,7 @@ from sqlalchemy.orm import sessionmaker
 import json
 import logging
 from datetime import datetime
+from app import app
 
 import os
 import sys
@@ -69,25 +70,26 @@ def optimize_classical_task(self, atoms, params=None, user_id=None):
     logger.info(f"Starting classical optimization task {self.request.id} for user {user_id}")
     
     try:
-        # Execute optimization
-        result = optimization_funcs['optimize_classical'](atoms, params)
-        
-        # Store result in database if user_id is provided
-        if user_id is not None:
-            store_optimization_result(
-                task_id=self.request.id,
-                user_id=user_id, 
-                optimization_type='classical',
-                parameters=json.dumps({
-                    'optimization_params': params,
-                    'interaction_mode': False,
-                    'molecule1_atom_count': len(atoms) if atoms else 0,
-                    'molecule2_atom_count': 0
-                }),
-                result=json.dumps(result)
-            )
-        
-        return result
+        with app.app_context():
+            # Execute optimization
+            result = optimization_funcs['optimize_classical'](atoms, params)
+            
+            # Store result in database if user_id is provided
+            if user_id is not None:
+                store_optimization_result(
+                    task_id=self.request.id,
+                    user_id=user_id, 
+                    optimization_type='classical',
+                    parameters=json.dumps({
+                        'optimization_params': params,
+                        'interaction_mode': False,
+                        'molecule1_atom_count': len(atoms) if atoms else 0,
+                        'molecule2_atom_count': 0
+                    }),
+                    result=json.dumps(result)
+                )
+            
+            return result
     except Exception as e:
         logger.error(f"Classical optimization task {self.request.id} failed: {str(e)}", exc_info=True)
         raise
@@ -101,25 +103,26 @@ def optimize_quantum_task(self, atoms, params=None, user_id=None):
     logger.info(f"Starting quantum optimization task {self.request.id} for user {user_id}")
     
     try:
-        # Execute optimization
-        result = optimization_funcs['optimize_quantum'](atoms, params)
-        
-        # Store result in database if user_id is provided
-        if user_id is not None:
-            store_optimization_result(
-                task_id=self.request.id,
-                user_id=user_id,
-                optimization_type='quantum',
-                parameters=json.dumps({
-                    'optimization_params': params,
-                    'interaction_mode': False,
-                    'molecule1_atom_count': len(atoms) if atoms else 0,
-                    'molecule2_atom_count': 0
-                }),
-                result=json.dumps(result)
-            )
-        
-        return result
+        with app.app_context():
+            # Execute optimization
+            result = optimization_funcs['optimize_quantum'](atoms, params)
+            
+            # Store result in database if user_id is provided
+            if user_id is not None:
+                store_optimization_result(
+                    task_id=self.request.id,
+                    user_id=user_id,
+                    optimization_type='quantum',
+                    parameters=json.dumps({
+                        'optimization_params': params,
+                        'interaction_mode': False,
+                        'molecule1_atom_count': len(atoms) if atoms else 0,
+                        'molecule2_atom_count': 0
+                    }),
+                    result=json.dumps(result)
+                )
+            
+            return result
     except Exception as e:
         logger.error(f"Quantum optimization task {self.request.id} failed: {str(e)}", exc_info=True)
         raise
@@ -133,25 +136,26 @@ def optimize_classical_combined_task(self, molecule1_atoms, molecule2_atoms, par
     logger.info(f"Starting classical combined optimization task {self.request.id} for user {user_id}")
     
     try:
-        # Execute optimization
-        result = optimization_funcs['optimize_classical_combined'](molecule1_atoms, molecule2_atoms, params)
-        
-        # Store result in database if user_id is provided
-        if user_id is not None:
-            store_optimization_result(
-                task_id=self.request.id,
-                user_id=user_id,
-                optimization_type='classical',
-                parameters=json.dumps({
-                    'optimization_params': params,
-                    'interaction_mode': True,
-                    'molecule1_atom_count': len(molecule1_atoms) if molecule1_atoms else 0,
-                    'molecule2_atom_count': len(molecule2_atoms) if molecule2_atoms else 0
-                }),
-                result=json.dumps(result)
-            )
-        
-        return result
+        with app.app_context():
+            # Execute optimization
+            result = optimization_funcs['optimize_classical_combined'](molecule1_atoms, molecule2_atoms, params)
+            
+            # Store result in database if user_id is provided
+            if user_id is not None:
+                store_optimization_result(
+                    task_id=self.request.id,
+                    user_id=user_id,
+                    optimization_type='classical',
+                    parameters=json.dumps({
+                        'optimization_params': params,
+                        'interaction_mode': True,
+                        'molecule1_atom_count': len(molecule1_atoms) if molecule1_atoms else 0,
+                        'molecule2_atom_count': len(molecule2_atoms) if molecule2_atoms else 0
+                    }),
+                    result=json.dumps(result)
+                )
+            
+            return result
     except Exception as e:
         logger.error(f"Classical combined optimization task {self.request.id} failed: {str(e)}", exc_info=True)
         raise
@@ -165,25 +169,26 @@ def optimize_quantum_combined_task(self, molecule1_atoms, molecule2_atoms, param
     logger.info(f"Starting quantum combined optimization task {self.request.id} for user {user_id}")
     
     try:
-        # Execute optimization
-        result = optimization_funcs['optimize_quantum_combined'](molecule1_atoms, molecule2_atoms, params)
-        
-        # Store result in database if user_id is provided
-        if user_id is not None:
-            store_optimization_result(
-                task_id=self.request.id,
-                user_id=user_id,
-                optimization_type='quantum',
-                parameters=json.dumps({
-                    'optimization_params': params,
-                    'interaction_mode': True,
-                    'molecule1_atom_count': len(molecule1_atoms) if molecule1_atoms else 0,
-                    'molecule2_atom_count': len(molecule2_atoms) if molecule2_atoms else 0
-                }),
-                result=json.dumps(result)
-            )
-        
-        return result
+        with app.app_context():
+            # Execute optimization
+            result = optimization_funcs['optimize_quantum_combined'](molecule1_atoms, molecule2_atoms, params)
+            
+            # Store result in database if user_id is provided
+            if user_id is not None:
+                store_optimization_result(
+                    task_id=self.request.id,
+                    user_id=user_id,
+                    optimization_type='quantum',
+                    parameters=json.dumps({
+                        'optimization_params': params,
+                        'interaction_mode': True,
+                        'molecule1_atom_count': len(molecule1_atoms) if molecule1_atoms else 0,
+                        'molecule2_atom_count': len(molecule2_atoms) if molecule2_atoms else 0
+                    }),
+                    result=json.dumps(result)
+                )
+            
+            return result
     except Exception as e:
         logger.error(f"Quantum combined optimization task {self.request.id} failed: {str(e)}", exc_info=True)
         raise
@@ -199,20 +204,21 @@ def store_optimization_result(task_id, user_id, optimization_type, parameters, r
     session = Session()
     
     try:
-        # Create new optimization record
-        optimization = optimization_funcs['Optimization'](
-            id=task_id,
-            user_id=user_id,
-            optimization_type=optimization_type,
-            parameters=parameters,
-            result=result,
-            created_at=datetime.now()
-        )
-        
-        session.add(optimization)
-        session.commit()
-        
-        logger.info(f"Stored optimization result for task {task_id}")
+        with app.app_context():
+            # Create new optimization record
+            optimization = optimization_funcs['Optimization'](
+                id=task_id,
+                user_id=user_id,
+                optimization_type=optimization_type,
+                parameters=parameters,
+                result=result,
+                created_at=datetime.now()
+            )
+            
+            session.add(optimization)
+            session.commit()
+            
+            logger.info(f"Stored optimization result for task {task_id}")
     except Exception as e:
         logger.error(f"Failed to store optimization result for task {task_id}: {str(e)}", exc_info=True)
         session.rollback()
