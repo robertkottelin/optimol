@@ -110,79 +110,12 @@ chmod +x deploy.sh
 # run automation script
 ./deploy.sh
 
-==================== OLD ====================
-
-# SSH in to droplet
-ssh root@64.227.122.193
-# Stop and remove existing containers
-docker stop optimol-frontend optimol-backend || true
-docker rm optimol-frontend optimol-backend || true
-
-docker image prune -af
-
-# Pull latest images
-docker pull robertkottelin/optimize-molecule:frontend-latest
-docker pull robertkottelin/optimize-molecule:backend-latest
-
-# Run frontend container
-docker run -d \
-  --name optimol-frontend \
-  --restart unless-stopped \
-  -p 3000:3000 \
-  robertkottelin/optimize-molecule:frontend-latest
-
-# Run backend container
-docker run -d \
-  --name optimol-backend \
-  --restart unless-stopped \
-  -p 5000:5000 \
-  -v /opt/optimol/.env:/app/.env \
-  -v optimol_data:/app/instance \
-  robertkottelin/optimize-molecule:backend-latest
-
-# Check logs
-docker logs optimol-backend
-docker logs optimol-frontend
-
-#AUTOMATION
-cat > deploy.sh << 'EOF'
-#!/bin/bash
-
-# Stop, remove containers, and prune images in single operation
-docker stop optimol-frontend optimol-backend || true && \
-docker rm optimol-frontend optimol-backend || true && \
-docker image prune -af && \
-
-# Pull and deploy containers sequentially
-docker pull robertkottelin/optimize-molecule:frontend-latest && \
-docker pull robertkottelin/optimize-molecule:backend-latest && \
-
-# Deploy containers
-docker run -d \
-  --name optimol-frontend \
-  --restart unless-stopped \
-  -p 3000:3000 \
-  robertkottelin/optimize-molecule:frontend-latest && \
-
-docker run -d \
-  --name optimol-backend \
-  --restart unless-stopped \
-  -p 5000:5000 \
-  -v /opt/optimol/.env:/app/.env \
-  -v optimol_data:/app/instance \
-  robertkottelin/optimize-molecule:backend-latest
-
-sudo systemctl restart nginx
-
+cat > /opt/optimol/.env << 'EOF'
+STRIPE_SECRET=""
+JWT_SECRET_KEY=""
+FLASK_ENV=""
+PRICE_ID=""
 EOF
-
-# make executable:
-```bash
-chmod +x deploy.sh
-```
-
-# run automation script
-./deploy.sh
 
 # Update Nginx configuration
 cat > /etc/nginx/sites-available/optimizemolecule.com << 'EOF'
