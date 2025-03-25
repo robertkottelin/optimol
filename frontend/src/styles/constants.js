@@ -152,7 +152,7 @@ export const TEST_MOLECULES = {
       }
     }
   },
-
+  
   // Acetic Acid molecule structure
   aceticAcid: {
     file1: {
@@ -173,7 +173,7 @@ export const TEST_MOLECULES = {
       }
     }
   },
-
+  
   // Methanol molecule structure
   methanol: {
     file1: {
@@ -192,103 +192,104 @@ export const TEST_MOLECULES = {
       }
     }
   },
-
-  // Ibuprofen molecule structure
+  
+  // Ibuprofen molecule structure - positioned for binding
   ibuprofen: {
     file1: {
       atoms: [
-        { id: 1, element: "C", x: 3.8322, y: -0.5536, z: 0.0151 },
-        { id: 2, element: "C", x: 2.4540, y: -0.3860, z: 0.0391 },
-        { id: 3, element: "C", x: 1.5830, y: -1.4776, z: 0.0391 },
-        { id: 4, element: "C", x: 0.2048, y: -1.3099, z: 0.0061 },
-        { id: 5, element: "C", x: -0.3027, y: 0.0494, z: -0.0108 },
-        { id: 6, element: "C", x: 0.5682, y: 1.1410, z: -0.0109 },
-        { id: 7, element: "C", x: 1.9464, y: 0.9733, z: 0.0382 },
-        { id: 8, element: "C", x: -1.7899, y: 0.2272, z: -0.0108 },
-        { id: 9, element: "C", x: -2.2843, y: 1.6793, z: -0.0450 },
-        { id: 10, element: "C", x: -2.6511, y: -0.8623, z: 0.0233 },
-        { id: 11, element: "C", x: -4.1383, y: -0.6845, z: 0.0233 },
-        { id: 12, element: "C", x: -4.7278, y: -0.5455, z: 1.4216 },
-        { id: 13, element: "C", x: -4.7278, y: -0.5455, z: -1.3749 },
-        { id: 14, element: "O", x: -2.2326, y: -2.0266, z: 0.0606 },
-        { id: 15, element: "O", x: -1.5949, y: 2.6467, z: -0.0817 },
-        { id: 16, element: "H", x: 4.3166, y: -0.0546, z: 0.8707 },
-        { id: 17, element: "H", x: 4.2856, y: -0.1326, z: -0.8916 },
-        { id: 18, element: "H", x: 4.0959, y: -1.6242, z: 0.0457 },
-        { id: 19, element: "H", x: 1.9679, y: -2.4897, z: 0.0681 },
-        { id: 20, element: "H", x: -0.4595, y: -2.1729, z: 0.0062 },
-        { id: 21, element: "H", x: 0.1833, y: 2.1533, z: -0.0398 },
-        { id: 22, element: "H", x: 2.6108, y: 1.8365, z: 0.0382 },
-        { id: 23, element: "H", x: -3.3751, y: 1.7683, z: -0.0451 },
-        { id: 24, element: "H", x: -5.8165, y: -0.4203, z: 1.4216 },
-        { id: 25, element: "H", x: -4.2887, y: 0.3239, z: 1.9210 },
-        { id: 26, element: "H", x: -4.4834, y: -1.4454, z: 2.0059 },
-        { id: 27, element: "H", x: -5.8165, y: -0.4203, z: -1.3749 },
-        { id: 28, element: "H", x: -4.4834, y: -1.4454, z: -1.9593 },
-        { id: 29, element: "H", x: -4.2887, y: 0.3239, z: -1.8743 },
-        { id: 30, element: "H", x: -1.2744, y: -2.2019, z: 0.0606 },
-        { id: 31, element: "H", x: -2.0345, y: 3.5220, z: -0.1037 }
+        // Coordinates repositioned for correct binding pose
+        { id: 1, element: "C", x: 3.8322, y: -0.5536, z: 1.8151 },
+        { id: 2, element: "C", x: 2.4540, y: -0.3860, z: 1.8391 },
+        { id: 3, element: "C", x: 1.5830, y: -1.4776, z: 1.8391 },
+        { id: 4, element: "C", x: 0.2048, y: -1.3099, z: 1.8061 },
+        { id: 5, element: "C", x: -0.3027, y: 0.0494, z: 1.7892 },
+        { id: 6, element: "C", x: 0.5682, y: 1.1410, z: 1.7891 },
+        { id: 7, element: "C", x: 1.9464, y: 0.9733, z: 1.8382 },
+        { id: 8, element: "C", x: -1.7899, y: 0.2272, z: 1.7892 },
+        { id: 9, element: "C", x: -2.2843, y: 1.6793, z: 1.7550 },
+        { id: 10, element: "C", x: -2.6511, y: -0.8623, z: 1.8233 },
+        { id: 11, element: "C", x: -4.1383, y: -0.6845, z: 1.8233 },
+        { id: 12, element: "C", x: -4.7278, y: -0.5455, z: 3.2216 },
+        { id: 13, element: "C", x: -4.7278, y: -0.5455, z: 0.4251 },
+        { id: 14, element: "O", x: -2.2326, y: -2.0266, z: 1.8606 },
+        { id: 15, element: "O", x: -1.5949, y: 2.6467, z: 1.7183 },
+        { id: 16, element: "H", x: 4.3166, y: -0.0546, z: 2.6707 },
+        { id: 17, element: "H", x: 4.2856, y: -0.1326, z: 0.9084 },
+        { id: 18, element: "H", x: 4.0959, y: -1.6242, z: 1.8457 },
+        { id: 19, element: "H", x: 1.9679, y: -2.4897, z: 1.8681 },
+        { id: 20, element: "H", x: -0.4595, y: -2.1729, z: 1.8062 },
+        { id: 21, element: "H", x: 0.1833, y: 2.1533, z: 1.7602 },
+        { id: 22, element: "H", x: 2.6108, y: 1.8365, z: 1.8382 },
+        { id: 23, element: "H", x: -3.3751, y: 1.7683, z: 1.7549 },
+        { id: 24, element: "H", x: -5.8165, y: -0.4203, z: 3.2216 },
+        { id: 25, element: "H", x: -4.2887, y: 0.3239, z: 3.7210 },
+        { id: 26, element: "H", x: -4.4834, y: -1.4454, z: 3.8059 },
+        { id: 27, element: "H", x: -5.8165, y: -0.4203, z: 0.4251 },
+        { id: 28, element: "H", x: -4.4834, y: -1.4454, z: -0.1593 },
+        { id: 29, element: "H", x: -4.2887, y: 0.3239, z: -0.0743 },
+        { id: 30, element: "H", x: -1.2744, y: -2.2019, z: 1.8606 },
+        { id: 31, element: "H", x: -2.0345, y: 3.5220, z: 1.6963 }
       ],
       metadata: {
         name: "Ibuprofen",
         formula: "C13H18O2",
-        description: "Ibuprofen molecule in standard configuration. Ibuprofen is a common non-steroidal anti-inflammatory drug (NSAID)."
+        description: "Ibuprofen molecule positioned for binding to COX-2. The carboxylate group is oriented toward Arg120, and the hydrophobic tail extends into the binding pocket."
       }
     }
   },
-
-  // COX-2 binding site (Ibuprofen's target) - simplified representation
+  
+  // COX-2 binding site - positioned for ibuprofen binding
   cox2BindingSite: {
     file1: {
       atoms: [
-        // Arg120 - key residue for interaction with carboxylate group of NSAIDs
-        { id: 1, element: "N", x: 6.0000, y: 3.0000, z: 1.0000 },
-        { id: 2, element: "C", x: 6.0000, y: 2.0000, z: 0.0000 },
-        { id: 3, element: "C", x: 7.0000, y: 2.0000, z: -1.0000 },
-        { id: 4, element: "N", x: 8.0000, y: 1.0000, z: -1.0000 },
-        { id: 5, element: "N", x: 7.0000, y: 3.0000, z: -2.0000 },
-        { id: 6, element: "H", x: 5.5000, y: 3.9000, z: 0.9000 },
-
-        // Tyr355 - forms hydrogen bond with carboxylate group
-        { id: 7, element: "C", x: 4.0000, y: 0.0000, z: 2.0000 },
-        { id: 8, element: "C", x: 4.0000, y: -1.0000, z: 3.0000 },
-        { id: 9, element: "C", x: 5.0000, y: -1.0000, z: 4.0000 },
-        { id: 10, element: "O", x: 5.0000, y: -2.0000, z: 5.0000 },
-        { id: 11, element: "H", x: 6.0000, y: -2.0000, z: 5.2000 },
-
-        // Ser530 - acetylation site for aspirin
-        { id: 12, element: "C", x: 1.0000, y: 1.0000, z: 2.0000 },
-        { id: 13, element: "C", x: 0.0000, y: 2.0000, z: 2.0000 },
-        { id: 14, element: "O", x: -1.0000, y: 2.0000, z: 3.0000 },
-        { id: 15, element: "H", x: -1.8000, y: 2.5000, z: 2.8000 },
-
-        // Val349 - hydrophobic pocket residue
-        { id: 16, element: "C", x: 3.0000, y: -3.0000, z: 0.0000 },
-        { id: 17, element: "C", x: 3.0000, y: -4.0000, z: -1.0000 },
-        { id: 18, element: "C", x: 3.0000, y: -4.0000, z: 1.0000 },
-        { id: 19, element: "H", x: 2.5000, y: -4.9000, z: -0.7000 },
-        { id: 20, element: "H", x: 2.5000, y: -4.9000, z: 0.7000 },
-
-        // Leu352 - hydrophobic pocket residue
-        { id: 21, element: "C", x: 0.0000, y: -3.0000, z: 0.0000 },
-        { id: 22, element: "C", x: -1.0000, y: -3.0000, z: 1.0000 },
-        { id: 23, element: "C", x: -2.0000, y: -4.0000, z: 1.0000 },
-        { id: 24, element: "C", x: -1.0000, y: -3.0000, z: -1.0000 },
-        { id: 25, element: "H", x: -2.5000, y: -4.0000, z: 1.9000 },
-
-        // Phe518 - pi-stacking with aromatic ring of NSAIDs
-        { id: 26, element: "C", x: -3.0000, y: 0.0000, z: 0.0000 },
-        { id: 27, element: "C", x: -3.5000, y: 1.2000, z: 0.5000 },
-        { id: 28, element: "C", x: -4.8000, y: 1.5000, z: 0.5000 },
-        { id: 29, element: "C", x: -5.7000, y: 0.6000, z: 0.0000 },
-        { id: 30, element: "C", x: -5.3000, y: -0.6000, z: -0.5000 },
-        { id: 31, element: "C", x: -4.0000, y: -0.9000, z: -0.5000 },
-        { id: 32, element: "H", x: -5.1000, y: 2.5000, z: 0.9000 }
+        // Arg120 - positioned for salt bridge with ibuprofen carboxylate
+        { id: 1, element: "N", x: -1.4000, y: 3.2000, z: 1.3000 },
+        { id: 2, element: "C", x: -0.9000, y: 2.0000, z: 1.8000 },
+        { id: 3, element: "C", x: -1.7000, y: 1.2000, z: 2.7000 },
+        { id: 4, element: "N", x: -1.3000, y: 0.0000, z: 3.2000 },
+        { id: 5, element: "N", x: -2.9000, y: 1.6000, z: 3.0000 },
+        { id: 6, element: "H", x: -0.8000, y: 4.0000, z: 1.1000 },
+        
+        // Tyr355 - positioned for hydrogen bond with carboxylate
+        { id: 7, element: "C", x: -3.0000, y: 0.3000, z: 0.4000 },
+        { id: 8, element: "C", x: -3.8000, y: -0.8000, z: 0.0000 },
+        { id: 9, element: "C", x: -3.4000, y: -1.5000, z: -1.2000 },
+        { id: 10, element: "O", x: -4.2000, y: -2.5000, z: -1.6000 },
+        { id: 11, element: "H", x: -3.9000, y: -3.0000, z: -2.3000 },
+        
+        // Ser530 - positioned near the binding site
+        { id: 12, element: "C", x: 0.3000, y: -0.5000, z: 0.5000 },
+        { id: 13, element: "C", x: 1.5000, y: -1.0000, z: -0.2000 },
+        { id: 14, element: "O", x: 2.7000, y: -0.5000, z: 0.3000 },
+        { id: 15, element: "H", x: 3.4000, y: -0.8000, z: -0.2000 },
+        
+        // Val349 - hydrophobic pocket positioned for isobutyl group
+        { id: 16, element: "C", x: -4.5000, y: -3.0000, z: 1.5000 },
+        { id: 17, element: "C", x: -5.8000, y: -3.5000, z: 1.0000 },
+        { id: 18, element: "C", x: -4.3000, y: -3.2000, z: 3.0000 },
+        { id: 19, element: "H", x: -6.2000, y: -4.2000, z: 1.7000 },
+        { id: 20, element: "H", x: -4.9000, y: -4.0000, z: 3.4000 },
+        
+        // Leu352 - positioned for hydrophobic interactions
+        { id: 21, element: "C", x: -2.0000, y: -3.0000, z: 0.8000 },
+        { id: 22, element: "C", x: -2.2000, y: -4.0000, z: -0.3000 },
+        { id: 23, element: "C", x: -1.0000, y: -4.8000, z: -0.7000 },
+        { id: 24, element: "C", x: -1.8000, y: -3.6000, z: 2.1000 },
+        { id: 25, element: "H", x: -1.2000, y: -5.6000, z: -1.4000 },
+        
+        // Phe518 - positioned for π-stacking with ibuprofen's aromatic ring
+        { id: 26, element: "C", x: 1.8000, y: 1.5000, z: 2.0000 },
+        { id: 27, element: "C", x: 2.7000, y: 2.2000, z: 1.2000 },
+        { id: 28, element: "C", x: 3.4000, y: 3.3000, z: 1.7000 },
+        { id: 29, element: "C", x: 3.2000, y: 3.7000, z: 3.0000 },
+        { id: 30, element: "C", x: 2.3000, y: 3.0000, z: 3.8000 },
+        { id: 31, element: "C", x: 1.6000, y: 1.9000, z: 3.3000 },
+        { id: 32, element: "H", x: 4.1000, y: 3.8000, z: 1.1000 }
       ],
       metadata: {
         name: "COX-2 Binding Site",
         formula: "Protein fragment",
-        description: "Simplified representation of the cyclooxygenase-2 (COX-2) binding site, the primary target of ibuprofen. Includes key amino acid residues involved in NSAID binding."
+        description: "Cyclooxygenase-2 (COX-2) binding site positioned for optimal interaction with ibuprofen. Key residues are arranged to form specific interactions: Arg120 with the carboxylate group, Tyr355 for hydrogen bonding, and hydrophobic residues forming the pocket for the isobutyl side chain."
       }
     }
   }
