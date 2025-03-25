@@ -1072,7 +1072,7 @@ const App = () => {
           Send me a message about improvements and bug fixes
         </a>
       </div>
-      <div className="decorative-bg"></div>      
+      <div className="decorative-bg"></div>
       {/* Decorative animated lines for cyberpunk effect */}
       <div className="decorative-line" style={{ top: "15%", animationDelay: "0s" }}></div>
       <div className="decorative-line" style={{ top: "35%", animationDelay: "0.5s" }}></div>
@@ -1109,8 +1109,8 @@ const App = () => {
           <button
             onClick={checkServerHealth}
             disabled={isCheckingHealth}
-            className={`health-check-button float ${serverHealth === true ? 'health-success' : 
-                         serverHealth === false ? 'health-error' : ''}`}
+            className={`health-check-button float ${serverHealth === true ? 'health-success' :
+              serverHealth === false ? 'health-error' : ''}`}
           >
             {isCheckingHealth ? (
               <>
@@ -1310,7 +1310,7 @@ const App = () => {
                 <span>Optimize Molecular Interaction</span>
               </label>
             </div>
-            
+
             {/* Default Offset Checkbox */}
             <div className="default-offset-checkbox-container">
               <label className="default-offset-checkbox-label">
@@ -1359,6 +1359,13 @@ const App = () => {
               >
                 <span className="test-molecule-icon"><Icons.molecule /></span>
                 Ibuprofen (C₁₃H₁₈O₂)
+              </button>
+              <button
+                onClick={() => handleTestMoleculeSelect('cox2BindingSite')}
+                className={`test-molecule-button ${isMobile ? 'mobile-full-width' : ''}`}
+              >
+                <span className="test-molecule-icon"><Icons.molecule /></span>
+                COX-2 Binding Site
               </button>
             </div>
           </div>
@@ -1621,7 +1628,7 @@ const App = () => {
                   molecule1Name={getMoleculeName(molecule1Data)}
                   molecule2Name={getMoleculeName(molecule2Data)}
                 />
-                
+
                 {interactionMode && molecule1Data && molecule2Data && (
                   <div className="molecule-stats">
                     <span>Molecule 1: {molecule1Data.file1?.atoms?.length || molecule1Data.atoms?.length || 0} atoms</span>
@@ -1677,8 +1684,8 @@ const App = () => {
                 <div className={`task-status-container task-status-${taskStatus.status}`}>
                   <div className="task-status-message">{taskStatus.message}</div>
                   <div className="task-status-progress-bar">
-                    <div 
-                      className="task-status-progress" 
+                    <div
+                      className="task-status-progress"
                       style={{ width: `${taskStatus.progress * 100}%` }}
                     ></div>
                   </div>

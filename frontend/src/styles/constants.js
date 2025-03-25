@@ -6,33 +6,33 @@ export const COLORS = {
   primary: "#38bdf8",      // Sky blue
   secondary: "#818cf8",    // Indigo
   tertiary: "#c084fc",     // Purple
-  
+
   // State colors
   success: "#10b981",      // Emerald green
   danger: "#f43f5e",       // Rose red
   warning: "#fbbf24",      // Amber
   info: "#3b82f6",         // Blue
-  
+
   // Background colors - Darker, more premium
   background: "#0c1021",   // Deep blue-black
   surface: "#141b2d",      // Dark blue
   card: "#1e293b",         // Slate
   cardDark: "#0f172a",     // Darker slate
-  
+
   // Text colors
   text: "#f0f4f8",         // Nearly white for text
   textSecondary: "#94a3b8", // Light slate for secondary text
   textTertiary: "#64748b",  // Even lighter for tertiary text
-  
+
   // Contextual colors
   border: "rgba(255, 255, 255, 0.12)",
   borderHighlight: "rgba(56, 189, 248, 0.5)",
   overlay: "rgba(17, 24, 39, 0.8)",
-  
+
   // Method-specific colors
   classical: "#10b981",    // Emerald green
   quantum: "#38bdf8",      // Sky blue
-  
+
   // Gradient colors
   gradientStart: "#0c1021",
   gradientEnd: "#141b2d",
@@ -82,7 +82,7 @@ export const SPACING = {
 export const BORDER_RADIUS = {
   xs: "4px",
   sm: "6px",
-  md: "8px", 
+  md: "8px",
   lg: "12px",
   xl: "16px",
   xxl: "24px",
@@ -152,7 +152,7 @@ export const TEST_MOLECULES = {
       }
     }
   },
-  
+
   // Acetic Acid molecule structure
   aceticAcid: {
     file1: {
@@ -173,7 +173,7 @@ export const TEST_MOLECULES = {
       }
     }
   },
-  
+
   // Methanol molecule structure
   methanol: {
     file1: {
@@ -192,7 +192,7 @@ export const TEST_MOLECULES = {
       }
     }
   },
-  
+
   // Ibuprofen molecule structure
   ibuprofen: {
     file1: {
@@ -233,6 +233,62 @@ export const TEST_MOLECULES = {
         name: "Ibuprofen",
         formula: "C13H18O2",
         description: "Ibuprofen molecule in standard configuration. Ibuprofen is a common non-steroidal anti-inflammatory drug (NSAID)."
+      }
+    }
+  },
+
+  // COX-2 binding site (Ibuprofen's target) - simplified representation
+  cox2BindingSite: {
+    file1: {
+      atoms: [
+        // Arg120 - key residue for interaction with carboxylate group of NSAIDs
+        { id: 1, element: "N", x: 6.0000, y: 3.0000, z: 1.0000 },
+        { id: 2, element: "C", x: 6.0000, y: 2.0000, z: 0.0000 },
+        { id: 3, element: "C", x: 7.0000, y: 2.0000, z: -1.0000 },
+        { id: 4, element: "N", x: 8.0000, y: 1.0000, z: -1.0000 },
+        { id: 5, element: "N", x: 7.0000, y: 3.0000, z: -2.0000 },
+        { id: 6, element: "H", x: 5.5000, y: 3.9000, z: 0.9000 },
+
+        // Tyr355 - forms hydrogen bond with carboxylate group
+        { id: 7, element: "C", x: 4.0000, y: 0.0000, z: 2.0000 },
+        { id: 8, element: "C", x: 4.0000, y: -1.0000, z: 3.0000 },
+        { id: 9, element: "C", x: 5.0000, y: -1.0000, z: 4.0000 },
+        { id: 10, element: "O", x: 5.0000, y: -2.0000, z: 5.0000 },
+        { id: 11, element: "H", x: 6.0000, y: -2.0000, z: 5.2000 },
+
+        // Ser530 - acetylation site for aspirin
+        { id: 12, element: "C", x: 1.0000, y: 1.0000, z: 2.0000 },
+        { id: 13, element: "C", x: 0.0000, y: 2.0000, z: 2.0000 },
+        { id: 14, element: "O", x: -1.0000, y: 2.0000, z: 3.0000 },
+        { id: 15, element: "H", x: -1.8000, y: 2.5000, z: 2.8000 },
+
+        // Val349 - hydrophobic pocket residue
+        { id: 16, element: "C", x: 3.0000, y: -3.0000, z: 0.0000 },
+        { id: 17, element: "C", x: 3.0000, y: -4.0000, z: -1.0000 },
+        { id: 18, element: "C", x: 3.0000, y: -4.0000, z: 1.0000 },
+        { id: 19, element: "H", x: 2.5000, y: -4.9000, z: -0.7000 },
+        { id: 20, element: "H", x: 2.5000, y: -4.9000, z: 0.7000 },
+
+        // Leu352 - hydrophobic pocket residue
+        { id: 21, element: "C", x: 0.0000, y: -3.0000, z: 0.0000 },
+        { id: 22, element: "C", x: -1.0000, y: -3.0000, z: 1.0000 },
+        { id: 23, element: "C", x: -2.0000, y: -4.0000, z: 1.0000 },
+        { id: 24, element: "C", x: -1.0000, y: -3.0000, z: -1.0000 },
+        { id: 25, element: "H", x: -2.5000, y: -4.0000, z: 1.9000 },
+
+        // Phe518 - pi-stacking with aromatic ring of NSAIDs
+        { id: 26, element: "C", x: -3.0000, y: 0.0000, z: 0.0000 },
+        { id: 27, element: "C", x: -3.5000, y: 1.2000, z: 0.5000 },
+        { id: 28, element: "C", x: -4.8000, y: 1.5000, z: 0.5000 },
+        { id: 29, element: "C", x: -5.7000, y: 0.6000, z: 0.0000 },
+        { id: 30, element: "C", x: -5.3000, y: -0.6000, z: -0.5000 },
+        { id: 31, element: "C", x: -4.0000, y: -0.9000, z: -0.5000 },
+        { id: 32, element: "H", x: -5.1000, y: 2.5000, z: 0.9000 }
+      ],
+      metadata: {
+        name: "COX-2 Binding Site",
+        formula: "Protein fragment",
+        description: "Simplified representation of the cyclooxygenase-2 (COX-2) binding site, the primary target of ibuprofen. Includes key amino acid residues involved in NSAID binding."
       }
     }
   }
