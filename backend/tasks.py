@@ -193,32 +193,37 @@ def optimize_quantum_combined_task(self, molecule1_atoms, molecule2_atoms, param
         logger.error(f"Quantum combined optimization task {self.request.id} failed: {str(e)}", exc_info=True)
         raise
 
-
 def store_optimization_result(task_id, user_id, optimization_type, parameters, result):
     """Store optimization result in database"""
     import_dependencies()
     
-    # Create new SQLAlchemy session - can't rely on Flask's request-bound session
-    # in background tasks
+    # Create new SQLAlchemy session
     Session = sessionmaker(bind=db.engine)
     session = Session()
     
     try:
         with app.app_context():
-            # Create new optimization record
-            optimization = optimization_funcs['Optimization'](
-                id=task_id,
-                user_id=user_id,
-                optimization_type=optimization_type,
-                parameters=parameters,
-                result=result,
-                created_at=datetime.now()
-            )
+            # Find existing record by task_id
+            optimization = session.query(optimization_funcs['Optimization']).filter_by(id=task_id).first()
             
-            session.add(optimization)
+            if optimization:
+                # Update existing record with results
+                optimization.result = result
+                logger.info(f"Updated existing optimization result for task {task_id}")
+            else:
+                # Fallback: create new record if not found
+                optimization = optimization_funcs['Optimization'](
+                    id=task_id,
+                    user_id=user_id,
+                    optimization_type=optimization_type,
+                    parameters=parameters,
+                    result=result,
+                    created_at=datetime.now()
+                )
+                session.add(optimization)
+                logger.info(f"Created new optimization result for task {task_id}")
+                
             session.commit()
-            
-            logger.info(f"Stored optimization result for task {task_id}")
     except Exception as e:
         logger.error(f"Failed to store optimization result for task {task_id}: {str(e)}", exc_info=True)
         session.rollback()
