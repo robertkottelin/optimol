@@ -9,8 +9,7 @@ import { AuthContext } from './AuthContext';
 import LoginForm from './components/LoginForm';
 import RegisterForm from './components/RegisterForm';
 
-// Import style constants
-import { styles } from './styles/components';
+// Import constants
 import {
   ITERATION_LIMITS,
   QUANTUM_SIZE_LIMITS,
@@ -1042,24 +1041,9 @@ const App = () => {
   // Display loading indicator while auth state is determined
   if (isLoading) {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        backgroundColor: '#0c1021',
-        color: '#f0f4f8'
-      }}>
+      <div className="loading-container">
         <div>
-          <div className="spinner" style={{
-            width: '40px',
-            height: '40px',
-            border: '3px solid rgba(56, 189, 248, 0.3)',
-            borderTopColor: '#38bdf8',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto 20px auto'
-          }} />
+          <div className="spinner" />
           <div>Loading...</div>
         </div>
       </div>
@@ -1068,33 +1052,14 @@ const App = () => {
 
   // Main App render - works for both authenticated and guest users
   return (
-    <div style={{ ...styles.app, padding: isMobile ? '16px' : styles.app.padding }}>
+    <div className={`app ${isMobile ? 'mobile-app' : ''}`}>
       {/* Attribution element with bouncing animation */}
-      <div style={{
-        position: 'absolute',
-        top: '20px',
-        right: '20px',
-        zIndex: 1000,
-        fontWeight: 'bold',
-        color: '#f0f4f8',
-        backgroundColor: 'rgba(15, 23, 42, 0.7)',
-        backdropFilter: 'blur(4px)',
-        WebkitBackdropFilter: 'blur(4px)',
-        padding: '6px 12px',
-        borderRadius: '8px',
-        fontSize: '14px',
-        border: '1px solid rgba(56, 189, 248, 0.3)',
-        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
-        animation: "float 10s ease-in-out infinite",
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center'
-      }}>
+      <div className="attribution">
         Built by <a
           href="https://x.com/robertkottelin"
           target="_blank"
           rel="noopener noreferrer"
-          style={{ color: '#38bdf8', textDecoration: 'none', fontWeight: 'bold' }}
+          className="attribution-link"
         >
           @robertkottelin
         </a>
@@ -1102,112 +1067,61 @@ const App = () => {
           href="https://x.com/robertkottelin"
           target="_blank"
           rel="noopener noreferrer"
-          style={{
-            color: '#94a3b8',
-            textDecoration: 'none',
-            fontSize: '10px',
-            marginTop: '4px',
-            fontWeight: 'normal'
-          }}
+          className="attribution-sublink"
         >
           Send me a message about improvements and bug fixes
         </a>
       </div>
-      <div style={styles.decorativeBg}></div>      {/* Decorative animated lines for cyberpunk effect */}
-      <div style={{ ...styles.decorativeLine, top: "15%", animationDelay: "0s" }}></div>
-      <div style={{ ...styles.decorativeLine, top: "35%", animationDelay: "0.5s" }}></div>
-      <div style={{ ...styles.decorativeLine, top: "65%", animationDelay: "1s" }}></div>
-      <div style={{ ...styles.decorativeLine, top: "85%", animationDelay: "1.5s" }}></div>
+      <div className="decorative-bg"></div>      
+      {/* Decorative animated lines for cyberpunk effect */}
+      <div className="decorative-line" style={{ top: "15%", animationDelay: "0s" }}></div>
+      <div className="decorative-line" style={{ top: "35%", animationDelay: "0.5s" }}></div>
+      <div className="decorative-line" style={{ top: "65%", animationDelay: "1s" }}></div>
+      <div className="decorative-line" style={{ top: "85%", animationDelay: "1.5s" }}></div>
 
-      <div style={styles.container}>
+      <div className="container">
         {/* Top Action Buttons - Move before header for mobile */}
-        <div className="top-buttons-container" style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '10px',
-          justifyContent: isMobile ? 'center' : 'flex-start',
-          position: 'relative',
-          zIndex: 10,
-          marginBottom: '20px'
-        }}>
+        <div className={`top-buttons-container ${isMobile ? 'mobile-center' : ''}`}>
           <button
             onClick={handleShowHowToUse}
-            style={{
-              ...styles.howToUseButton,
-              position: 'static',
-              marginRight: '5px',
-              background: "linear-gradient(145deg, rgba(56, 189, 248, 0.9), rgba(37, 99, 235, 0.9))"
-            }}
-            className="float howToUseButton"
+            className="how-to-use-button float"
           >
-            <span style={styles.howToUseIcon}><Icons.book /></span>
+            <span className="how-to-use-icon"><Icons.book /></span>
             How To Use
           </button>
 
           <button
             onClick={handleShowTheory}
-            style={{
-              ...styles.howToUseButton,
-              position: 'static',
-              marginRight: '5px',
-              background: "linear-gradient(145deg, rgba(16, 185, 129, 0.9), rgba(5, 150, 105, 0.9))"
-            }}
-            className="float theoryButton"
+            className="how-to-use-button float theory-button"
           >
-            <span style={styles.howToUseIcon}><Icons.quantum /></span>
+            <span className="how-to-use-icon"><Icons.quantum /></span>
             Theory
           </button>
 
           <button
             onClick={handleShowAboutUs}
-            style={{
-              ...styles.howToUseButton,
-              position: 'static',
-              marginRight: '5px',
-              background: "linear-gradient(145deg, rgba(99, 102, 241, 0.9), rgba(79, 70, 229, 0.9))"
-            }}
-            className="float aboutUsButton"
+            className="how-to-use-button float about-us-button"
           >
-            <span style={styles.howToUseIcon}><Icons.info /></span>
+            <span className="how-to-use-icon"><Icons.info /></span>
             About Us
           </button>
 
           <button
             onClick={checkServerHealth}
             disabled={isCheckingHealth}
-            style={{
-              ...styles.button,
-              background: serverHealth === null
-                ? "linear-gradient(145deg, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.9))"
-                : serverHealth
-                  ? "linear-gradient(145deg, rgba(16, 185, 129, 0.9), rgba(5, 150, 105, 0.9))"
-                  : "linear-gradient(145deg, rgba(244, 63, 94, 0.9), rgba(225, 29, 72, 0.9))",
-              color: "white",
-              padding: "4px 12px",
-              borderRadius: "6px",
-              fontSize: "0.75rem",
-              fontWeight: "600",
-              position: 'static',
-              boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-              display: "flex",
-              alignItems: "center",
-              gap: "5px",
-              flexDirection: serverHealthDetails ? "column" : "row",
-              alignItems: serverHealthDetails ? "flex-start" : "center",
-              minWidth: serverHealthDetails ? "180px" : "auto"
-            }}
-            className="health-check-button float"
+            className={`health-check-button float ${serverHealth === true ? 'health-success' : 
+                         serverHealth === false ? 'health-error' : ''}`}
           >
             {isCheckingHealth ? (
               <>
-                <span className="spin" style={{ display: "inline-block" }}>
+                <span className="spin">
                   <Icons.spinner />
                 </span>
                 Checking...
               </>
             ) : (
               <>
-                <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                <div className="health-status-indicator">
                   {serverHealth === true && <span><Icons.checkmark /></span>}
                   {serverHealth === false && <span><Icons.warning /></span>}
                   {serverHealth === null && <span><Icons.info /></span>}
@@ -1215,16 +1129,9 @@ const App = () => {
                 </div>
 
                 {serverHealthDetails && (
-                  <div style={{
-                    fontSize: "0.7rem",
-                    marginTop: "4px",
-                    backgroundColor: "rgba(0,0,0,0.2)",
-                    padding: "3px 6px",
-                    borderRadius: "4px",
-                    width: "100%"
-                  }}>
+                  <div className="health-details">
                     <div>Status: {serverHealthDetails.status}</div>
-                    <div style={{ wordBreak: "break-word" }}>
+                    <div>
                       {serverHealthDetails.statusText}
                     </div>
                   </div>
@@ -1237,21 +1144,7 @@ const App = () => {
           {isAuthenticated ? (
             <button
               onClick={logout}
-              style={{
-                ...styles.button,
-                background: "linear-gradient(145deg, rgba(100, 116, 139, 0.9), rgba(71, 85, 105, 0.9))",
-                color: "white",
-                padding: "4px 12px",
-                borderRadius: "6px",
-                fontSize: "0.75rem",
-                fontWeight: "600",
-                position: 'static',
-                boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-                display: "flex",
-                alignItems: "center",
-                gap: "5px",
-                animation: "float 10s ease-in-out infinite"
-              }}
+              className="button logout-button float"
             >
               <Icons.close />
               Logout
@@ -1259,21 +1152,7 @@ const App = () => {
           ) : (
             <button
               onClick={toggleAuthModal}
-              style={{
-                ...styles.button,
-                background: "linear-gradient(145deg, rgba(56, 189, 248, 0.9), rgba(37, 99, 235, 0.9))",
-                color: "white",
-                padding: "4px 12px",
-                borderRadius: "6px",
-                fontSize: "0.75rem",
-                fontWeight: "600",
-                position: 'static',
-                boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-                display: "flex",
-                alignItems: "center",
-                gap: "5px",
-                animation: "float 10s ease-in-out infinite"
-              }}
+              className="button login-button float"
             >
               <Icons.verified />
               Login / Register
@@ -1284,24 +1163,18 @@ const App = () => {
             <button
               onClick={handleCancelSubscription}
               disabled={isCancelLoading}
-              style={{
-                ...styles.cancelSubscriptionButton,
-                opacity: isCancelLoading ? 0.7 : 1,
-                cursor: isCancelLoading ? "not-allowed" : "pointer",
-                position: 'static',
-                animation: "float 10s ease-in-out infinite"
-              }}
+              className={`cancel-subscription-button float ${isCancelLoading ? 'disabled' : ''}`}
             >
               {isCancelLoading ? (
                 <>
-                  <span className="spin" style={{ display: "inline-block", marginRight: "5px" }}>
+                  <span className="spin cancel-subscription-icon">
                     <Icons.spinner />
                   </span>
                   Cancelling...
                 </>
               ) : (
                 <>
-                  <span style={styles.cancelSubscriptionIcon}><Icons.cancel /></span>
+                  <span className="cancel-subscription-icon"><Icons.cancel /></span>
                   Cancel Subscription
                 </>
               )}
@@ -1310,21 +1183,21 @@ const App = () => {
         </div>
 
         {/* App Header - Now comes after buttons in the DOM */}
-        <header style={styles.header} className="app-header">
-          <h1 style={styles.headerTitle} className="app-title">Molecular Optimization System</h1>
-          <p style={styles.headerSubtitle} className="app-subtitle">
+        <header className="header">
+          <h1 className="header-title">Molecular Optimization System</h1>
+          <p className="header-subtitle">
             Advanced computational chemistry tools for structure and drug-target energy optimization
           </p>
-          <p style={styles.headerSubtitle} className="app-subtitle">
+          <p className="header-subtitle">
             -
           </p>
-          <p style={styles.headerSubtitle} className="app-subtitle">
+          <p className="header-subtitle">
             Quantum energy optimization currently capped at 30 atoms total due to computational complexity. Will add more powerful servers and control of only quantum optimizing a subset of the system soon.
           </p>
         </header>
 
         {/* Subscription Form or Welcome Message */}
-        <div className="fade-in glass card" style={isSubscribed ? styles.cardWithGlow : styles.card}>
+        <div className={`fade-in glass card ${isSubscribed ? 'card-with-glow' : ''} ${isMobile ? 'mobile-smaller-padding' : ''}`}>
           {!isSubscribed ? (
             <div className={`subscription-form ${isMobile ? 'mobile-smaller-padding' : ''}`}>
               <Elements stripe={stripePromise}>
@@ -1336,118 +1209,47 @@ const App = () => {
               </Elements>
             </div>
           ) : (
-            <div className={`welcome-message ${isMobile ? 'mobile-stack mobile-text-center' : ''}`} style={styles.welcomeMessage}>
-              <div style={styles.welcomeIcon}>
+            <div className={`welcome-message ${isMobile ? 'mobile-stack mobile-text-center' : ''}`}>
+              <div className="welcome-icon">
                 <Icons.verified />
               </div>
-              <p style={{ margin: 0 }}>Welcome, <strong>{currentUser.email}</strong>! You have full access to all computational capabilities with your premium subscription.</p>
+              <p>Welcome, <strong>{currentUser.email}</strong>! You have full access to all computational capabilities with your premium subscription.</p>
             </div>
           )}
         </div>
 
         {/* Main Optimization Section */}
-        <section style={styles.section}>
-          <h2 style={styles.sectionTitle}>
+        <section className="section">
+          <h2 className="section-title">
             Molecule Optimization
-            <span style={styles.sectionTitleUnderline}></span>
+            <span className="section-title-underline"></span>
           </h2>
 
           {/* Molecule Selection UI */}
-          <div style={{
-            backgroundColor: "rgba(15, 23, 42, 0.7)",
-            backdropFilter: "blur(12px)",
-            WebkitBackdropFilter: "blur(12px)",
-            borderRadius: "16px",
-            padding: "16px",
-            marginBottom: "24px",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
-            boxShadow: "0 15px 25px rgba(0, 0, 0, 0.25)",
-          }}>
-            <h3 style={{
-              fontSize: "1rem",
-              fontWeight: "600",
-              marginBottom: "16px",
-              color: "#f0f4f8",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "8px"
-            }}>
-              <span style={{ color: "#38bdf8" }}><Icons.molecule /></span>
+          <div className="molecule-selection-container">
+            <h3 className="molecule-selection-title">
+              <span className="molecule-selection-icon"><Icons.molecule /></span>
               Molecule Selection
             </h3>
 
-            <div style={{
-              display: "flex",
-              justifyContent: "center",
-              gap: "16px",
-              marginBottom: "8px",
-              flexWrap: "wrap"
-            }} className={isMobile ? 'mobile-stack' : ''}>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  width: isMobile ? "100%" : "180px",
-                  marginBottom: isMobile ? "8px" : 0
-                }}
-              >
+            <div className={`molecule-selector-group ${isMobile ? 'mobile-stack' : ''}`}>
+              <div className="molecule-selector-column">
                 <button
                   onClick={() => setActiveMolecule(1)}
-                  style={{
-                    padding: "8px 16px",
-                    backgroundColor: activeMolecule === 1 ? "rgba(56, 189, 248, 0.2)" : "rgba(15, 23, 42, 0.7)",
-                    color: activeMolecule === 1 ? "#38bdf8" : "#94a3b8",
-                    borderRadius: "8px 8px 0 0",
-                    fontWeight: activeMolecule === 1 ? "600" : "400",
-                    cursor: "pointer",
-                    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                    border: `1px solid ${activeMolecule === 1 ? "rgba(56, 189, 248, 0.3)" : "transparent"}`,
-                    borderBottom: "none",
-                    boxShadow: activeMolecule === 1 ? "0 4px 6px rgba(0, 0, 0, 0.1)" : "none",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    justifyContent: "center",
-                  }}
-                  className={`molecule-selector-button ${isMobile ? 'mobile-full-width' : ''}`}
+                  className={`molecule-selector-button ${activeMolecule === 1 ? 'active-molecule-1' : ''} ${isMobile ? 'mobile-full-width' : ''}`}
                 >
                   <Icons.molecule />
                   Molecule 1 {molecule1Data ? " (Loaded)" : " (Empty)"}
                 </button>
 
                 {molecule1Data && (
-                  <div style={{
-                    backgroundColor: "rgba(56, 189, 248, 0.1)",
-                    padding: "8px",
-                    borderRadius: "0 0 8px 8px",
-                    fontSize: "0.85rem",
-                    textAlign: "center",
-                    border: "1px solid rgba(56, 189, 248, 0.3)",
-                    borderTop: "none",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "6px"
-                  }}>
-                    <div style={{ fontWeight: "500", color: "#38bdf8", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <div className="molecule-info molecule-1-info">
+                    <div className="molecule-name">
                       {getMoleculeName(molecule1Data)}
                     </div>
                     <button
                       onClick={() => setMolecule1Data(null)}
-                      style={{
-                        backgroundColor: "rgba(244, 63, 94, 0.1)",
-                        color: "#f43f5e",
-                        border: "1px solid rgba(244, 63, 94, 0.3)",
-                        borderRadius: "4px",
-                        padding: "4px 8px",
-                        fontSize: "0.75rem",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "4px",
-                        transition: "all 0.2s ease"
-                      }}
+                      className="clear-molecule-button"
                     >
                       <Icons.close /> Clear
                     </button>
@@ -1455,69 +1257,23 @@ const App = () => {
                 )}
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  width: isMobile ? "100%" : "180px",
-                }}
-              >
+              <div className="molecule-selector-column">
                 <button
                   onClick={() => setActiveMolecule(2)}
-                  style={{
-                    padding: "8px 16px",
-                    backgroundColor: activeMolecule === 2 ? "rgba(16, 185, 129, 0.2)" : "rgba(15, 23, 42, 0.7)",
-                    color: activeMolecule === 2 ? "#10b981" : "#94a3b8",
-                    borderRadius: "8px 8px 0 0",
-                    fontWeight: activeMolecule === 2 ? "600" : "400",
-                    cursor: "pointer",
-                    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                    border: `1px solid ${activeMolecule === 2 ? "rgba(16, 185, 129, 0.3)" : "transparent"}`,
-                    borderBottom: "none",
-                    boxShadow: activeMolecule === 2 ? "0 4px 6px rgba(0, 0, 0, 0.1)" : "none",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    justifyContent: "center",
-                  }}
-                  className={`molecule-selector-button ${isMobile ? 'mobile-full-width' : ''}`}
+                  className={`molecule-selector-button ${activeMolecule === 2 ? 'active-molecule-2' : ''} ${isMobile ? 'mobile-full-width' : ''}`}
                 >
                   <Icons.molecule />
                   Molecule 2 {molecule2Data ? " (Loaded)" : " (Empty)"}
                 </button>
 
                 {molecule2Data && (
-                  <div style={{
-                    backgroundColor: "rgba(16, 185, 129, 0.1)",
-                    padding: "8px",
-                    borderRadius: "0 0 8px 8px",
-                    fontSize: "0.85rem",
-                    textAlign: "center",
-                    border: "1px solid rgba(16, 185, 129, 0.3)",
-                    borderTop: "none",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "6px"
-                  }}>
-                    <div style={{ fontWeight: "500", color: "#10b981", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <div className="molecule-info molecule-2-info">
+                    <div className="molecule-name">
                       {getMoleculeName(molecule2Data)}
                     </div>
                     <button
                       onClick={() => setMolecule2Data(null)}
-                      style={{
-                        backgroundColor: "rgba(244, 63, 94, 0.1)",
-                        color: "#f43f5e",
-                        border: "1px solid rgba(244, 63, 94, 0.3)",
-                        borderRadius: "4px",
-                        padding: "4px 8px",
-                        fontSize: "0.75rem",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "4px",
-                        transition: "all 0.2s ease"
-                      }}
+                      className="clear-molecule-button"
                     >
                       <Icons.close /> Clear
                     </button>
@@ -1528,11 +1284,7 @@ const App = () => {
 
             {/* Clear both molecules button */}
             {(molecule1Data || molecule2Data) && (
-              <div style={{
-                display: "flex",
-                justifyContent: "center",
-                marginTop: "12px"
-              }}>
+              <div className="clear-all-container">
                 <button
                   onClick={() => {
                     setMolecule1Data(null);
@@ -1540,69 +1292,33 @@ const App = () => {
                     setOptimizationResult(null);
                     setActiveView("original");
                   }}
-                  style={{
-                    backgroundColor: "rgba(244, 63, 94, 0.1)",
-                    color: "#f43f5e",
-                    border: "1px solid rgba(244, 63, 94, 0.3)",
-                    borderRadius: "6px",
-                    padding: "6px 12px",
-                    fontSize: "0.875rem",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "6px",
-                    transition: "all 0.2s ease"
-                  }}
+                  className="clear-all-button"
                 >
                   <Icons.close /> Clear All Molecules
                 </button>
               </div>
             )}
 
-            <div style={{
-              display: "flex",
-              justifyContent: "center",
-              marginTop: "16px",
-            }}>
-              <label style={{
-                display: "flex",
-                alignItems: "center",
-                cursor: "pointer"
-              }}>
+            <div className="interaction-checkbox-container">
+              <label className="interaction-checkbox-label">
                 <input
                   type="checkbox"
                   checked={interactionMode}
                   onChange={(e) => setInteractionMode(e.target.checked)}
-                  style={{
-                    marginRight: "4px",
-                    cursor: "pointer",
-                    accentColor: "#38bdf8"
-                  }}
+                  className="interaction-checkbox"
                 />
                 <span>Optimize Molecular Interaction</span>
               </label>
             </div>
+            
             {/* Default Offset Checkbox */}
-            <div style={{
-              display: "flex",
-              justifyContent: "center",
-              marginTop: "8px",
-            }}>
-              <label style={{
-                display: "flex",
-                alignItems: "center",
-                cursor: "pointer"
-              }}>
+            <div className="default-offset-checkbox-container">
+              <label className="default-offset-checkbox-label">
                 <input
                   type="checkbox"
                   checked={applyDefaultOffset}
                   onChange={(e) => setApplyDefaultOffset(e.target.checked)}
-                  style={{
-                    marginRight: "4px",
-                    cursor: "pointer",
-                    accentColor: "#38bdf8"
-                  }}
+                  className="default-offset-checkbox"
                 />
                 <span>Apply default offset (5Å) when adding molecule 2</span>
               </label>
@@ -1610,128 +1326,94 @@ const App = () => {
           </div>
 
           {/* Test Molecules Buttons */}
-          <div style={styles.testMoleculesContainer} className={isMobile ? 'mobile-smaller-padding' : ''}>
-            <h3 style={styles.testMoleculesTitle}>
+          <div className={`test-molecules-container ${isMobile ? 'mobile-smaller-padding' : ''}`}>
+            <h3 className="test-molecules-title">
               Test Molecules
-              <span style={styles.testMoleculesTitleIcon}></span>
+              <span className="test-molecules-title-icon"></span>
             </h3>
-            <div style={styles.testMoleculesButtonContainer} className={isMobile ? 'mobile-stack' : ''}>
+            <div className={`test-molecules-button-container ${isMobile ? 'mobile-stack' : ''}`}>
               <button
                 onClick={() => handleTestMoleculeSelect('water')}
-                style={styles.testMoleculeButton}
                 className={`test-molecule-button ${isMobile ? 'mobile-full-width mobile-margin-bottom' : ''}`}
               >
-                <span style={styles.testMoleculeIcon}><Icons.molecule /></span>
+                <span className="test-molecule-icon"><Icons.molecule /></span>
                 Water (H₂O)
               </button>
               <button
                 onClick={() => handleTestMoleculeSelect('aceticAcid')}
-                style={styles.testMoleculeButton}
                 className={`test-molecule-button ${isMobile ? 'mobile-full-width mobile-margin-bottom' : ''}`}
               >
-                <span style={styles.testMoleculeIcon}><Icons.molecule /></span>
+                <span className="test-molecule-icon"><Icons.molecule /></span>
                 Acetic Acid (CH₃COOH)
               </button>
               <button
                 onClick={() => handleTestMoleculeSelect('methanol')}
-                style={styles.testMoleculeButton}
                 className={`test-molecule-button ${isMobile ? 'mobile-full-width mobile-margin-bottom' : ''}`}
               >
-                <span style={styles.testMoleculeIcon}><Icons.molecule /></span>
+                <span className="test-molecule-icon"><Icons.molecule /></span>
                 Methanol (CH₃OH)
               </button>
               <button
                 onClick={() => handleTestMoleculeSelect('ibuprofen')}
-                style={styles.testMoleculeButton}
                 className={`test-molecule-button ${isMobile ? 'mobile-full-width' : ''}`}
               >
-                <span style={styles.testMoleculeIcon}><Icons.molecule /></span>
+                <span className="test-molecule-icon"><Icons.molecule /></span>
                 Ibuprofen (C₁₃H₁₈O₂)
               </button>
             </div>
-
           </div>
 
           {/* File Upload Area */}
           <div
-            className={`file-upload-area ${isDragActive ? 'file-upload-active' : ''} ${isMobile ? 'mobile-smaller-padding' : ''}`}
-            style={{
-              ...styles.fileUpload,
-              ...(isDragActive ? styles.fileUploadActive : {})
-            }}
+            className={`file-upload ${isDragActive ? 'file-upload-active' : ''} ${isMobile ? 'mobile-smaller-padding' : ''}`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleFileDrop}
           >
-            <div style={isDragActive ? { ...styles.fileUploadIcon, ...styles.fileUploadActiveIcon } : styles.fileUploadIcon}>
+            <div className={`file-upload-icon ${isDragActive ? 'file-upload-active-icon' : ''}`}>
               <Icons.upload />
             </div>
-            <p style={styles.fileUploadText}>
+            <p className="file-upload-text">
               {isMobile ? 'Upload a molecule file' : 'Drag & drop a molecule file here, or click to select a file'}
             </p>
-            <p style={styles.fileUploadSubtext}>
+            <p className="file-upload-subtext">
               Accepted format: JSON structured molecule data
             </p>
             <input
               type="file"
               onChange={handleFileUpload}
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: "100%",
-                height: "100%",
-                opacity: 0,
-                cursor: "pointer"
-              }}
+              className="file-upload-input"
             />
           </div>
 
           {(molecule1Data || molecule2Data) && (
-            <div className="slide-up" style={styles.contentWrapper}>
+            <div className="content-wrapper">
               {/* Optimization Method Selection */}
               <div
-                style={styles.methodSelectionContainer}
-                className={isMobile ? "mobile-stack" : ""}
+                className={`method-selection-container ${isMobile ? "mobile-stack" : ""}`}
               >
                 <div
-                  className={`method-card ${optimizationType === "classical" ? 'classical-active' : ''} ${isMobile ? 'mobile-full-width mobile-margin-bottom' : ''}`}
-                  style={styles.methodSelectionButton(optimizationType === "classical", "classical")}
+                  className={`method-selection-button ${optimizationType === "classical" ? 'classical' : ''} ${isMobile ? 'mobile-full-width mobile-margin-bottom' : ''}`}
                   onClick={() => handleOptimizationTypeChange("classical")}
                 >
-                  <span style={{
-                    ...styles.methodIcon,
-                    backgroundColor: optimizationType === "classical" ? "rgba(16, 185, 129, 0.1)" : "rgba(30, 41, 59, 0.5)",
-                    border: optimizationType === "classical" ? "1px solid rgba(16, 185, 129, 0.3)" : "transparent",
-                    padding: "8px",
-                    borderRadius: "50%",
-                    marginBottom: "16px"
-                  }}>
+                  <span className={`method-icon ${optimizationType === "classical" ? 'classical-icon' : ''}`}>
                     <Icons.classical />
                   </span>
-                  <div style={styles.methodTitle}>Classical Optimization</div>
-                  <div style={styles.methodDescription}>
+                  <div className="method-title">Classical Optimization</div>
+                  <div className="method-description">
                     Molecular mechanics optimization using empirical force fields. Faster calculations suitable for larger molecular systems.
                   </div>
                 </div>
 
                 <div
-                  className={`method-card ${optimizationType === "quantum" ? 'quantum-active' : ''} ${isMobile ? 'mobile-full-width' : ''}`}
-                  style={styles.methodSelectionButton(optimizationType === "quantum", "quantum")}
+                  className={`method-selection-button ${optimizationType === "quantum" ? 'quantum' : ''} ${isMobile ? 'mobile-full-width' : ''}`}
                   onClick={() => handleOptimizationTypeChange("quantum")}
                 >
-                  <span style={{
-                    ...styles.methodIcon,
-                    backgroundColor: optimizationType === "quantum" ? "rgba(56, 189, 248, 0.1)" : "rgba(30, 41, 59, 0.5)",
-                    border: optimizationType === "quantum" ? "1px solid rgba(56, 189, 248, 0.3)" : "transparent",
-                    padding: "8px",
-                    borderRadius: "50%",
-                    marginBottom: "16px"
-                  }}>
+                  <span className={`method-icon ${optimizationType === "quantum" ? 'quantum-icon' : ''}`}>
                     <Icons.quantum />
                   </span>
-                  <div style={styles.methodTitle}>Quantum Optimization</div>
-                  <div style={styles.methodDescription}>
+                  <div className="method-title">Quantum Optimization</div>
+                  <div className="method-description">
                     Ab initio quantum chemistry methods for precise electronic structure optimization with quantum mechanical accuracy.
                   </div>
                 </div>
@@ -1762,44 +1444,12 @@ const App = () => {
 
               {/* Positioning Mode Controls */}
               {interactionMode && molecule1Data && molecule2Data && (
-                <div style={{
-                  backgroundColor: "rgba(15, 23, 42, 0.7)",
-                  backdropFilter: "blur(12px)",
-                  WebkitBackdropFilter: "blur(12px)",
-                  borderRadius: "16px",
-                  padding: "16px",
-                  marginBottom: "16px",
-                  border: `1px solid ${positioningMode ? "#38bdf8" : "rgba(255, 255, 255, 0.1)"}`,
-                  boxShadow: positioningMode ? `0 0 10px rgba(56, 189, 248, 0.2)` : "0 15px 25px rgba(0, 0, 0, 0.25)",
-                }}>
-                  <div style={{
-                    display: "flex",
-                    flexDirection: isMobile ? "column" : "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: "16px",
-                  }}>
-                    <div style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                    }}>
+                <div className={`positioning-container ${positioningMode ? 'positioning-active' : ''}`}>
+                  <div className={`positioning-controls ${isMobile ? 'mobile-stack' : ''}`}>
+                    <div className="positioning-toggle">
                       <button
                         onClick={() => setPositioningMode(!positioningMode)}
-                        style={{
-                          backgroundColor: positioningMode ? "rgba(56, 189, 248, 0.2)" : "rgba(15, 23, 42, 0.7)",
-                          color: positioningMode ? "#38bdf8" : "#94a3b8",
-                          border: `1px solid ${positioningMode ? "rgba(56, 189, 248, 0.3)" : "transparent"}`,
-                          padding: "4px 16px",
-                          borderRadius: "8px",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "6px",
-                          cursor: "pointer",
-                          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                          fontSize: "16px", // Increased font size from default
-                          fontWeight: "500" // Added for better visibility
-                        }}
+                        className={`positioning-toggle-button ${positioningMode ? 'active' : ''}`}
                       >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M5 9l4-4 4 4M9 5v14M19 15l-4 4-4-4M15 19V5" />
@@ -1809,33 +1459,15 @@ const App = () => {
                     </div>
 
                     {positioningMode && (
-                      <div style={{
-                        display: "flex",
-                        gap: "8px",
-                        alignItems: "center",
-                        flexWrap: isMobile ? "wrap" : "nowrap",
-                        justifyContent: isMobile ? "center" : "flex-end",
-                        width: isMobile ? "100%" : "auto",
-                      }}>
+                      <div className={`position-controls ${isMobile ? 'mobile-stack mobile-center' : ''}`}>
                         <button
                           onClick={() => setMolecule2Offset({ x: 0, y: 0, z: 0 })}
-                          style={{
-                            backgroundColor: "rgba(15, 23, 42, 0.7)",
-                            color: "#94a3b8",
-                            border: "1px solid rgba(255, 255, 255, 0.1)",
-                            padding: "4px 8px",
-                            borderRadius: "8px",
-                            cursor: "pointer",
-                          }}
+                          className="position-reset-button"
                         >
                           Reset Position
                         </button>
 
-                        <div style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "4px",
-                        }}>
+                        <div className="position-input-group">
                           <span>X:</span>
                           <input
                             type="number"
@@ -1844,23 +1476,12 @@ const App = () => {
                               ...molecule2Offset,
                               x: parseFloat(e.target.value)
                             })}
-                            style={{
-                              width: "70px",
-                              backgroundColor: "rgba(15, 23, 42, 0.7)",
-                              color: "#f0f4f8",
-                              border: "1px solid rgba(255, 255, 255, 0.1)",
-                              borderRadius: "4px",
-                              padding: "4px 4px",
-                            }}
+                            className="position-input"
                             step="0.5"
                           />
                         </div>
 
-                        <div style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "4px",
-                        }}>
+                        <div className="position-input-group">
                           <span>Y:</span>
                           <input
                             type="number"
@@ -1869,23 +1490,12 @@ const App = () => {
                               ...molecule2Offset,
                               y: parseFloat(e.target.value)
                             })}
-                            style={{
-                              width: "70px",
-                              backgroundColor: "rgba(15, 23, 42, 0.7)",
-                              color: "#f0f4f8",
-                              border: "1px solid rgba(255, 255, 255, 0.1)",
-                              borderRadius: "4px",
-                              padding: "4px 4px",
-                            }}
+                            className="position-input"
                             step="0.5"
                           />
                         </div>
 
-                        <div style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "4px",
-                        }}>
+                        <div className="position-input-group">
                           <span>Z:</span>
                           <input
                             type="number"
@@ -1894,14 +1504,7 @@ const App = () => {
                               ...molecule2Offset,
                               z: parseFloat(e.target.value)
                             })}
-                            style={{
-                              width: "70px",
-                              backgroundColor: "rgba(15, 23, 42, 0.7)",
-                              color: "#f0f4f8",
-                              border: "1px solid rgba(255, 255, 255, 0.1)",
-                              borderRadius: "4px",
-                              padding: "4px 4px",
-                            }}
+                            className="position-input"
                             step="0.5"
                           />
                         </div>
@@ -1911,27 +1514,10 @@ const App = () => {
 
                   {/* Rotation Controls */}
                   {positioningMode && (
-                    <div style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "8px",
-                      padding: "8px",
-                      backgroundColor: "rgba(15, 23, 42, 0.7)",
-                      borderRadius: "8px",
-                      marginTop: "8px",
-                    }}>
-                      <div style={{ fontWeight: "600", marginBottom: "4px" }}>Rotation (degrees):</div>
-                      <div style={{
-                        display: "flex",
-                        gap: "8px",
-                        flexWrap: isMobile ? "wrap" : "nowrap",
-                        justifyContent: isMobile ? "center" : "flex-start",
-                      }}>
-                        <div style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "4px",
-                        }}>
+                    <div className="rotation-controls">
+                      <div className="rotation-title">Rotation (degrees):</div>
+                      <div className={`rotation-inputs ${isMobile ? 'mobile-stack mobile-center' : ''}`}>
+                        <div className="rotation-input-group">
                           <span>RX:</span>
                           <input
                             type="number"
@@ -1940,23 +1526,12 @@ const App = () => {
                               ...molecule2Rotation,
                               x: parseFloat(e.target.value) % 360
                             })}
-                            style={{
-                              width: "70px",
-                              backgroundColor: "rgba(15, 23, 42, 0.7)",
-                              color: "#f0f4f8",
-                              border: "1px solid rgba(255, 255, 255, 0.1)",
-                              borderRadius: "4px",
-                              padding: "4px 4px",
-                            }}
+                            className="rotation-input"
                             step="15"
                           />
                         </div>
 
-                        <div style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "4px",
-                        }}>
+                        <div className="rotation-input-group">
                           <span>RY:</span>
                           <input
                             type="number"
@@ -1965,23 +1540,12 @@ const App = () => {
                               ...molecule2Rotation,
                               y: parseFloat(e.target.value) % 360
                             })}
-                            style={{
-                              width: "70px",
-                              backgroundColor: "rgba(15, 23, 42, 0.7)",
-                              color: "#f0f4f8",
-                              border: "1px solid rgba(255, 255, 255, 0.1)",
-                              borderRadius: "4px",
-                              padding: "4px 4px",
-                            }}
+                            className="rotation-input"
                             step="15"
                           />
                         </div>
 
-                        <div style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "4px",
-                        }}>
+                        <div className="rotation-input-group">
                           <span>RZ:</span>
                           <input
                             type="number"
@@ -1990,28 +1554,14 @@ const App = () => {
                               ...molecule2Rotation,
                               z: parseFloat(e.target.value) % 360
                             })}
-                            style={{
-                              width: "70px",
-                              backgroundColor: "rgba(15, 23, 42, 0.7)",
-                              color: "#f0f4f8",
-                              border: "1px solid rgba(255, 255, 255, 0.1)",
-                              borderRadius: "4px",
-                              padding: "4px 4px",
-                            }}
+                            className="rotation-input"
                             step="15"
                           />
                         </div>
 
                         <button
                           onClick={() => setMolecule2Rotation({ x: 0, y: 0, z: 0 })}
-                          style={{
-                            backgroundColor: "rgba(15, 23, 42, 0.7)",
-                            color: "#94a3b8",
-                            border: "1px solid rgba(255, 255, 255, 0.1)",
-                            padding: "4px 8px",
-                            borderRadius: "8px",
-                            cursor: "pointer",
-                          }}
+                          className="rotation-reset-button"
                         >
                           Reset Rotation
                         </button>
@@ -2020,52 +1570,21 @@ const App = () => {
                   )}
 
                   {positioningMode && (
-                    <div style={{
-                      backgroundColor: "rgba(56, 189, 248, 0.1)",
-                      marginTop: "8px",
-                      padding: "8px",
-                      borderRadius: "8px",
-                      fontSize: "0.85rem",
-                      color: "#94a3b8",
-                      border: "1px solid rgba(56, 189, 248, 0.2)",
-                    }}>
-
-                      <p style={{ margin: 0 }}>
-                        <strong>Controls:</strong> Use keyboard to position Molecule 2: <kbd style={{
-                          backgroundColor: "rgba(255, 255, 255, 0.1)",
-                          padding: "2px 5px",
-                          borderRadius: "3px",
-                          fontSize: "0.8rem"
-                        }}>←→</kbd> (X-axis), <kbd style={{
-                          backgroundColor: "rgba(255, 255, 255, 0.1)",
-                          padding: "2px 5px",
-                          borderRadius: "3px",
-                          fontSize: "0.8rem"
-                        }}>↑↓</kbd> (Y-axis), <kbd style={{
-                          backgroundColor: "rgba(255, 255, 255, 0.1)",
-                          padding: "2px 5px",
-                          borderRadius: "3px",
-                          fontSize: "0.8rem"
-                        }}>PgUp/PgDn</kbd> (Z-axis).
-                        Hold <kbd style={{
-                          backgroundColor: "rgba(255, 255, 255, 0.1)",
-                          padding: "2px 5px",
-                          borderRadius: "3px",
-                          fontSize: "0.8rem"
-                        }}>Shift</kbd> + arrows for rotation.
+                    <div className="positioning-help">
+                      <p>
+                        <strong>Controls:</strong> Use keyboard to position Molecule 2: <kbd>←→</kbd> (X-axis), <kbd>↑↓</kbd> (Y-axis), <kbd>PgUp/PgDn</kbd> (Z-axis).
+                        Hold <kbd>Shift</kbd> + arrows for rotation.
                       </p>
-
                     </div>
                   )}
                 </div>
               )}
 
-
               {/* Visualization */}
-              <div style={styles.visualizationContainer} className={`glass ${isMobile ? 'mobile-smaller-padding' : ''}`}>
-                <div style={styles.visualizationHeader} className={isMobile ? 'mobile-stack' : ''}>
-                  <div style={styles.visualizationTitle}>
-                    <span style={styles.visualizationIcon}><Icons.molecule /></span>
+              <div className={`visualization-container glass ${isMobile ? 'mobile-smaller-padding' : ''}`}>
+                <div className={`visualization-header ${isMobile ? 'mobile-stack' : ''}`}>
+                  <div className="visualization-title">
+                    <span className="visualization-icon"><Icons.molecule /></span>
                     {activeView === "original" ?
                       (interactionMode ? "Original Molecules" : "Original Structure") :
                       (optimizationType === "classical" ? "Classical" : "Quantum") +
@@ -2073,21 +1592,16 @@ const App = () => {
                   </div>
 
                   {optimizationResult && (
-                    <div style={styles.tabs} className={isMobile ? 'mobile-full-width' : ''}>
+                    <div className={`tabs ${isMobile ? 'mobile-full-width' : ''}`}>
                       <div
-                        style={styles.tab(activeView === "original", "#38bdf8")}
+                        className={`tab ${activeView === "original" ? 'active-blue' : ''} ${isMobile ? 'mobile-smaller-text' : ''}`}
                         onClick={() => setActiveView("original")}
-                        className={isMobile ? 'mobile-smaller-text' : ''}
                       >
                         <Icons.molecule /> Original
                       </div>
                       <div
-                        style={styles.tab(
-                          activeView === "optimized",
-                          optimizationType === "classical" ? "#10b981" : "#38bdf8"
-                        )}
+                        className={`tab ${activeView === "optimized" ? (optimizationType === "classical" ? 'active-green' : 'active-blue') : ''} ${isMobile ? 'mobile-smaller-text' : ''}`}
                         onClick={() => setActiveView("optimized")}
-                        className={isMobile ? 'mobile-smaller-text' : ''}
                       >
                         {optimizationType === "classical" ? <Icons.classical /> : <Icons.quantum />}
                         {optimizationType === "classical" ? "Classical" : "Quantum"} Optimized
@@ -2107,27 +1621,20 @@ const App = () => {
                   molecule1Name={getMoleculeName(molecule1Data)}
                   molecule2Name={getMoleculeName(molecule2Data)}
                 />
+                
                 {interactionMode && molecule1Data && molecule2Data && (
-                  <div style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    marginTop: "8px",
-                    padding: "4px",
-                    backgroundColor: "rgba(15, 23, 42, 0.7)",
-                    borderRadius: "8px",
-                    fontSize: "0.85rem",
-                  }}>
+                  <div className="molecule-stats">
                     <span>Molecule 1: {molecule1Data.file1?.atoms?.length || molecule1Data.atoms?.length || 0} atoms</span>
-                    <span style={{ margin: "0 10px" }}>•</span>
+                    <span className="molecule-stats-separator">•</span>
                     <span>Molecule 2: {molecule2Data.file1?.atoms?.length || molecule2Data.atoms?.length || 0} atoms</span>
                     {(molecule2Offset.x !== 0 || molecule2Offset.y !== 0 || molecule2Offset.z !== 0 ||
                       molecule2Rotation.x !== 0 || molecule2Rotation.y !== 0 || molecule2Rotation.z !== 0) ? (
                       <>
-                        <span style={{ margin: "0 10px" }}>•</span>
+                        <span className="molecule-stats-separator">•</span>
                         <span>Offset: ({molecule2Offset.x.toFixed(1)}, {molecule2Offset.y.toFixed(1)}, {molecule2Offset.z.toFixed(1)})</span>
                         {(molecule2Rotation.x !== 0 || molecule2Rotation.y !== 0 || molecule2Rotation.z !== 0) && (
                           <>
-                            <span style={{ margin: "0 10px" }}>•</span>
+                            <span className="molecule-stats-separator">•</span>
                             <span>Rotation: ({molecule2Rotation.x}°, {molecule2Rotation.y}°, {molecule2Rotation.z}°)</span>
                           </>
                         )}
@@ -2138,16 +1645,15 @@ const App = () => {
               </div>
 
               {/* Optimize Button */}
-              <div style={styles.optimizeButtonContainer} className={isMobile ? 'mobile-full-width' : ''}>
+              <div className={`optimize-button-container ${isMobile ? 'mobile-full-width' : ''}`}>
                 <button
                   onClick={handleOptimize}
                   disabled={isOptimizeLoading}
-                  style={styles.optimizeButton(optimizationType, isOptimizeLoading)}
-                  className={`${optimizationType === "classical" ? "classical-button" : "quantum-button"} ${isMobile ? 'mobile-full-width' : ''}`}
+                  className={`optimize-button ${optimizationType === "classical" ? 'classical' : 'quantum'} ${isMobile ? 'mobile-full-width' : ''} ${isOptimizeLoading ? 'disabled' : ''}`}
                 >
                   {isOptimizeLoading ? (
                     <>
-                      <span className="spin" style={{ display: "inline-block", marginRight: "12px" }}>
+                      <span className="spin optimize-spinner">
                         <Icons.spinner />
                       </span>
                       Optimizing...
@@ -2155,42 +1661,26 @@ const App = () => {
                   ) : (
                     <>
                       {`Run ${optimizationType === "classical" ? "Classical" : "Quantum"} Optimization${!isSubscribed ? " (Limited)" : ""}`}
-                      <div style={styles.optimizeButtonShine}></div>
+                      <div className="optimize-button-shine"></div>
                     </>
                   )}
                 </button>
 
                 {!isSubscribed && (
-                  <div style={styles.freeUserNotice} className={isMobile ? 'mobile-smaller-text mobile-text-center' : ''}>
+                  <div className={`free-user-notice ${isMobile ? 'mobile-smaller-text mobile-text-center' : ''}`}>
                     Free users are limited to {ITERATION_LIMITS.unsubscribed.classical.toLocaleString()} iterations for classical and {ITERATION_LIMITS.unsubscribed.quantum} for quantum optimizations.
                   </div>
                 )}
               </div>
 
               {taskStatus && (
-                <div style={{
-                  marginTop: "10px",
-                  padding: "10px",
-                  backgroundColor: taskStatus.status === 'failed' ? "rgba(244, 63, 94, 0.1)" :
-                    taskStatus.status === 'completed' ? "rgba(16, 185, 129, 0.1)" : "rgba(56, 189, 248, 0.1)",
-                  borderRadius: "8px",
-                  border: `1px solid ${taskStatus.status === 'failed' ? "rgba(244, 63, 94, 0.3)" :
-                    taskStatus.status === 'completed' ? "rgba(16, 185, 129, 0.3)" : "rgba(56, 189, 248, 0.3)"}`,
-                }}>
-                  <div style={{ marginBottom: "5px" }}>{taskStatus.message}</div>
-                  <div style={{
-                    height: "4px",
-                    backgroundColor: "rgba(255, 255, 255, 0.2)",
-                    borderRadius: "2px",
-                    overflow: "hidden"
-                  }}>
-                    <div style={{
-                      height: "100%",
-                      width: `${taskStatus.progress * 100}%`,
-                      backgroundColor: taskStatus.status === 'failed' ? "#f43f5e" :
-                        taskStatus.status === 'completed' ? "#10b981" : "#38bdf8",
-                      transition: "width 0.3s ease"
-                    }}></div>
+                <div className={`task-status-container task-status-${taskStatus.status}`}>
+                  <div className="task-status-message">{taskStatus.message}</div>
+                  <div className="task-status-progress-bar">
+                    <div 
+                      className="task-status-progress" 
+                      style={{ width: `${taskStatus.progress * 100}%` }}
+                    ></div>
                   </div>
                 </div>
               )}
@@ -2226,7 +1716,7 @@ const App = () => {
             className={`mobile-nav-button ${(molecule1Data || molecule2Data) ? '' : 'active'}`}
             onClick={() => {
               setIsMobileMenuOpen(false);
-              document.querySelector('.file-upload-area').scrollIntoView({ behavior: 'smooth' });
+              document.querySelector('.file-upload').scrollIntoView({ behavior: 'smooth' });
             }}
           >
             <span className="mobile-nav-icon"><Icons.upload /></span>
@@ -2294,9 +1784,6 @@ const App = () => {
               checkServerHealth();
             }}
             disabled={isCheckingHealth}
-            style={{
-              position: 'relative'
-            }}
           >
             <span className="mobile-nav-icon">
               {isCheckingHealth ? <Icons.spinner /> :
@@ -2305,17 +1792,7 @@ const App = () => {
             </span>
             Health
             {serverHealthDetails && (
-              <div style={{
-                position: 'absolute',
-                top: '-35px',
-                left: '0',
-                backgroundColor: 'rgba(0,0,0,0.8)',
-                padding: '3px 6px',
-                borderRadius: '4px',
-                fontSize: '0.6rem',
-                whiteSpace: 'nowrap',
-                zIndex: 100
-              }}>
+              <div className="health-tooltip">
                 {serverHealthDetails.status}: {serverHealthDetails.statusText}
               </div>
             )}
@@ -2325,28 +1802,27 @@ const App = () => {
 
       {/* Authentication Modal for Login/Register */}
       {showAuthModal && (
-        <div style={styles.popup} className="popup-overlay">
+        <div className="popup">
           <div
-            style={styles.popupContent}
             className={`popup-content glass ${isMobile ? 'mobile-smaller-padding' : ''}`}
           >
             <button
               onClick={toggleAuthModal}
-              style={styles.popupClose}
+              className="popup-close"
             >
               <Icons.close />
             </button>
 
-            <div style={styles.popupScroll}>
+            <div className="popup-scroll">
               {showLoginForm ? (
                 <LoginForm
                   toggleForm={() => setShowLoginForm(false)}
-                  onAuthSuccess={toggleAuthModal} // Add this callback
+                  onAuthSuccess={toggleAuthModal}
                 />
               ) : (
                 <RegisterForm
                   toggleForm={() => setShowLoginForm(true)}
-                  onAuthSuccess={toggleAuthModal} // Add this callback
+                  onAuthSuccess={toggleAuthModal}
                 />
               )}
             </div>
@@ -2356,19 +1832,18 @@ const App = () => {
 
       {/* How To Use Popup */}
       {isHowToUseVisible && (
-        <div style={styles.popup} className="popup-overlay">
+        <div className="popup">
           <div
-            style={styles.popupContent}
             className={`popup-content glass ${isMobile ? 'mobile-smaller-padding' : ''}`}
           >
             <button
               onClick={handleClosePopup}
-              style={styles.popupClose}
+              className="popup-close"
             >
               <Icons.close />
             </button>
 
-            <div style={styles.popupScroll}>
+            <div className="popup-scroll">
               <ReactMarkdown>
                 {howToUseContent}
               </ReactMarkdown>
@@ -2379,19 +1854,18 @@ const App = () => {
 
       {/* Theory Popup */}
       {isTheoryVisible && (
-        <div style={styles.popup} className="popup-overlay">
+        <div className="popup">
           <div
-            style={styles.popupContent}
             className={`popup-content glass ${isMobile ? 'mobile-smaller-padding' : ''}`}
           >
             <button
               onClick={handleClosePopup}
-              style={styles.popupClose}
+              className="popup-close"
             >
               <Icons.close />
             </button>
 
-            <div style={styles.popupScroll}>
+            <div className="popup-scroll">
               <ReactMarkdown>
                 {theoryContent}
               </ReactMarkdown>
@@ -2402,19 +1876,18 @@ const App = () => {
 
       {/* About Us Popup */}
       {isAboutUsVisible && (
-        <div style={styles.popup} className="popup-overlay">
+        <div className="popup">
           <div
-            style={styles.popupContent}
             className={`popup-content glass ${isMobile ? 'mobile-smaller-padding' : ''}`}
           >
             <button
               onClick={handleClosePopup}
-              style={styles.popupClose}
+              className="popup-close"
             >
               <Icons.close />
             </button>
 
-            <div style={styles.popupScroll}>
+            <div className="popup-scroll">
               <ReactMarkdown>
                 {aboutUsContent}
               </ReactMarkdown>
