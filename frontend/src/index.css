@@ -1,9 +1,25 @@
-/* Import fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap');
+/* ==========================================================================
+   TABLE OF CONTENTS:
+   1. Reset and Base Styles
+   2. Typography
+   3. Animation Keyframes
+   4. Layout and Containers
+   5. Utility Classes
+   6. Buttons and Controls
+   7. Forms and Inputs
+   8. Cards and Panels
+   9. Molecule Components
+   10. Interface Components
+   11. Visualization
+   12. Modals and Popups
+   13. Status Indicators
+   14. Mobile Navigation
+   15. Responsive Adaptations
+   ========================================================================== */
 
-/* CSS Reset and Base Styles */
+/* ==========================================================================
+   1. Reset and Base Styles
+   ========================================================================== */
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -23,85 +39,6 @@ body {
   color: #f0f4f8;
 }
 
-/* Animation Keyframes */
-@keyframes fadeIn {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
-}
-
-@keyframes slideUp {
-  0% { transform: translateY(20px); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
-}
-
-@keyframes glow {
-  0% { box-shadow: 0 0 5px rgba(56, 189, 248, 0.5); }
-  50% { box-shadow: 0 0 20px rgba(56, 189, 248, 0.8); }
-  100% { box-shadow: 0 0 5px rgba(56, 189, 248, 0.5); }
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-@keyframes shimmer {
-  0% { background-position: -1000px 0; }
-  100% { background-position: 1000px 0; }
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-}
-
-/* Utility Classes */
-.fade-in {
-  animation: fadeIn 0.5s ease-out forwards;
-}
-
-.slide-up {
-  animation: slideUp 0.5s ease-out forwards;
-}
-
-.spin {
-  animation: spin 1s linear infinite;
-}
-
-.float {
-  animation: float 10s ease-in-out infinite;
-}
-
-/* Modern Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-/* Glass Effect */
-.glass {
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  background: rgba(16, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-}
-
-/* Form Elements */
 input, select, textarea, button {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   outline: none;
@@ -135,19 +72,569 @@ button:disabled {
   cursor: not-allowed;
 }
 
-/* Card Styles */
-.card {
-  background: linear-gradient(145deg, rgba(26, 33, 62, 0.8), rgba(16, 24, 39, 0.8));
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  overflow: hidden;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 0 15px -3px rgba(0, 0, 0, 0.2);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+/* ==========================================================================
+   2. Typography
+   ========================================================================== */
+/* Import fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap');
+
+/* ==========================================================================
+   3. Animation Keyframes
+   ========================================================================== */
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
 }
 
-.card:hover {
+@keyframes slideUp {
+  0% { transform: translateY(20px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes glow {
+  0% { box-shadow: 0 0 5px rgba(56, 189, 248, 0.5); }
+  50% { box-shadow: 0 0 20px rgba(56, 189, 248, 0.8); }
+  100% { box-shadow: 0 0 5px rgba(56, 189, 248, 0.5); }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes shine {
+  0% { left: -50%; }
+  100% { left: 150%; }
+}
+
+/* ==========================================================================
+   4. Layout and Containers
+   ========================================================================== */
+.app {
+  background-color: #0c1021;
+  color: #f0f4f8;
+  min-height: 100vh;
+  padding: 40px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 2;
+}
+
+.content-wrapper {
+  animation: slideUp 0.5s ease-out forwards;
+}
+
+.section {
+  margin-bottom: 60px;
+}
+
+/* Background Elements */
+.decorative-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(ellipse at top, rgba(16, 24, 39, 0.5), transparent),
+              radial-gradient(ellipse at bottom, rgba(5, 150, 105, 0.05), transparent);
+  z-index: 0;
+}
+
+.decorative-line {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.3), transparent);
+  animation: shimmer 10s infinite linear;
+  z-index: 1;
+}
+
+/* Header */
+.header {
+  text-align: center;
+  margin-bottom: 40px;
+  position: relative;
+}
+
+.header-title {
+  font-size: 48px;
+  font-weight: 800;
+  margin: 0;
+  font-family: 'Manrope', sans-serif;
+  background: linear-gradient(135deg, #38bdf8, #818cf8, #c084fc);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+}
+
+.header-subtitle {
+  color: #94a3b8;
+  margin-top: 12px;
+  font-size: 18px;
+  font-weight: 300;
+}
+
+/* Attribution */
+.attribution {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  font-weight: bold;
+  color: #f0f4f8;
+  background-color: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  animation: float 10s ease-in-out infinite;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.attribution-link {
+  color: #38bdf8;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.attribution-sublink {
+  color: #94a3b8;
+  text-decoration: none;
+  font-size: 10px;
+  margin-top: 4px;
+  font-weight: normal;
+}
+
+/* ==========================================================================
+   5. Utility Classes
+   ========================================================================== */
+.fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.slide-up {
+  animation: slideUp 0.5s ease-out forwards;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+.float {
+  animation: float 10s ease-in-out infinite;
+}
+
+.glass {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(16, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Modern Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Section Headings */
+.section-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #f0f4f8;
+  margin-bottom: 30px;
+  position: relative;
+  text-align: center;
+}
+
+.section-title-underline {
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 3px;
+  background: linear-gradient(to right, #38bdf8, #818cf8);
+  border-radius: 3px;
+}
+
+/* Loading States */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #0c1021;
+  color: #f0f4f8;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(56, 189, 248, 0.3);
+  border-top-color: #38bdf8;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px auto;
+}
+
+.optimize-spinner {
+  display: inline-block;
+  margin-right: 12px;
+}
+
+/* ==========================================================================
+   6. Buttons and Controls
+   ========================================================================== */
+.button {
+  background-color: #2563eb;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.button:hover {
+  background-color: #1d4ed8;
   transform: translateY(-2px);
-  box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.35), 0 0 20px -5px rgba(0, 0, 0, 0.25);
+}
+
+.top-buttons-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-start;
+  position: relative;
+  z-index: 10;
+  margin-bottom: 20px;
+}
+
+/* Navigation Buttons */
+.how-to-use-button {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  padding: 10px 16px;
+  background: linear-gradient(145deg, rgba(56, 189, 248, 0.9), rgba(37, 99, 235, 0.9));
+  color: white;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  animation: float 10s ease-in-out infinite;
+}
+
+.how-to-use-icon {
+  display: flex;
+  align-items: center;
+  margin-right: 4px;
+}
+
+.theory-button {
+  background: linear-gradient(145deg, rgba(16, 185, 129, 0.9), rgba(5, 150, 105, 0.9));
+}
+
+.about-us-button {
+  background: linear-gradient(145deg, rgba(99, 102, 241, 0.9), rgba(79, 70, 229, 0.9));
+}
+
+.login-button {
+  background: linear-gradient(145deg, rgba(56, 189, 248, 0.9), rgba(37, 99, 235, 0.9));
+}
+
+.logout-button {
+  background: linear-gradient(145deg, rgba(100, 116, 139, 0.9), rgba(71, 85, 105, 0.9));
+}
+
+.cancel-subscription-button {
+  position: fixed;
+  top: 20px;
+  right: 100px; 
+  padding: 8px 16px;
+  background: linear-gradient(145deg, rgba(244, 63, 94, 0.9), rgba(225, 29, 72, 0.9));
+  color: white;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+}
+
+.cancel-subscription-icon {
+  display: flex;
+  align-items: center;
+  margin-right: 4px;
+}
+
+/* Optimize Button */
+.optimize-button-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 24px;
+  margin-bottom: 24px;
+}
+
+.optimize-button {
+  padding: 14px 32px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 16px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.25);
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  max-width: 500px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  border: none;
+}
+
+.optimize-button::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), transparent);
+  pointer-events: none;
+}
+
+.optimize-button.classical {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+}
+
+.optimize-button.quantum {
+  background: linear-gradient(135deg, #38bdf8, #2563eb);
+  color: white;
+}
+
+.optimize-button:disabled {
+  background: linear-gradient(135deg, #64748b, #475569);
+  cursor: not-allowed;
+}
+
+.optimize-button-shine {
+  position: absolute;
+  top: 0;
+  left: -50%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: skewX(-25deg);
+  animation: shine 3s infinite;
+}
+
+.free-user-notice {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #94a3b8;
+  text-align: center;
+  max-width: 500px;
+}
+
+/* Test Molecule Buttons */
+.test-molecule-button {
+  padding: 14px 24px;
+  background: linear-gradient(145deg, rgba(56, 189, 248, 0.1), rgba(37, 99, 235, 0.05));
+  color: #f0f4f8;
+  border-radius: 12px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 15px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.test-molecule-button:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(145deg, rgba(56, 189, 248, 0.15), rgba(37, 99, 235, 0.1));
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+  border-color: rgba(56, 189, 248, 0.5);
+}
+
+.test-molecule-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.test-molecule-icon {
+  display: flex;
+  align-items: center;
+  color: #38bdf8;
+}
+
+/* Health Button */
+.health-check-button {
+  background: linear-gradient(145deg, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.9));
+  color: white;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.health-check-button.health-success {
+  background: linear-gradient(145deg, rgba(16, 185, 129, 0.9), rgba(5, 150, 105, 0.9));
+}
+
+.health-check-button.health-error {
+  background: linear-gradient(145deg, rgba(244, 63, 94, 0.9), rgba(225, 29, 72, 0.9));
+}
+
+.health-status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.health-details {
+  font-size: 0.7rem;
+  margin-top: 4px;
+  background-color: rgba(0,0,0,0.2);
+  padding: 3px 6px;
+  border-radius: 4px;
+  width: 100%;
+  word-break: break-word;
+}
+
+.health-tooltip {
+  position: absolute;
+  top: -35px;
+  left: 0;
+  background-color: rgba(0,0,0,0.8);
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-size: 0.6rem;
+  white-space: nowrap;
+  z-index: 100;
+}
+
+/* ==========================================================================
+   7. Forms and Inputs
+   ========================================================================== */
+.input-group {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.input-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+}
+
+.email-input {
+  width: 100%;
+  padding-left: 40px;
+  background-color: rgba(16, 24, 39, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  height: 48px;
+}
+
+.card-element-container {
+  position: relative;
+  margin-bottom: 24px;
+  background-color: rgba(16, 24, 39, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 16px 16px 16px 40px;
+}
+
+.card-element-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+}
+
+.secure-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #94a3b8;
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+.subscription-terms {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 14px;
+  margin-bottom: 0;
 }
 
 /* Stripe Element Styling */
@@ -168,7 +655,66 @@ button:disabled {
   border-color: #f43f5e;
 }
 
-/* Subscription Form Specific Styles */
+/* Checkbox Styling */
+.interaction-checkbox-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.interaction-checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.interaction-checkbox {
+  margin-right: 4px;
+  cursor: pointer;
+  accent-color: #38bdf8;
+}
+
+.default-offset-checkbox-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.default-offset-checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.default-offset-checkbox {
+  margin-right: 4px;
+  cursor: pointer;
+  accent-color: #38bdf8;
+}
+
+/* ==========================================================================
+   8. Cards and Panels
+   ========================================================================== */
+.card {
+  background: linear-gradient(145deg, rgba(26, 33, 62, 0.8), rgba(16, 24, 39, 0.8));
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 0 15px -3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.35), 0 0 20px -5px rgba(0, 0, 0, 0.25);
+}
+
+.card-with-glow {
+  animation: glow 3s infinite ease-in-out;
+  position: relative;
+}
+
+/* Subscription Form */
 .subscription-form {
   padding: 32px;
   border-radius: 16px;
@@ -241,59 +787,6 @@ button:disabled {
   flex-shrink: 0;
 }
 
-.input-group {
-  position: relative;
-  margin-bottom: 20px;
-}
-
-.input-icon {
-  position: absolute;
-  left: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #94a3b8;
-}
-
-.email-input {
-  width: 100%;
-  padding-left: 40px;
-  background-color: rgba(16, 24, 39, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  height: 48px;
-}
-
-.card-element-container {
-  position: relative;
-  margin-bottom: 24px;
-  background-color: rgba(16, 24, 39, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  padding: 16px 16px 16px 40px;
-}
-
-@media (max-width: 768px) {
-  .card-element-container {
-    padding: 16px 8px 16px 36px;
-  }
-}
-
-.card-element-icon {
-  position: absolute;
-  left: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #94a3b8;
-}
-
-.secure-badge {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #94a3b8;
-  font-size: 14px;
-  margin-bottom: 24px;
-}
-
 .subscribe-button {
   width: 100%;
   height: 48px;
@@ -320,352 +813,6 @@ button:disabled {
   background: linear-gradient(135deg, #64748b, #475569);
 }
 
-.spinner {
-  width: 18px;
-  height: 18px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-.subscription-terms {
-  text-align: center;
-  color: #94a3b8;
-  font-size: 14px;
-  margin-bottom: 0;
-}
-
-/* Molecule Viewer */
-.viewer-container {
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
-}
-
-.viewer-header {
-  background: rgba(16, 24, 39, 0.9);
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Header styling */
-.app-header {
-  text-align: center;
-  margin-bottom: 40px;
-  position: relative;
-}
-
-.app-title {
-  font-size: 48px;
-  font-weight: 800;
-  margin: 0;
-  font-family: 'Manrope', sans-serif;
-  background: linear-gradient(135deg, #38bdf8, #818cf8, #c084fc);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  line-height: 1.2;
-  letter-spacing: -0.5px;
-}
-
-.app-subtitle {
-  color: #94a3b8;
-  margin-top: 12px;
-  font-size: 18px;
-  font-weight: 300;
-}
-
-/* Method Selection Cards */
-.method-card {
-  padding: 24px;
-  border-radius: 16px;
-  background: rgba(16, 24, 39, 0.7);
-  border: 2px solid transparent;
-  transition: all 0.3s ease;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-}
-
-.method-card::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.03), transparent);
-  pointer-events: none;
-}
-
-.method-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
-}
-
-.classical-active {
-  border-color: #10b981;
-  background: linear-gradient(145deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05));
-}
-
-.quantum-active {
-  border-color: #38bdf8;
-  background: linear-gradient(145deg, rgba(56, 189, 248, 0.1), rgba(37, 99, 235, 0.05));
-}
-
-/* Results section */
-.results-container {
-  border-radius: 16px;
-  padding: 24px;
-  background: linear-gradient(145deg, rgba(26, 33, 62, 0.8), rgba(16, 24, 39, 0.8));
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 15px 25px rgba(0, 0, 0, 0.25);
-  position: relative;
-  overflow: hidden;
-}
-
-.results-container::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(to right, #10b981, #38bdf8);
-}
-
-/* Optimize buttons */
-.optimize-button {
-  padding: 14px 32px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 16px;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.25);
-  position: relative;
-  overflow: hidden;
-}
-
-.optimize-button::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), transparent);
-  pointer-events: none;
-}
-
-.classical-button {
-  background: linear-gradient(135deg, #10b981, #059669);
-  color: white;
-}
-
-.quantum-button {
-  background: linear-gradient(135deg, #38bdf8, #2563eb);
-  color: white;
-}
-
-/* File upload area */
-.file-upload-area {
-  border: 2px dashed rgba(255, 255, 255, 0.15);
-  border-radius: 16px;
-  padding: 40px;
-  text-align: center;
-  transition: all 0.3s ease;
-  background: rgba(16, 24, 39, 0.4);
-}
-
-.file-upload-area:hover, .file-upload-active {
-  border-color: #38bdf8;
-  background: rgba(56, 189, 248, 0.08);
-}
-
-/* Welcome message */
-.welcome-message {
-  background: linear-gradient(145deg, rgba(56, 189, 248, 0.15), rgba(37, 99, 235, 0.1));
-  border-left: 4px solid #38bdf8;
-  border-radius: 12px;
-  padding: 16px 24px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-/* Popup styles */
-.popup-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-}
-
-.popup-content {
-  width: 80%;
-  height: 80%;
-  max-width: 1200px;
-  background: linear-gradient(145deg, rgba(26, 33, 62, 0.95), rgba(16, 24, 39, 0.95));
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
-  position: relative;
-  overflow: hidden;
-}
-
-/* Test molecule button styles */
-.test-molecule-button {
-  padding: 14px 24px;
-  background: linear-gradient(145deg, rgba(56, 189, 248, 0.1), rgba(37, 99, 235, 0.05));
-  color: #f0f4f8;
-  border-radius: 12px;
-  border: 1px solid rgba(56, 189, 248, 0.3);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 600;
-  font-size: 15px;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
-}
-
-.test-molecule-button:hover {
-  transform: translateY(-2px);
-  background: linear-gradient(145deg, rgba(56, 189, 248, 0.15), rgba(37, 99, 235, 0.1));
-  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
-  border-color: rgba(56, 189, 248, 0.5);
-}
-
-.test-molecule-button:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-}
-
-/* App Structure */
-.app {
-  background-color: #0c1021;
-  color: #f0f4f8;
-  min-height: 100vh;
-  padding: 40px;
-  position: relative;
-  overflow-x: hidden;
-}
-
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  position: relative;
-  z-index: 2;
-}
-
-.content-wrapper {
-  animation: slideUp 0.5s ease-out forwards;
-}
-
-/* Decorative Background Elements */
-.decorative-bg {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: radial-gradient(ellipse at top, rgba(16, 24, 39, 0.5), transparent),
-              radial-gradient(ellipse at bottom, rgba(5, 150, 105, 0.05), transparent);
-  z-index: 0;
-}
-
-.decorative-line {
-  position: absolute;
-  left: 0;
-  width: 100%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.3), transparent);
-  animation: shimmer 10s infinite linear;
-  z-index: 1;
-}
-
-/* Header */
-.header {
-  text-align: center;
-  margin-bottom: 40px;
-  position: relative;
-}
-
-.header-title {
-  font-size: 48px;
-  font-weight: 800;
-  margin: 0;
-  font-family: 'Manrope', sans-serif;
-  background: linear-gradient(135deg, #38bdf8, #818cf8, #c084fc);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  line-height: 1.2;
-  letter-spacing: -0.5px;
-}
-
-.header-subtitle {
-  color: #94a3b8;
-  margin-top: 12px;
-  font-size: 18px;
-  font-weight: 300;
-}
-
-/* Section Styling */
-.section {
-  margin-bottom: 60px;
-}
-
-.section-title {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #f0f4f8;
-  margin-bottom: 30px;
-  position: relative;
-  text-align: center;
-}
-
-.section-title-underline {
-  position: absolute;
-  bottom: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100px;
-  height: 3px;
-  background: linear-gradient(to right, #38bdf8, #818cf8);
-  border-radius: 3px;
-}
-
-/* Card with Glow Effect */
-.card-with-glow {
-  animation: glow 3s infinite ease-in-out;
-  position: relative;
-}
-
-/* Button Styles */
-.button {
-  background-color: #2563eb;
-  color: white;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.button:hover {
-  background-color: #1d4ed8;
-  transform: translateY(-2px);
-}
-
 /* Welcome Message */
 .welcome-message {
   background: linear-gradient(145deg, rgba(56, 189, 248, 0.15), rgba(37, 99, 235, 0.1));
@@ -689,51 +836,222 @@ button:disabled {
   font-size: 20px;
 }
 
-/* Navigation/Documentation Buttons */
-.how-to-use-button {
-  position: fixed;
-  top: 20px;
-  left: 20px;
-  padding: 10px 16px;
-  background: linear-gradient(145deg, rgba(56, 189, 248, 0.9), rgba(37, 99, 235, 0.9));
-  color: white;
+/* Task Status Panel */
+.task-status-container {
+  margin-top: 10px;
+  padding: 10px;
   border-radius: 8px;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.task-status-container.task-status-pending {
+  background-color: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.task-status-container.task-status-running {
+  background-color: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.task-status-container.task-status-completed {
+  background-color: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.task-status-container.task-status-failed,
+.task-status-container.task-status-cancelled {
+  background-color: rgba(244, 63, 94, 0.1);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+}
+
+.task-status-message {
+  margin-bottom: 5px;
+}
+
+.task-status-progress-bar {
+  height: 4px;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.task-status-progress {
+  height: 100%;
+  background-color: #38bdf8;
+  transition: width 0.3s ease;
+}
+
+.task-status-completed .task-status-progress {
+  background-color: #10b981;
+}
+
+.task-status-failed .task-status-progress,
+.task-status-cancelled .task-status-progress {
+  background-color: #f43f5e;
+}
+
+/* ==========================================================================
+   9. Molecule Components
+   ========================================================================== */
+/* Molecule Selection */
+.molecule-selection-container {
+  background-color: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 15px 25px rgba(0, 0, 0, 0.25);
+}
+
+.molecule-selection-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #f0f4f8;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  font-weight: 600;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  z-index: 100;
-  animation: float 10s ease-in-out infinite;
 }
 
-.how-to-use-icon {
+.molecule-selection-icon {
+  color: #38bdf8;
+}
+
+.molecule-selector-group {
   display: flex;
-  align-items: center;
-  margin-right: 4px;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
 }
 
-.cancel-subscription-button {
-  position: fixed;
-  top: 20px;
-  right: 100px; 
+.molecule-selector-column {
+  display: flex;
+  flex-direction: column;
+  width: 180px;
+  margin-bottom: 0;
+}
+
+.molecule-selector-button {
   padding: 8px 16px;
-  background: linear-gradient(145deg, rgba(244, 63, 94, 0.9), rgba(225, 29, 72, 0.9));
-  color: white;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
+  background-color: rgba(15, 23, 42, 0.7);
+  color: #94a3b8;
+  border-radius: 8px 8px 0 0;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid transparent;
+  border-bottom: none;
   display: flex;
   align-items: center;
   gap: 6px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  z-index: 100;
+  justify-content: center;
 }
 
-.cancel-subscription-icon {
+.molecule-selector-button.active-molecule-1 {
+  background-color: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+  font-weight: 600;
+  border-color: rgba(56, 189, 248, 0.3);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.molecule-selector-button.active-molecule-2 {
+  background-color: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  font-weight: 600;
+  border-color: rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.molecule-info {
+  background-color: rgba(56, 189, 248, 0.1);
+  padding: 8px;
+  border-radius: 0 0 8px 8px;
+  font-size: 0.85rem;
+  text-align: center;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-top: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.molecule-1-info {
+  background-color: rgba(56, 189, 248, 0.1);
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+.molecule-2-info {
+  background-color: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.molecule-name {
+  font-weight: 500;
+  color: #38bdf8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.molecule-2-info .molecule-name {
+  color: #10b981;
+}
+
+.clear-molecule-button {
+  background-color: rgba(244, 63, 94, 0.1);
+  color: #f43f5e;
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  margin-right: 4px;
+  justify-content: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.clear-all-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.clear-all-button {
+  background-color: rgba(244, 63, 94, 0.1);
+  color: #f43f5e;
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.molecule-stats {
+  display: flex;
+  justify-content: center;
+  margin-top: 8px;
+  padding: 4px;
+  background-color: rgba(15, 23, 42, 0.7);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.molecule-stats-separator {
+  margin: 0 10px;
 }
 
 /* File Upload */
@@ -748,7 +1066,7 @@ button:disabled {
   cursor: pointer;
 }
 
-.file-upload-active {
+.file-upload:hover, .file-upload-active {
   border-color: #38bdf8;
   background: rgba(56, 189, 248, 0.08);
 }
@@ -779,7 +1097,17 @@ button:disabled {
   color: #94a3b8;
 }
 
-/* Test Molecules */
+.file-upload-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Test Molecules Section */
 .test-molecules-container {
   background-color: rgba(15, 23, 42, 0.7);
   backdrop-filter: blur(12px);
@@ -814,28 +1142,156 @@ button:disabled {
   flex-wrap: wrap;
 }
 
-.test-molecule-button {
-  padding: 14px 24px;
-  background: linear-gradient(145deg, rgba(56, 189, 248, 0.1), rgba(37, 99, 235, 0.05));
-  color: #f0f4f8;
-  border-radius: 12px;
-  border: 1px solid rgba(56, 189, 248, 0.3);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 600;
-  font-size: 15px;
+/* Positioning Controls */
+.positioning-container {
+  background-color: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 15px 25px rgba(0, 0, 0, 0.25);
   transition: all 0.3s ease;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 
-.test-molecule-icon {
+.positioning-container.positioning-active {
+  border-color: #38bdf8;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+}
+
+.positioning-controls {
   display: flex;
   align-items: center;
-  color: #38bdf8;
+  justify-content: space-between;
+  gap: 16px;
 }
 
-/* Optimization Method Selection */
+.positioning-toggle-button {
+  background-color: rgba(15, 23, 42, 0.7);
+  color: #94a3b8;
+  border: 1px solid transparent;
+  padding: 4px 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.positioning-toggle-button.active {
+  background-color: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+.position-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  width: auto;
+}
+
+.position-reset-button {
+  background-color: rgba(15, 23, 42, 0.7);
+  color: #94a3b8;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 4px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.position-input-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.position-input {
+  width: 70px;
+  background-color: rgba(15, 23, 42, 0.7);
+  color: #f0f4f8;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 4px;
+}
+
+.rotation-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  background-color: rgba(15, 23, 42, 0.7);
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.rotation-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.rotation-inputs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+}
+
+.rotation-input-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rotation-input {
+  width: 70px;
+  background-color: rgba(15, 23, 42, 0.7);
+  color: #f0f4f8;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 4px;
+}
+
+.rotation-reset-button {
+  background-color: rgba(15, 23, 42, 0.7);
+  color: #94a3b8;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 4px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.positioning-help {
+  background-color: rgba(56, 189, 248, 0.1);
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #94a3b8;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.positioning-help p {
+  margin: 0;
+}
+
+.positioning-help kbd {
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-size: 0.8rem;
+}
+
+/* ==========================================================================
+   10. Interface Components
+   ========================================================================== */
+/* Method Selection */
 .method-selection-container {
   display: flex;
   gap: 16px;
@@ -890,6 +1346,16 @@ button:disabled {
   border-radius: 50%;
 }
 
+.method-icon.classical-icon {
+  background-color: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.method-icon.quantum-icon {
+  background-color: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
 .method-title {
   font-size: 20px;
   font-weight: 700;
@@ -903,40 +1369,7 @@ button:disabled {
   line-height: 1.5;
 }
 
-/* Visualization */
-.visualization-container {
-  background-color: rgba(15, 23, 42, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: 16px;
-  padding: 24px;
-  margin-bottom: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 15px 25px rgba(0, 0, 0, 0.25);
-}
-
-.visualization-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.visualization-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #f0f4f8;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.visualization-icon {
-  color: #38bdf8;
-  display: flex;
-  align-items: center;
-}
-
+/* Tabs */
 .tabs {
   display: flex;
   gap: 12px;
@@ -971,93 +1404,77 @@ button:disabled {
   border: 1px solid transparent;
 }
 
-/* Optimize Button */
-.optimize-button-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-top: 24px;
+/* ==========================================================================
+   11. Visualization
+   ========================================================================== */
+.visualization-container {
+  background-color: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 16px;
+  padding: 24px;
   margin-bottom: 24px;
-}
-
-.optimize-button {
-  padding: 14px 32px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 16px;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 15px 25px rgba(0, 0, 0, 0.25);
   position: relative;
   overflow: hidden;
-  width: 100%;
-  max-width: 500px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  cursor: pointer;
-  border: none;
+  margin: 24px 0;
 }
 
-.optimize-button::after {
-  content: "";
+.visualization-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.visualization-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #f0f4f8;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.visualization-icon {
+  color: #38bdf8;
+  display: flex;
+  align-items: center;
+}
+
+/* Molecule Viewer */
+.viewer-container {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  display: block;
+  min-height: 300px;
+}
+
+.viewer-header {
+  background: rgba(16, 24, 39, 0.9);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.viewer-container > div {
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), transparent);
-  pointer-events: none;
-}
-
-.optimize-button.classical {
-  background: linear-gradient(135deg, #10b981, #059669);
-  color: white;
-}
-
-.optimize-button.quantum {
-  background: linear-gradient(135deg, #38bdf8, #2563eb);
-  color: white;
-}
-
-.optimize-button:disabled {
-  background: linear-gradient(135deg, #64748b, #475569);
-  cursor: not-allowed;
-}
-
-.optimize-button-shine {
-  position: absolute;
-  top: 0;
-  left: -50%;
-  width: 50%;
+  width: 100%;
   height: 100%;
-  background: linear-gradient(
-    to right,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.3) 50%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  transform: skewX(-25deg);
-  animation: shine 3s infinite;
 }
 
-@keyframes shine {
-  0% {
-    left: -50%;
-  }
-  100% {
-    left: 150%;
-  }
-}
-
-.free-user-notice {
-  margin-top: 12px;
-  font-size: 14px;
-  color: #94a3b8;
-  text-align: center;
-  max-width: 500px;
-}
-
-/* Popup Styling */
+/* ==========================================================================
+   12. Modals and Popups
+   ========================================================================== */
 .popup {
   position: fixed;
   top: 0;
@@ -1116,7 +1533,155 @@ button:disabled {
   padding-top: 32px;
 }
 
-/* Mobile-specific styles */
+/* ==========================================================================
+   13. Status Indicators
+   ========================================================================== */
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  margin: 0 4px;
+}
+
+.status-success {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.status-warning {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.status-error {
+  background-color: rgba(244, 63, 94, 0.1);
+  color: #f43f5e;
+  border: 1px solid rgba(244, 63, 94, 0.3);
+}
+
+.status-info {
+  background-color: rgba(56, 189, 248, 0.1);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+/* ==========================================================================
+   14. Mobile Navigation
+   ========================================================================== */
+.mobile-menu-button {
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #38bdf8, #2563eb);
+  color: white;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+
+.mobile-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 90;
+  display: flex;
+  justify-content: space-around;
+  padding: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mobile-nav-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 12px;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.mobile-nav-button.active {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.mobile-nav-icon {
+  margin-bottom: 4px;
+  font-size: 20px;
+}
+
+/* ==========================================================================
+   15. Responsive Adaptations
+   ========================================================================== */
+@media (max-width: 1200px) {
+  .container {
+    padding: 0 16px;
+  }
+  
+  .app {
+    padding: 16px !important;
+  }
+  
+  .tablet-stack {
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+  
+  .tablet-visible {
+    display: block;
+  }
+}
+
+@media (max-width: 992px) {
+  .header-title {
+    font-size: 42px;
+  }
+  
+  .header-subtitle {
+    font-size: 17px;
+  }
+  
+  .method-selection-button {
+    width: 100% !important;
+    max-width: none !important;
+    margin-bottom: 16px !important;
+  }
+  
+  .tablet-full-width {
+    width: 100% !important;
+    max-width: none !important;
+  }
+  
+  .visualization-container, 
+  .test-molecules-container, 
+  .molecule-selection-container, 
+  .positioning-container {
+    padding: 20px;
+  }
+  
+  .popup-content {
+    width: 90%;
+    height: 90%;
+  }
+}
+
 @media (max-width: 768px) {
   .app {
     padding: 16px;
@@ -1131,8 +1696,18 @@ button:disabled {
     padding: 0 10px;
   }
   
+  .subscription-form {
+    padding: 24px;
+    padding-bottom: 16px;
+  }
+  
   .method-selection-container {
     flex-direction: column;
+  }
+  
+  .test-molecule-button {
+    padding: 10px 16px;
+    font-size: 14px;
   }
   
   .welcome-message {
@@ -1162,6 +1737,14 @@ button:disabled {
     display: inline-flex;
   }
   
+  .top-buttons-container {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  
   .visualization-header {
     flex-direction: column;
     align-items: flex-start;
@@ -1178,214 +1761,99 @@ button:disabled {
     height: 95%;
     padding: 16px;
   }
-}
-
-/* Mobile-specific classes */
-.mobile-full-width {
-  width: 100% !important;
-}
-
-.mobile-stack {
-  flex-direction: column !important;
-}
-
-.mobile-center {
-  align-items: center !important;
-  justify-content: center !important;
-}
-
-.mobile-hidden {
-  display: none !important;
-}
-
-.mobile-visible {
-  display: block !important;
-}
-
-.mobile-text-center {
-  text-align: center !important;
-}
-
-.mobile-smaller-text {
-  font-size: 90% !important;
-}
-
-.mobile-smaller-padding {
-  padding: 16px !important;
-}
-
-.mobile-margin-bottom {
-  margin-bottom: 16px !important;
-}
-
-.tablet-visible {
-  display: none;
-}
-
-/* Mobile menu button */
-.mobile-menu-button {
-  display: none;
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #38bdf8, #2563eb);
-  color: white;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-  z-index: 100;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-}
-
-/* Responsive adjustments */
-@media (max-width: 1200px) {
-  .container {
-    padding: 0 16px;
+  
+  .molecule-selector-column {
+    width: 100%;
+    margin-bottom: 8px;
   }
   
-  .app {
+  .mobile-full-width {
+    width: 100% !important;
+  }
+  
+  .mobile-stack {
+    flex-direction: column !important;
+  }
+  
+  .mobile-center {
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  
+  .mobile-hidden {
+    display: none !important;
+  }
+  
+  .mobile-visible {
+    display: block !important;
+  }
+  
+  .mobile-text-center {
+    text-align: center !important;
+  }
+  
+  .mobile-smaller-text {
+    font-size: 90% !important;
+  }
+  
+  .mobile-smaller-padding {
     padding: 16px !important;
   }
   
-  .tablet-stack {
-    flex-direction: column !important;
-    align-items: center !important;
-  }
-  
-  .tablet-visible {
-    display: block;
-  }
-}
-
-@media (max-width: 992px) {
-  .app-title {
-    font-size: 42px;
-  }
-  
-  .app-subtitle {
-    font-size: 17px;
-  }
-  
-  .method-card {
-    width: 100% !important;
-    max-width: none !important;
+  .mobile-margin-bottom {
     margin-bottom: 16px !important;
-  }
-  
-  .tablet-full-width {
-    width: 100% !important;
-    max-width: none !important;
-  }
-  
-  .results-container, 
-  .parameters-container, 
-  .visualization-container {
-    padding: 20px;
-  }
-  
-  .popupContent {
-    width: 90%;
-    height: 90%;
-  }
-}
-
-@media (max-width: 768px) {
-  .app-title {
-    font-size: 36px;
-  }
-  
-  .app-subtitle {
-    font-size: 16px;
-    padding: 0 10px;
-  }
-  
-  .subscription-form {
-    padding: 24px;
-    padding-bottom: 16px;
-  }
-  
-  .method-selection-container {
-    flex-direction: column !important;
-  }
-  
-  .test-molecule-button {
-    padding: 10px 16px;
-    font-size: 14px;
-  }
-  
-  .welcome-message {
-    flex-direction: column;
-    text-align: center;
-    padding: 16px;
-  }
-  
-  .optimize-button-container {
-    width: 100% !important;
-  }
-  
-  .optimize-button {
-    width: 100% !important;
-    padding: 12px 20px !important;
-  }
-  
-  .test-molecules-button-container {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-  
-  .howToUseButton, 
-  .cancelSubscriptionButton {
-    position: static !important;
-    margin: 10px;
-    display: inline-flex;
-  }
-  
-  .top-buttons-container {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 20px;
-  }
-  
-  .parameter-group {
-    margin-bottom: 16px;
-  }
-  
-  .result-item {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
-  .result-value {
-    margin-top: 4px;
-    width: 100%;
   }
   
   .mobile-menu-button {
     display: flex;
   }
   
-  .button-group {
+  .card-element-container {
+    padding: 16px 8px 16px 36px;
+  }
+  
+  .positioning-controls {
     flex-direction: column;
+  }
+  
+  .position-controls {
+    margin-top: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
     width: 100%;
   }
   
-  .button-group button {
-    width: 100%;
-    margin-bottom: 10px;
+  .rotation-inputs {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .tab {
+    font-size: 12px;
+    padding: 6px 10px !important;
+  }
+  
+  .viewer-container {
+    height: 350px !important;
+  }
+  
+  .molecule-stats {
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  
+  .molecule-stats-separator {
+    display: none;
   }
 }
 
 @media (max-width: 480px) {
-  .app-title {
+  .header-title {
     font-size: 28px;
   }
   
-  .app-subtitle {
+  .header-subtitle {
     font-size: 14px;
   }
   
@@ -1394,7 +1862,10 @@ button:disabled {
     border-radius: 12px;
   }
   
-  .test-molecules-container {
+  .test-molecules-container,
+  .molecule-selection-container,
+  .positioning-container,
+  .visualization-container {
     padding: 16px;
   }
   
@@ -1408,7 +1879,7 @@ button:disabled {
     justify-content: center;
   }
   
-  .file-upload-area {
+  .file-upload {
     padding: 20px;
   }
   
@@ -1420,43 +1891,6 @@ button:disabled {
     font-size: 12px;
   }
   
-  .parameter-group {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
-  .parameter-label {
-    margin-bottom: 8px;
-    width: 100%;
-  }
-  
-  .parameter-input, 
-  .parameter-select {
-    width: 100%;
-  }
-  
-  .visualization-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
-  .tabs {
-    margin-top: 10px;
-    width: 100%;
-    justify-content: space-between;
-  }
-  
-  .tab {
-    font-size: 12px;
-    padding: 6px 10px !important;
-  }
-  
-  .popup-content {
-    width: 95%;
-    height: 95%;
-    padding: 16px;
-  }
-  
   .subscription-form .form-title {
     font-size: 20px;
     flex-direction: column;
@@ -1465,382 +1899,5 @@ button:disabled {
   
   .premium-badge {
     margin-bottom: 8px;
-  }
-}
-
-/* Specific mobile fixes */
-@media (max-width: 768px) {
-  .parameter-help {
-    margin-left: 0 !important;
-    display: block;
-    margin-top: 4px;
-  }
-  
-  .warning-text {
-    margin-left: 0 !important;
-    display: block;
-    margin-top: 4px;
-  }
-  
-  .danger-badge,
-  .warning-badge {
-    margin-left: 0 !important;
-    display: inline-flex;
-    margin-top: 4px;
-  }
-  
-  .viewer-container {
-    height: 350px !important;
-  }
-  
-  /* Fix for the mobile navigation */
-  .mobile-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: rgba(15, 23, 42, 0.95);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    z-index: 90;
-    display: flex;
-    justify-content: space-around;
-    padding: 10px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-  }
-  
-  .mobile-nav-button {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    background: transparent;
-    color: #94a3b8;
-    font-size: 12px;
-    padding: 8px;
-    border-radius: 8px;
-  }
-  
-  .mobile-nav-button.active {
-    color: #38bdf8;
-    background: rgba(56, 189, 248, 0.1);
-  }
-  
-  .mobile-nav-icon {
-    margin-bottom: 4px;
-    font-size: 20px;
-  }
-}
-
-/* Transition and motion improvements for mobile */
-@media (max-width: 768px) {
-  .card:hover {
-    transform: none;
-  }
-  
-  .method-card:hover {
-    transform: none;
-  }
-  
-  .animation-reduce {
-    animation: none !important;
-    transition: none !important;
-  }
-}
-
-/* Mobile layout fixes - General improvements */
-@media (max-width: 768px) {
-  /* Reduce spacing under parameter groups */
-  .parameter-group {
-    margin-bottom: 12px !important;
-  }
-  
-  /* Ensure inputs don't have excess spacing */
-  .parameter-input, 
-  .parameter-select,
-  input[type="number"],
-  input[type="text"],
-  select {
-    margin-bottom: 0 !important;
-  }
-  
-  /* Adjust parameter containers padding */
-  .parameters-container {
-    padding: 16px !important;
-  }
-  
-  /* Fix label spacing */
-  .parameter-label {
-    margin-bottom: 6px !important;
-  }
-  
-  /* Force proper spacing between groups */
-  .parameter-group + .parameter-group {
-    margin-top: 8px !important;
-  }
-  
-  /* Fix for header and documentation button overlap */
-  .top-buttons-container {
-    position: relative;
-    display: flex;
-    justify-content: center;
-    margin-bottom: 12px;
-    padding-top: 4px;
-    z-index: 10;
-  }
-  
-  /* Reposition documentation button */
-  .howToUseButton,
-  button.float {
-    position: static !important;
-    margin: 0 4px 8px 4px !important;
-    display: inline-flex !important;
-  }
-  
-  /* Ensure header has room */
-  .app-header {
-    padding-top: 40px !important;
-    margin-bottom: 20px !important;
-  }
-  
-  /* Fix the checkbox alignment */
-  input[type="checkbox"] {
-    margin-right: 8px !important;
-  }
-  
-  /* Fix advanced parameter help text alignment */
-  .parameter-help {
-    padding-left: 28px !important;
-    margin-top: 2px !important;
-  }
-  
-  /* Fix the header title font size for better mobile fit */
-  .app-title {
-    font-size: 28px !important;
-  }
-}
-
-/* Extra aggressive mobile spacing fixes */
-@media (max-width: 768px) {
-  /* Fix the overall parameter container */
-  .parameters-container {
-    padding: 12px !important;
-  }
-  
-  /* Target the parameter groups directly */
-  .parameter-group {
-    margin-bottom: 8px !important;
-    padding-bottom: 0 !important;
-    min-height: auto !important;
-  }
-  
-  /* Fix label spacing */
-  .parameter-label {
-    margin-bottom: 2px !important;
-    padding-bottom: 0 !important;
-    font-size: 0.9rem !important;
-  }
-  
-  /* Parameter inputs - remove all extra spacing */
-  .parameter-input, 
-  .parameter-select,
-  input[type="number"],
-  input[type="text"],
-  select {
-    margin: 0 !important;
-    margin-bottom: 0 !important;
-    margin-top: 0 !important;
-    padding: 8px !important;
-    min-height: 36px !important;
-    height: 36px !important;
-    box-sizing: border-box !important;
-  }
-  
-  /* Force label and input to be closer */
-  .mobile-stack .parameter-label + input,
-  .mobile-stack .parameter-label + select,
-  .mobile-stack .parameter-label + div {
-    margin-top: 0 !important;
-  }
-  
-  /* Remove any extra divs that might be adding height */
-  .parameter-group > div {
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-  
-  /* Force checkbox container to stay tight */
-  .parameter-group input[type="checkbox"] {
-    margin: 0 !important;
-    margin-right: 6px !important;
-  }
-  
-  /* Fix any possible grid or flex layouts */
-  .parameter-group {
-    display: flex !important;
-    flex-direction: column !important;
-    row-gap: 2px !important;
-  }
-  
-  /* Remove any bottom margins from the last parameter group */
-  .parameter-group:last-child {
-    margin-bottom: 16px !important;
-  }
-  
-  /* Extra aggressive fix for any hidden padding */
-  * {
-    line-height: normal !important;
-  }
-  
-  /* Parameter help text should be compact */
-  .parameter-help {
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
-    line-height: 1.2 !important;
-    font-size: 0.8rem !important;
-  }
-}
-
-/* Ultra-aggressive parameter spacing fix for mobile */
-@media (max-width: 768px) {
-  /* Target the specific flex container for parameters */
-  .parameter-group.mobile-stack {
-    gap: 0 !important;
-    margin: 0 0 12px 0 !important;
-    padding: 0 !important;
-  }
-  
-  /* Make the parameter label stick directly to its input */
-  .parameter-group.mobile-stack .parameter-label {
-    margin: 0 0 2px 0 !important;
-    padding: 0 !important;
-    line-height: 1.2 !important;
-    font-size: 14px !important;
-  }
-  
-  /* Force input to be right below the label with no gap */
-  .parameter-group.mobile-stack input,
-  .parameter-group.mobile-stack select,
-  .parameter-group.mobile-stack .mobile-full-width {
-    margin-top: 0 !important;
-    margin-bottom: 8px !important;
-    height: 36px !important;
-  }
-  
-  /* Completely remove any spacing inside the parameter container */
-  .parameters-container {
-    padding: 8px !important;
-  }
-  
-  /* Remove any space between the checkbox and its label */
-  .parameter-group.mobile-stack .parameter-help {
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-  
-  /* Force direct adjacency of elements */
-  .parameter-group * + * {
-    margin-top: 0 !important;
-  }
-  
-  /* Target empty space caused by flexbox */
-  .parameter-group.mobile-stack::before,
-  .parameter-group.mobile-stack::after {
-    display: none !important;
-    content: none !important;
-  }
-}
-
-/* Direct fixes for parameter groups */
-@media (max-width: 768px) {
-  /* Completely flat structure for parameter groups */
-  .parameter-group-wrapper {
-    margin: 0 0 8px 0 !important;
-    padding: 0 !important;
-  }
-  
-  /* Ensure no space between label and input */
-  .parameter-group-wrapper label {
-    display: block !important;
-    margin: 0 0 2px 0 !important; 
-    padding: 0 !important;
-  }
-  
-  /* Parameter inputs right below labels */
-  .parameter-group-wrapper input,
-  .parameter-group-wrapper select {
-    display: block !important;
-    margin: 0 !important;
-    padding: 8px !important;
-    height: 36px !important;
-  }
-  
-  /* Container for all parameters */
-  .parameter-groups-container {
-    padding: 0 !important;
-    margin: 0 !important;
-  }
-  
-  /* Override any other spacing that might interfere */
-  .parameters-container > * {
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
-  }
-  
-  /* Remove extra margins and paddings */
-  .parameters-container {
-    padding: 8px !important;
-  }
-}
-
-/* Molecule Viewer specific fixes - Add these to index.css */
-
-/* Fix for molecule viewer container */
-.visualization-container {
-  position: relative !important;
-  overflow: hidden !important;
-  margin: 24px 0 !important;
-}
-
-/* Ensure the 3D viewer has correct positioning */
-.viewer-container {
-  position: relative !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-  display: block !important;
-}
-
-/* Fix 3DMol container positioning */
-.viewer-container > div {
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-}
-
-/* Force visualization container to be properly displayed on mobile */
-@media (max-width: 768px) {
-  .visualization-container {
-    margin: 16px 0 !important;
-    padding: 0 !important;
-  }
-
-  /* Ensure no unwanted margins inside visualization container */
-  .visualization-header {
-    margin-bottom: 0 !important;
-  }
-  
-  /* Fix canvas positioning */
-  canvas {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-  }
-  
-  /* Ensure container is tall enough */
-  .viewer-container {
-    min-height: 300px !important;
   }
 }
