@@ -1069,8 +1069,35 @@ const App = () => {
   // Main App render - works for both authenticated and guest users
   return (
     <div style={{ ...styles.app, padding: isMobile ? '16px' : styles.app.padding }}>
-      <div style={styles.decorativeBg}></div>
 
+        {/* Attribution element with bouncing animation */}
+        <div style={{
+          position: 'absolute',
+          top: '20px',
+          right: '20px',
+          zIndex: 1000,
+          fontWeight: 'bold',
+          color: '#f0f4f8',
+          backgroundColor: 'rgba(15, 23, 42, 0.7)',
+          backdropFilter: 'blur(4px)',
+          WebkitBackdropFilter: 'blur(4px)',
+          padding: '6px 12px',
+          borderRadius: '8px',
+          fontSize: '14px',
+          border: '1px solid rgba(56, 189, 248, 0.3)',
+          boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+          animation: "float 8s ease-in-out infinite"
+        }}>
+          Built by <a 
+            href="https://x.com/robertkottelin" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            style={{ color: '#38bdf8', textDecoration: 'none', fontWeight: 'bold' }}
+          >
+            @robertkottelin
+          </a>
+        </div>
+      <div style={styles.decorativeBg}></div>
       {/* Decorative animated lines for cyberpunk effect */}
       <div style={{ ...styles.decorativeLine, top: "15%", animationDelay: "0s" }}></div>
       <div style={{ ...styles.decorativeLine, top: "35%", animationDelay: "0.5s" }}></div>

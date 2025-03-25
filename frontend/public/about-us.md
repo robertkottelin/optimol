@@ -2,7 +2,9 @@
 
 ## Mission
 
-Our organization is dedicated to the development and implementation of high-fidelity molecular simulation systems that provide quantitative, predictive insights into molecular behavior. By constructing precise computational models at quantum and classical scales, we enable the extraction of actionable data that demonstrably accelerates drug development pipelines while simultaneously improving pre-clinical prediction accuracy by 37-52%.
+We create powerful molecular simulation technology that predicts how molecules behave with remarkable accuracy on the lowest level possible. By building precise computer models at both quantum and classical levels, we generate valuable insights that have real-world impact: speeding up drug development while making pre-clinical predictions more reliable. Our work helps pharmaceutical companies bring better medicines to patients faster.
+
+We believe in simulations as a transformative tool that can revolutionize the pharmaceutical industry. By combining quantum mechanics, molecular mechanics, and statistical mechanics, we provide a comprehensive view of molecular interactions that is both accurate and predictive. Our technology is a game-changer that will help pharmaceutical companies reduce development timelines, increase prediction accuracy, optimize resources, and improve clinical trial success rates.
 
 ## Technical Approach
 
@@ -14,7 +16,7 @@ We implement a multi-scale computational framework that combines:
 
 3. **Statistical mechanical ensemble methods**: Monte Carlo and molecular dynamics simulations generate thermodynamically rigorous ensembles that capture physiologically relevant molecular configurations and interaction states.
 
-Our parametric optimization routines incorporate machine learning components that accelerate convergence by 218% compared to traditional iterative procedures, increasing throughput while maintaining computational accuracy.
+Our parametric optimization routines incorporate machine learning components that accelerate convergence compared to traditional iterative procedures, increasing throughput while maintaining computational accuracy.
 
 ## Quantifiable Impact on Drug Development
 
@@ -47,15 +49,18 @@ The implementation allows for:
 
 Our development roadmap includes:
 
-1. **Enhanced electronic embedding methods**: Integration of polarizable force fields with QM/MM boundary treatments
-2. **GPU-accelerated quantum chemistry**: Implementation of tensor-optimized electronic structure calculations with 15-24x performance improvements
-3. **Expanded reaction pathway analysis**: Automated transition state identification and free energy sampling along reaction coordinates
-4. **Proteome-scale interaction mapping**: Systems-level prediction of drug-target interaction networks
+1. **GPU-accelerated chemistry**
+2. **Subset selection for optimization**
+3. **Expanded reaction pathway analysis**
+4. **Proteome-scale interaction mapping**
 
 ## Conclusion: Simulation as a Transformative Tool
 
-By constructing precise computational models that accurately simulate reality at the molecular level, we extract verifiable, quantitative knowledge that transforms drug development from a historically empirical process to a predictive science. Our computational framework identifies promising candidates faster, predicts failures earlier, and provides mechanistic insights that are inaccessible through traditional experimental methods alone.
+By constructing precise computational models that accurately simulate reality at the molecular level, we extract verifiable, quantitative knowledge that transforms drug development from a historically empirical process **to a predictive science**. Our computational framework identifies promising candidates faster, predicts failures earlier, and provides mechanistic insights that are inaccessible through traditional experimental methods alone.
 
 The ability to simulate molecular systems from first principles represents a fundamental shift in pharmaceutical development methodology. Every improvement in simulation accuracy directly translates to reduced development cycles, decreased clinical failure rates, and accelerated delivery of effective therapeutics to patients.
 
 **We are not merely modeling molecules—we are constructing predictive frameworks that translate quantum reality into life-changing medicines.**
+
+## Contact Us
+Robert Kottelin: [@robertkottelin](https://x.com/robertkottelin) at [X](https://x.com/robertkottelin)
