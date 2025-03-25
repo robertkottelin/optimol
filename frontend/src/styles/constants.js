@@ -125,7 +125,10 @@ export const defaultClassicalParams = {
   bond_force_constant: 1000.0,
   angle_force_constant: 500.0,
   tolerance: 10.0,
-  force_iterations: false
+  force_iterations: false,
+  covalent_display_threshold: 2.0,  // in Angstroms
+  hydrogen_display_threshold: 3.2,  // in Angstroms 
+  angle_display_threshold: 45 // in degrees
 };
 
 export const defaultQuantumParams = {

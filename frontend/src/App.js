@@ -1627,6 +1627,7 @@ const App = () => {
                   onMoleculeRotate={onMoleculeRotate}
                   molecule1Name={getMoleculeName(molecule1Data)}
                   molecule2Name={getMoleculeName(molecule2Data)}
+                  bondParams={classicalParams}
                 />
 
                 {interactionMode && molecule1Data && molecule2Data && (

@@ -11,7 +11,8 @@ const MoleculeViewer = ({
   molecule2Rotation,
   onMoleculeRotate,
   molecule1Name,
-  molecule2Name
+  molecule2Name,
+  bondParams
 }) => {
   const viewerRef = useRef();
   const containerRef = useRef();
@@ -207,7 +208,10 @@ const MoleculeViewer = ({
     };
 
     // Maximum bond distance factor (multiplier for sum of covalent radii)
-    const bondDistanceFactor = 1.3;
+    const bondDistanceFactor =
+      (bondParams && bondParams.covalent_display_threshold)
+        ? bondParams.covalent_display_threshold / 2.0
+        : 1.3;
 
     // Check all possible atom pairs
     for (let i = 0; i < atoms.length; i++) {
@@ -246,7 +250,10 @@ const MoleculeViewer = ({
   // Calculate hydrogen bonds between donor-H and acceptor atoms
   const calculateHydrogenBonds = (atoms) => {
     const hBonds = [];
-    const hBondLengthMax = 3.2; // Maximum H-bond length in Angstroms
+    const hBondLengthMax =
+      (bondParams && bondParams.hydrogen_display_threshold)
+        ? bondParams.hydrogen_display_threshold
+        : 3.2;
     const hBondLengthMin = 1.5; // Minimum length to avoid counting covalent bonds
 
     // Identify potential hydrogen bond donors (H attached to O, N)
