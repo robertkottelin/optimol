@@ -1085,7 +1085,7 @@ const App = () => {
         fontSize: '14px',
         border: '1px solid rgba(56, 189, 248, 0.3)',
         boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
-        animation: "float 8s ease-in-out infinite",
+        animation: "float 10s ease-in-out infinite",
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center'
@@ -1250,7 +1250,7 @@ const App = () => {
                 display: "flex",
                 alignItems: "center",
                 gap: "5px",
-                animation: "float 8s ease-in-out infinite"
+                animation: "float 10s ease-in-out infinite"
               }}
             >
               <Icons.close />
@@ -1272,7 +1272,7 @@ const App = () => {
                 display: "flex",
                 alignItems: "center",
                 gap: "5px",
-                animation: "float 8s ease-in-out infinite"
+                animation: "float 10s ease-in-out infinite"
               }}
             >
               <Icons.verified />
@@ -1289,7 +1289,7 @@ const App = () => {
                 opacity: isCancelLoading ? 0.7 : 1,
                 cursor: isCancelLoading ? "not-allowed" : "pointer",
                 position: 'static',
-                animation: "float 8s ease-in-out infinite"
+                animation: "float 10s ease-in-out infinite"
               }}
             >
               {isCancelLoading ? (
