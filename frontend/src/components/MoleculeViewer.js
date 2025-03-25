@@ -227,7 +227,11 @@ const MoleculeViewer = ({
       'P': 1.07, 'S': 1.05, 'Cl': 1.02, 'Br': 1.20
     };
 
-    // Maximum bond distance factor (multiplier for sum of covalent radii)
+    // Define absolute maximum bond length in Angstroms
+    // This is an additional hard constraint regardless of element types
+    const MAX_BOND_LENGTH = 2.0;
+
+    // Calculate adaptive factor based on parameters or use default
     const bondDistanceFactor =
       (bondParams?.covalent_display_threshold)
         ? bondParams.covalent_display_threshold / 0.96  // Normalized to water's O-H bond
@@ -250,11 +254,11 @@ const MoleculeViewer = ({
         const radius1 = covalentRadii[atom1.element] || 0.75;
         const radius2 = covalentRadii[atom2.element] || 0.75;
 
-        // Calculate bond threshold as sum of covalent radii with tolerance
-        const bondThreshold = (radius1 + radius2) * bondDistanceFactor;
-
-        // Check if distance is within bond threshold
-        if (distance <= bondThreshold) {
+        // Calculate adaptive bond threshold as sum of covalent radii with tolerance
+        const adaptiveThreshold = (radius1 + radius2) * bondDistanceFactor;
+        
+        // Apply both adaptive threshold and absolute maximum constraint
+        if (distance <= adaptiveThreshold && distance <= MAX_BOND_LENGTH) {
           bonds.push({
             atom1Index: i,
             atom2Index: j,
