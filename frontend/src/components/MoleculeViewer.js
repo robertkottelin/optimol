@@ -78,18 +78,18 @@ const MoleculeViewer = ({
     // Normalize vectors
     const mag1 = Math.sqrt(vec1.x * vec1.x + vec1.y * vec1.y + vec1.z * vec1.z);
     const mag2 = Math.sqrt(vec2.x * vec2.x + vec2.y * vec2.y + vec2.z * vec2.z);
-    
+
     if (mag1 === 0 || mag2 === 0) return 0;
-    
+
     const vec1Norm = { x: vec1.x / mag1, y: vec1.y / mag1, z: vec1.z / mag1 };
     const vec2Norm = { x: vec2.x / mag2, y: vec2.y / mag2, z: vec2.z / mag2 };
-    
+
     // Dot product
     const dotProduct = vec1Norm.x * vec2Norm.x + vec1Norm.y * vec2Norm.y + vec1Norm.z * vec2Norm.z;
-    
+
     // Clamp to avoid numerical issues
     const clamped = Math.max(-1, Math.min(1, dotProduct));
-    
+
     // Convert to degrees
     return Math.acos(clamped) * (180 / Math.PI);
   };
@@ -230,8 +230,8 @@ const MoleculeViewer = ({
     // Maximum bond distance factor (multiplier for sum of covalent radii)
     const bondDistanceFactor =
       (bondParams?.covalent_display_threshold)
-        ? bondParams.covalent_display_threshold / 2.0  // Convert to appropriate scale
-        : 1.3;  // Default multiplier for sum of covalent radii
+        ? bondParams.covalent_display_threshold / 0.96  // Normalized to water's O-H bond
+        : 1.3;
 
     // Check all possible atom pairs
     for (let i = 0; i < atoms.length; i++) {
@@ -345,10 +345,10 @@ const MoleculeViewer = ({
 
           // Calculate angle in degrees
           const angleDegrees = calculateAngleDegrees(donorToH, hToAcceptor);
-          
+
           // Use angle threshold from bondParams if available
           const angleThreshold = bondParams?.angle_display_threshold ?? 45;
-          
+
           // For hydrogen bond, angle should meet threshold
           if (angleDegrees <= angleThreshold) {
             hBonds.push({
@@ -490,7 +490,7 @@ const MoleculeViewer = ({
 
           // Calculate angle in degrees
           const angleDegrees = calculateAngleDegrees(donorToH, hToAcceptor);
-          
+
           // Apply angle threshold
           if (angleDegrees <= angleThreshold) {
             hBonds.push({
@@ -544,7 +544,7 @@ const MoleculeViewer = ({
 
           // Calculate angle in degrees
           const angleDegrees = calculateAngleDegrees(donorToH, hToAcceptor);
-          
+
           // Apply angle threshold
           if (angleDegrees <= angleThreshold) {
             hBonds.push({
@@ -642,11 +642,11 @@ const MoleculeViewer = ({
       return;
     }
 
-    console.debug("Bond parameters updated:", 
-                 bondParams?.covalent_display_threshold,
-                 bondParams?.hydrogen_display_threshold,
-                 bondParams?.angle_display_threshold);
-    
+    console.debug("Bond parameters updated:",
+      bondParams?.covalent_display_threshold,
+      bondParams?.hydrogen_display_threshold,
+      bondParams?.angle_display_threshold);
+
     // Add a slight delay to ensure container is fully rendered
     const timer = setTimeout(() => {
       try {
