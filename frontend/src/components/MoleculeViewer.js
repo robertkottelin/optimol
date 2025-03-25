@@ -25,6 +25,8 @@ const MoleculeViewer = ({
   const [showBondLengths, setShowBondLengths] = useState(true);
   const [showBondLegend, setShowBondLegend] = useState(true);
 
+  // Extract atoms for both molecules
+  const { molecule1, molecule2 } = atoms || { molecule1: null, molecule2: null };
 
   // Control button styles
   const positionControlButtonStyle = {
@@ -71,8 +73,26 @@ const MoleculeViewer = ({
     touchAction: 'manipulation'
   };
 
-  // Extract atoms for both molecules
-  const { molecule1, molecule2 } = atoms || { molecule1: null, molecule2: null };
+  // Calculate angle in degrees between two vectors
+  const calculateAngleDegrees = (vec1, vec2) => {
+    // Normalize vectors
+    const mag1 = Math.sqrt(vec1.x * vec1.x + vec1.y * vec1.y + vec1.z * vec1.z);
+    const mag2 = Math.sqrt(vec2.x * vec2.x + vec2.y * vec2.y + vec2.z * vec2.z);
+    
+    if (mag1 === 0 || mag2 === 0) return 0;
+    
+    const vec1Norm = { x: vec1.x / mag1, y: vec1.y / mag1, z: vec1.z / mag1 };
+    const vec2Norm = { x: vec2.x / mag2, y: vec2.y / mag2, z: vec2.z / mag2 };
+    
+    // Dot product
+    const dotProduct = vec1Norm.x * vec2Norm.x + vec1Norm.y * vec2Norm.y + vec1Norm.z * vec2Norm.z;
+    
+    // Clamp to avoid numerical issues
+    const clamped = Math.max(-1, Math.min(1, dotProduct));
+    
+    // Convert to degrees
+    return Math.acos(clamped) * (180 / Math.PI);
+  };
 
   // Function to apply rotation transformation to coordinates
   const applyRotation = (coords, rotation, centerOfMass) => {
@@ -209,9 +229,9 @@ const MoleculeViewer = ({
 
     // Maximum bond distance factor (multiplier for sum of covalent radii)
     const bondDistanceFactor =
-      (bondParams && bondParams.covalent_display_threshold)
-        ? bondParams.covalent_display_threshold / 2.0
-        : 1.3;
+      (bondParams?.covalent_display_threshold)
+        ? bondParams.covalent_display_threshold / 2.0  // Convert to appropriate scale
+        : 1.3;  // Default multiplier for sum of covalent radii
 
     // Check all possible atom pairs
     for (let i = 0; i < atoms.length; i++) {
@@ -251,10 +271,8 @@ const MoleculeViewer = ({
   const calculateHydrogenBonds = (atoms) => {
     const hBonds = [];
     const hBondLengthMax =
-      (bondParams && bondParams.hydrogen_display_threshold)
-        ? bondParams.hydrogen_display_threshold
-        : 3.2;
-    const hBondLengthMin = 1.5; // Minimum length to avoid counting covalent bonds
+      bondParams?.hydrogen_display_threshold ?? 3.2;
+    const hBondLengthMin = 1.5;
 
     // Identify potential hydrogen bond donors (H attached to O, N)
     const donors = [];
@@ -325,39 +343,20 @@ const MoleculeViewer = ({
             z: acceptorAtom.z - hAtom.z
           };
 
-          // Normalize vectors
-          const donorToHMag = Math.sqrt(
-            donorToH.x * donorToH.x + donorToH.y * donorToH.y + donorToH.z * donorToH.z
-          );
-          const hToAcceptorMag = Math.sqrt(
-            hToAcceptor.x * hToAcceptor.x + hToAcceptor.y * hToAcceptor.y + hToAcceptor.z * hToAcceptor.z
-          );
-
-          const donorToHNorm = {
-            x: donorToH.x / donorToHMag,
-            y: donorToH.y / donorToHMag,
-            z: donorToH.z / donorToHMag
-          };
-
-          const hToAcceptorNorm = {
-            x: hToAcceptor.x / hToAcceptorMag,
-            y: hToAcceptor.y / hToAcceptorMag,
-            z: hToAcceptor.z / hToAcceptorMag
-          };
-
-          // Calculate dot product to get cosine of angle
-          const dotProduct =
-            donorToHNorm.x * hToAcceptorNorm.x +
-            donorToHNorm.y * hToAcceptorNorm.y +
-            donorToHNorm.z * hToAcceptorNorm.z;
-
-          // For hydrogen bond, angle should be reasonably linear (cos > 0.7 is < 45°)
-          if (dotProduct > 0.7) {
+          // Calculate angle in degrees
+          const angleDegrees = calculateAngleDegrees(donorToH, hToAcceptor);
+          
+          // Use angle threshold from bondParams if available
+          const angleThreshold = bondParams?.angle_display_threshold ?? 45;
+          
+          // For hydrogen bond, angle should meet threshold
+          if (angleDegrees <= angleThreshold) {
             hBonds.push({
               hIndex: donor.hIndex,
               donorHeavyIndex: donor.donorHeavyIndex,
               acceptorIndex: acceptorIndex,
-              distance: distance
+              distance: distance,
+              angle: angleDegrees
             });
           }
         }
@@ -375,8 +374,10 @@ const MoleculeViewer = ({
    */
   const calculateIntermolecularHydrogenBonds = (molecule1, molecule2) => {
     const hBonds = [];
-    const hBondLengthMax = 3.2; // Maximum H-bond length in Angstroms
-    const hBondLengthMin = 1.5; // Minimum length to avoid counting covalent bonds
+    const hBondLengthMax =
+      bondParams?.hydrogen_display_threshold ?? 3.2;
+    const hBondLengthMin = 1.5;
+    const angleThreshold = bondParams?.angle_display_threshold ?? 45;
 
     // Identify donors and acceptors in molecule 1
     const donors1 = [];
@@ -487,34 +488,11 @@ const MoleculeViewer = ({
             z: acceptorAtom.z - hAtom.z
           };
 
-          // Normalize vectors
-          const donorToHMag = Math.sqrt(
-            donorToH.x * donorToH.x + donorToH.y * donorToH.y + donorToH.z * donorToH.z
-          );
-          const hToAcceptorMag = Math.sqrt(
-            hToAcceptor.x * hToAcceptor.x + hToAcceptor.y * hToAcceptor.y + hToAcceptor.z * hToAcceptor.z
-          );
-
-          const donorToHNorm = {
-            x: donorToH.x / donorToHMag,
-            y: donorToH.y / donorToHMag,
-            z: donorToH.z / donorToHMag
-          };
-
-          const hToAcceptorNorm = {
-            x: hToAcceptor.x / hToAcceptorMag,
-            y: hToAcceptor.y / hToAcceptorMag,
-            z: hToAcceptor.z / hToAcceptorMag
-          };
-
-          // Calculate dot product to get cosine of angle
-          const dotProduct =
-            donorToHNorm.x * hToAcceptorNorm.x +
-            donorToHNorm.y * hToAcceptorNorm.y +
-            donorToHNorm.z * hToAcceptorNorm.z;
-
-          // For hydrogen bond, angle should be reasonably linear (cos > 0.7 is < 45°)
-          if (dotProduct > 0.7) {
+          // Calculate angle in degrees
+          const angleDegrees = calculateAngleDegrees(donorToH, hToAcceptor);
+          
+          // Apply angle threshold
+          if (angleDegrees <= angleThreshold) {
             hBonds.push({
               donor: {
                 hIndex: donor.hIndex,
@@ -525,7 +503,8 @@ const MoleculeViewer = ({
                 index: acceptor.index,
                 molecule: 2
               },
-              distance: distance
+              distance: distance,
+              angle: angleDegrees
             });
           }
         }
@@ -563,34 +542,11 @@ const MoleculeViewer = ({
             z: acceptorAtom.z - hAtom.z
           };
 
-          // Normalize vectors
-          const donorToHMag = Math.sqrt(
-            donorToH.x * donorToH.x + donorToH.y * donorToH.y + donorToH.z * donorToH.z
-          );
-          const hToAcceptorMag = Math.sqrt(
-            hToAcceptor.x * hToAcceptor.x + hToAcceptor.y * hToAcceptor.y + hToAcceptor.z * hToAcceptor.z
-          );
-
-          const donorToHNorm = {
-            x: donorToH.x / donorToHMag,
-            y: donorToH.y / donorToHMag,
-            z: donorToH.z / donorToHMag
-          };
-
-          const hToAcceptorNorm = {
-            x: hToAcceptor.x / hToAcceptorMag,
-            y: hToAcceptor.y / hToAcceptorMag,
-            z: hToAcceptor.z / hToAcceptorMag
-          };
-
-          // Calculate dot product to get cosine of angle
-          const dotProduct =
-            donorToHNorm.x * hToAcceptorNorm.x +
-            donorToHNorm.y * hToAcceptorNorm.y +
-            donorToHNorm.z * hToAcceptorNorm.z;
-
-          // For hydrogen bond, angle should be reasonably linear (cos > 0.7 is < 45°)
-          if (dotProduct > 0.7) {
+          // Calculate angle in degrees
+          const angleDegrees = calculateAngleDegrees(donorToH, hToAcceptor);
+          
+          // Apply angle threshold
+          if (angleDegrees <= angleThreshold) {
             hBonds.push({
               donor: {
                 hIndex: donor.hIndex,
@@ -601,7 +557,8 @@ const MoleculeViewer = ({
                 index: acceptor.index,
                 molecule: 1
               },
-              distance: distance
+              distance: distance,
+              angle: angleDegrees
             });
           }
         }
@@ -685,6 +642,11 @@ const MoleculeViewer = ({
       return;
     }
 
+    console.debug("Bond parameters updated:", 
+                 bondParams?.covalent_display_threshold,
+                 bondParams?.hydrogen_display_threshold,
+                 bondParams?.angle_display_threshold);
+    
     // Add a slight delay to ensure container is fully rendered
     const timer = setTimeout(() => {
       try {
@@ -1231,7 +1193,7 @@ const MoleculeViewer = ({
       window.removeEventListener('resize', handleResize);
       clearTimeout(timer);
     };
-  }, [atoms, isMobile, molecule2Offset, molecule2Rotation, positioningMode, viewerInstance, isInitialRender, showBondLengths]);
+  }, [atoms, isMobile, molecule2Offset, molecule2Rotation, positioningMode, viewerInstance, isInitialRender, showBondLengths, bondParams]);
 
   // Effect to handle keyboard events for positioning mode
   useEffect(() => {
