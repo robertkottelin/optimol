@@ -358,9 +358,7 @@ button:disabled {
 
 /* Navigation Buttons */
 .how-to-use-button {
-  position: fixed;
-  top: 20px;
-  left: 20px;
+  position: relative;
   padding: 10px 16px;
   background: linear-gradient(145deg, rgba(56, 189, 248, 0.9), rgba(37, 99, 235, 0.9));
   color: white;
@@ -370,8 +368,10 @@ button:disabled {
   gap: 8px;
   font-weight: 600;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  z-index: 100;
-  animation: float 10s ease-in-out infinite;
+  z-index: 10;
+  margin: 0 8px 8px 0;
+  flex-shrink: 0;
+  min-width: max-content;
 }
 
 .how-to-use-icon {
@@ -389,7 +389,21 @@ button:disabled {
 }
 
 .login-button {
+  position: relative; /* Changed from fixed */
   background: linear-gradient(145deg, rgba(56, 189, 248, 0.9), rgba(37, 99, 235, 0.9));
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0 8px 8px 0;
+  flex-shrink: 0;
+  min-width: max-content;
+  z-index: 10;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .logout-button {
@@ -397,9 +411,7 @@ button:disabled {
 }
 
 .cancel-subscription-button {
-  position: fixed;
-  top: 20px;
-  right: 100px; 
+  position: relative; /* Changed from fixed */
   padding: 8px 16px;
   background: linear-gradient(145deg, rgba(244, 63, 94, 0.9), rgba(225, 29, 72, 0.9));
   color: white;
@@ -410,7 +422,10 @@ button:disabled {
   align-items: center;
   gap: 6px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  z-index: 100;
+  z-index: 10;
+  margin: 0 8px 8px 0;
+  flex-shrink: 0;
+  min-width: max-content;
 }
 
 .cancel-subscription-icon {
@@ -532,6 +547,7 @@ button:disabled {
 
 /* Health Button */
 .health-check-button {
+  position: relative; /* Changed from fixed */
   background: linear-gradient(145deg, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.9));
   color: white;
   padding: 4px 12px;
@@ -542,6 +558,10 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: 5px;
+  margin: 0 8px 8px 0;
+  flex-shrink: 0;
+  min-width: max-content;
+  z-index: 10;
 }
 
 .health-check-button.health-success {
