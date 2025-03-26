@@ -1594,59 +1594,119 @@ button:disabled {
 /* ==========================================================================
    14. Mobile Navigation
    ========================================================================== */
-.mobile-menu-button {
-  display: none;
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #38bdf8, #2563eb);
-  color: white;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-  z-index: 100;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-}
-
-.mobile-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(15, 23, 42, 0.95);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  z-index: 90;
-  display: flex;
-  justify-content: space-around;
-  padding: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.mobile-nav-button {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: transparent;
-  color: #94a3b8;
-  font-size: 12px;
-  padding: 8px;
-  border-radius: 8px;
-}
-
-.mobile-nav-button.active {
-  color: #38bdf8;
-  background: rgba(56, 189, 248, 0.1);
-}
-
-.mobile-nav-icon {
-  margin-bottom: 4px;
-  font-size: 20px;
-}
-
+   .mobile-menu-button {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #38bdf8, #2563eb);
+    color: white;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+  }
+  
+  .mobile-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    z-index: 90;
+    display: flex;
+    justify-content: space-around;
+    padding: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .mobile-nav-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 12px;
+    padding: 8px;
+    border-radius: 8px;
+  }
+  
+  .mobile-nav-button.active {
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.1);
+  }
+  
+  .mobile-nav-icon {
+    margin-bottom: 4px;
+    font-size: 20px;
+  }
+  
+  /* Mobile Top Navigation Fixes */
+  @media (max-width: 768px) {
+    .top-buttons-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 8px;
+      width: 100%;
+      padding: 0 8px;
+      margin-bottom: 16px;
+    }
+    
+    /* Reset fixed/relative positioning for all buttons in mobile */
+    .how-to-use-button,
+    .cancel-subscription-button,
+    .health-check-button,
+    .login-button,
+    .logout-button {
+      position: static;
+      margin: 0;
+      width: 100%;
+      font-size: 0.85rem;
+      padding: 8px 10px;
+      justify-content: center;
+    }
+    
+    /* Remove min-width constraint in mobile view */
+    .how-to-use-button,
+    .cancel-subscription-button,
+    .health-check-button,
+    .login-button,
+    .logout-button {
+      min-width: 0;
+      flex-shrink: 1;
+    }
+    
+    /* Make sure icons don't get too big */
+    .how-to-use-icon,
+    .cancel-subscription-icon,
+    .health-status-indicator {
+      scale: 0.9;
+    }
+  }
+  
+  /* Extra small devices */
+  @media (max-width: 480px) {
+    .top-buttons-container {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    
+    /* Further reduce text size on very small screens */
+    .how-to-use-button,
+    .cancel-subscription-button,
+    .health-check-button,
+    .login-button,
+    .logout-button {
+      font-size: 0.75rem;
+      padding: 6px 8px;
+    }
+  }
+  
 /* ==========================================================================
    15. Responsive Adaptations
    ========================================================================== */
