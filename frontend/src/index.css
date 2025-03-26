@@ -20,11 +20,14 @@
 /* ==========================================================================
    1. Reset and Base Styles
    ========================================================================== */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   min-height: 100vh;
@@ -39,12 +42,17 @@ body {
   color: #f0f4f8;
 }
 
-input, select, textarea, button {
+input,
+select,
+textarea,
+button {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   outline: none;
 }
 
-input, select, textarea {
+input,
+select,
+textarea {
   background-color: rgba(16, 24, 39, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
@@ -54,7 +62,9 @@ input, select, textarea {
   font-size: 14px;
 }
 
-input:focus, select:focus, textarea:focus {
+input:focus,
+select:focus,
+textarea:focus {
   border-color: rgba(56, 189, 248, 0.6);
   box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.3);
 }
@@ -84,39 +94,81 @@ button:disabled {
    3. Animation Keyframes
    ========================================================================== */
 @keyframes fadeIn {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
-  0% { transform: translateY(20px); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
+  0% {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 @keyframes glow {
-  0% { box-shadow: 0 0 5px rgba(56, 189, 248, 0.5); }
-  50% { box-shadow: 0 0 20px rgba(56, 189, 248, 0.8); }
-  100% { box-shadow: 0 0 5px rgba(56, 189, 248, 0.5); }
+  0% {
+    box-shadow: 0 0 5px rgba(56, 189, 248, 0.5);
+  }
+
+  50% {
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.8);
+  }
+
+  100% {
+    box-shadow: 0 0 5px rgba(56, 189, 248, 0.5);
+  }
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes shimmer {
-  0% { background-position: -1000px 0; }
-  100% { background-position: 1000px 0; }
+  0% {
+    background-position: -1000px 0;
+  }
+
+  100% {
+    background-position: 1000px 0;
+  }
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 @keyframes shine {
-  0% { left: -50%; }
-  100% { left: 150%; }
+  0% {
+    left: -50%;
+  }
+
+  100% {
+    left: 150%;
+  }
 }
 
 /* ==========================================================================
@@ -154,7 +206,7 @@ button:disabled {
   right: 0;
   bottom: 0;
   background: radial-gradient(ellipse at top, rgba(16, 24, 39, 0.5), transparent),
-              radial-gradient(ellipse at bottom, rgba(5, 150, 105, 0.05), transparent);
+    radial-gradient(ellipse at bottom, rgba(5, 150, 105, 0.05), transparent);
   z-index: 0;
 }
 
@@ -389,7 +441,8 @@ button:disabled {
 }
 
 .login-button {
-  position: relative; /* Changed from fixed */
+  position: relative;
+  /* Changed from fixed */
   background: linear-gradient(145deg, rgba(56, 189, 248, 0.9), rgba(37, 99, 235, 0.9));
   color: white;
   padding: 8px 16px;
@@ -411,7 +464,8 @@ button:disabled {
 }
 
 .cancel-subscription-button {
-  position: relative; /* Changed from fixed */
+  position: relative;
+  /* Changed from fixed */
   padding: 8px 16px;
   background: linear-gradient(145deg, rgba(244, 63, 94, 0.9), rgba(225, 29, 72, 0.9));
   color: white;
@@ -493,12 +547,10 @@ button:disabled {
   left: -50%;
   width: 50%;
   height: 100%;
-  background: linear-gradient(
-    to right,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.3) 50%,
-    rgba(255, 255, 255, 0) 100%
-  );
+  background: linear-gradient(to right,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.3) 50%,
+      rgba(255, 255, 255, 0) 100%);
   transform: skewX(-25deg);
   animation: shine 3s infinite;
 }
@@ -547,7 +599,8 @@ button:disabled {
 
 /* Health Button */
 .health-check-button {
-  position: relative; /* Changed from fixed */
+  position: relative;
+  /* Changed from fixed */
   background: linear-gradient(145deg, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.9));
   color: white;
   padding: 4px 12px;
@@ -581,7 +634,7 @@ button:disabled {
 .health-details {
   font-size: 0.7rem;
   margin-top: 4px;
-  background-color: rgba(0,0,0,0.2);
+  background-color: rgba(0, 0, 0, 0.2);
   padding: 3px 6px;
   border-radius: 4px;
   width: 100%;
@@ -592,7 +645,7 @@ button:disabled {
   position: absolute;
   top: -35px;
   left: 0;
-  background-color: rgba(0,0,0,0.8);
+  background-color: rgba(0, 0, 0, 0.8);
   padding: 3px 6px;
   border-radius: 4px;
   font-size: 0.6rem;
@@ -1086,7 +1139,8 @@ button:disabled {
   cursor: pointer;
 }
 
-.file-upload:hover, .file-upload-active {
+.file-upload:hover,
+.file-upload-active {
   border-color: #38bdf8;
   background: rgba(56, 189, 248, 0.08);
 }
@@ -1484,7 +1538,7 @@ button:disabled {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.viewer-container > div {
+.viewer-container>div {
   position: absolute;
   top: 0;
   left: 0;
@@ -1594,119 +1648,118 @@ button:disabled {
 /* ==========================================================================
    14. Mobile Navigation
    ========================================================================== */
-   .mobile-menu-button {
-    display: none;
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #38bdf8, #2563eb);
-    color: white;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-    z-index: 100;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-  }
-  
-  .mobile-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: rgba(15, 23, 42, 0.95);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    z-index: 90;
-    display: flex;
-    justify-content: space-around;
-    padding: 10px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-  }
-  
-  .mobile-nav-button {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    background: transparent;
-    color: #94a3b8;
-    font-size: 12px;
-    padding: 8px;
+.mobile-menu-button {
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #38bdf8, #2563eb);
+  color: white;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+
+.mobile-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 90;
+  display: flex;
+  justify-content: space-around;
+  padding: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mobile-nav-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 12px;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.mobile-nav-button.active {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.mobile-nav-icon {
+  margin-bottom: 4px;
+  font-size: 20px;
+}
+
+/* Attribution modifications */
+@media (max-width: 768px) {
+  .attribution {
+    position: static;
+    margin: 0 8px 8px 0;
+    padding: 6px 10px;
+    background-color: rgba(15, 23, 42, 0.7);
     border-radius: 8px;
+    z-index: 10;
+    width: auto;
+    font-size: 12px;
+    animation: none;
+    order: -1;
+    /* Place at beginning of flex container */
   }
-  
-  .mobile-nav-button.active {
-    color: #38bdf8;
-    background: rgba(56, 189, 248, 0.1);
+
+  .attribution-sublink {
+    display: none;
+    /* Hide the longer message on mobile */
   }
-  
-  .mobile-nav-icon {
-    margin-bottom: 4px;
-    font-size: 20px;
+
+  .top-buttons-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
   }
-  
-  /* Mobile Top Navigation Fixes */
-  @media (max-width: 768px) {
-    .top-buttons-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 8px;
-      width: 100%;
-      padding: 0 8px;
-      margin-bottom: 16px;
-    }
-    
-    /* Reset fixed/relative positioning for all buttons in mobile */
-    .how-to-use-button,
-    .cancel-subscription-button,
-    .health-check-button,
-    .login-button,
-    .logout-button {
-      position: static;
-      margin: 0;
-      width: 100%;
-      font-size: 0.85rem;
-      padding: 8px 10px;
-      justify-content: center;
-    }
-    
-    /* Remove min-width constraint in mobile view */
-    .how-to-use-button,
-    .cancel-subscription-button,
-    .health-check-button,
-    .login-button,
-    .logout-button {
-      min-width: 0;
-      flex-shrink: 1;
-    }
-    
-    /* Make sure icons don't get too big */
-    .how-to-use-icon,
-    .cancel-subscription-icon,
-    .health-status-indicator {
-      scale: 0.9;
-    }
+
+  .how-to-use-button,
+  .cancel-subscription-button,
+  .health-check-button,
+  .login-button,
+  .logout-button {
+    flex: 0 1 auto;
+    font-size: 0.85rem;
+    padding: 8px 10px;
+    margin: 0 4px 8px 4px;
   }
-  
-  /* Extra small devices */
-  @media (max-width: 480px) {
-    .top-buttons-container {
-      grid-template-columns: repeat(2, 1fr);
-    }
-    
-    /* Further reduce text size on very small screens */
-    .how-to-use-button,
-    .cancel-subscription-button,
-    .health-check-button,
-    .login-button,
-    .logout-button {
-      font-size: 0.75rem;
-      padding: 6px 8px;
-    }
+}
+
+/* Extra small devices */
+@media (max-width: 480px) {
+  .attribution {
+    width: 100%;
+    margin-bottom: 6px;
+    order: -1;
+    text-align: center;
   }
-  
+
+  .how-to-use-button,
+  .cancel-subscription-button,
+  .health-check-button,
+  .login-button,
+  .logout-button {
+    font-size: 0.75rem;
+    padding: 6px 8px;
+    margin: 0 2px 6px 2px;
+  }
+}
+
 /* ==========================================================================
    15. Responsive Adaptations
    ========================================================================== */
@@ -1714,16 +1767,16 @@ button:disabled {
   .container {
     padding: 0 16px;
   }
-  
+
   .app {
     padding: 16px !important;
   }
-  
+
   .tablet-stack {
     flex-direction: column !important;
     align-items: center !important;
   }
-  
+
   .tablet-visible {
     display: block;
   }
@@ -1733,29 +1786,29 @@ button:disabled {
   .header-title {
     font-size: 42px;
   }
-  
+
   .header-subtitle {
     font-size: 17px;
   }
-  
+
   .method-selection-button {
     width: 100% !important;
     max-width: none !important;
     margin-bottom: 16px !important;
   }
-  
+
   .tablet-full-width {
     width: 100% !important;
     max-width: none !important;
   }
-  
-  .visualization-container, 
-  .test-molecules-container, 
-  .molecule-selection-container, 
+
+  .visualization-container,
+  .test-molecules-container,
+  .molecule-selection-container,
   .positioning-container {
     padding: 20px;
   }
-  
+
   .popup-content {
     width: 90%;
     height: 90%;
@@ -1766,57 +1819,57 @@ button:disabled {
   .app {
     padding: 16px;
   }
-  
+
   .header-title {
     font-size: 36px;
   }
-  
+
   .header-subtitle {
     font-size: 16px;
     padding: 0 10px;
   }
-  
+
   .subscription-form {
     padding: 24px;
     padding-bottom: 16px;
   }
-  
+
   .method-selection-container {
     flex-direction: column;
   }
-  
+
   .test-molecule-button {
     padding: 10px 16px;
     font-size: 14px;
   }
-  
+
   .welcome-message {
     flex-direction: column;
     text-align: center;
     padding: 16px;
   }
-  
+
   .optimize-button-container {
     width: 100%;
   }
-  
+
   .optimize-button {
     width: 100%;
     padding: 12px 20px;
   }
-  
+
   .test-molecules-button-container {
     flex-wrap: wrap;
     justify-content: center;
   }
-  
-  .how-to-use-button, 
+
+  .how-to-use-button,
   .cancel-subscription-button {
     position: static;
     margin: 10px;
     display: inline-flex;
   }
-  
+
   .top-buttons-container {
     display: flex;
     justify-content: center;
@@ -1824,105 +1877,105 @@ button:disabled {
     gap: 10px;
     margin-bottom: 20px;
   }
-  
+
   .visualization-header {
     flex-direction: column;
     align-items: flex-start;
   }
-  
+
   .tabs {
     margin-top: 10px;
     width: 100%;
     justify-content: space-between;
   }
-  
+
   .popup-content {
     width: 95%;
     height: 95%;
     padding: 16px;
   }
-  
+
   .molecule-selector-column {
     width: 100%;
     margin-bottom: 8px;
   }
-  
+
   .mobile-full-width {
     width: 100% !important;
   }
-  
+
   .mobile-stack {
     flex-direction: column !important;
   }
-  
+
   .mobile-center {
     align-items: center !important;
     justify-content: center !important;
   }
-  
+
   .mobile-hidden {
     display: none !important;
   }
-  
+
   .mobile-visible {
     display: block !important;
   }
-  
+
   .mobile-text-center {
     text-align: center !important;
   }
-  
+
   .mobile-smaller-text {
     font-size: 90% !important;
   }
-  
+
   .mobile-smaller-padding {
     padding: 16px !important;
   }
-  
+
   .mobile-margin-bottom {
     margin-bottom: 16px !important;
   }
-  
+
   .mobile-menu-button {
     display: flex;
   }
-  
+
   .card-element-container {
     padding: 16px 8px 16px 36px;
   }
-  
+
   .positioning-controls {
     flex-direction: column;
   }
-  
+
   .position-controls {
     margin-top: 10px;
     flex-wrap: wrap;
     justify-content: center;
     width: 100%;
   }
-  
+
   .rotation-inputs {
     flex-wrap: wrap;
     justify-content: center;
   }
-  
+
   .tab {
     font-size: 12px;
     padding: 6px 10px !important;
   }
-  
+
   .viewer-container {
     height: 350px !important;
   }
-  
+
   .molecule-stats {
     flex-direction: column;
     align-items: center;
     gap: 4px;
   }
-  
+
   .molecule-stats-separator {
     display: none;
   }
@@ -1932,51 +1985,51 @@ button:disabled {
   .header-title {
     font-size: 28px;
   }
-  
+
   .header-subtitle {
     font-size: 14px;
   }
-  
-  .card, 
+
+  .card,
   .glass {
     border-radius: 12px;
   }
-  
+
   .test-molecules-container,
   .molecule-selection-container,
   .positioning-container,
   .visualization-container {
     padding: 16px;
   }
-  
+
   .test-molecules-button-container {
     flex-direction: column;
     align-items: center;
   }
-  
+
   .test-molecule-button {
     width: 100%;
     justify-content: center;
   }
-  
+
   .file-upload {
     padding: 20px;
   }
-  
+
   .file-upload-text {
     font-size: 14px;
   }
-  
+
   .file-upload-subtext {
     font-size: 12px;
   }
-  
+
   .subscription-form .form-title {
     font-size: 20px;
     flex-direction: column;
     align-items: flex-start;
   }
-  
+
   .premium-badge {
     margin-bottom: 8px;
   }
