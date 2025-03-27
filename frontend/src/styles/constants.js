@@ -126,7 +126,7 @@ export const defaultClassicalParams = {
   angle_force_constant: 500.0,
   tolerance: 10.0,
   force_iterations: false,
-  covalent_display_threshold: 0.96,  // in Angstroms
+  covalent_display_threshold: 1.0,  // in Angstroms
   hydrogen_display_threshold: 3.2,  // in Angstroms 
   angle_display_threshold: 45 // in degrees
 };
