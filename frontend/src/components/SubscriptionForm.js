@@ -35,149 +35,283 @@ const SubscriptionForm = ({ onSuccess, isMobile, isAuthenticated }) => {
   const elements = useElements();
   const [isSubscribeLoading, setIsSubscribeLoading] = useState(false);
   const [error, setError] = useState("");
+  const [paymentProcessingStep, setPaymentProcessingStep] = useState(null);
+  const [requiresAction, setRequiresAction] = useState(false);
   const { currentUser, token, registerAndSubscribe, login } = useContext(AuthContext);
   
   // Form states for guest registration
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [postalCode, setPostalCode] = useState("");
   
   const apiBaseUrl = "/api";
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    const cardElement = elements.getElement(CardElement);
-
-    if (!cardElement) {
-      setError("Card element not found");
+    // Prevent multiple submissions
+    if (isSubscribeLoading) {
       return;
     }
 
-    // For guest users, validate registration fields
-    if (!isAuthenticated) {
-      if (!email || !password || !confirmPassword) {
-        setError("All fields are required");
-        return;
-      }
-
-      if (password !== confirmPassword) {
-        setError("Passwords do not match");
-        return;
-      }
-
-      if (password.length < 8) {
-        setError("Password must be at least 8 characters long");
-        return;
-      }
-    }
-
-    setIsSubscribeLoading(true);
+    // Reset states
     setError("");
+    setPaymentProcessingStep("initializing");
+    setIsSubscribeLoading(true);
+    setRequiresAction(false);
 
     try {
-      // Create payment method with Stripe
-      const { error: stripeError, paymentMethod } = await stripe.createPaymentMethod({
-        type: "card",
-        card: cardElement,
-      });
-
-      if (stripeError) {
-        setError(`Payment method error: ${stripeError.message}`);
+      // Get card element
+      const cardElement = elements.getElement(CardElement);
+      if (!cardElement) {
+        setError("Card information not found. Please refresh and try again.");
         setIsSubscribeLoading(false);
         return;
       }
 
+      // Form validation
+      if (!isAuthenticated) {
+        if (!email || !password || !confirmPassword) {
+          setError("All fields are required");
+          setIsSubscribeLoading(false);
+          return;
+        }
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          setError("Please enter a valid email address");
+          setIsSubscribeLoading(false);
+          return;
+        }
+
+        if (password !== confirmPassword) {
+          setError("Passwords do not match");
+          setIsSubscribeLoading(false);
+          return;
+        }
+
+        if (password.length < 8) {
+          setError("Password must be at least 8 characters long");
+          setIsSubscribeLoading(false);
+          return;
+        }
+      }
+
+      setPaymentProcessingStep("creating_payment_method");
+      
+      // Create payment method with Stripe
+      const paymentMethodResult = await stripe.createPaymentMethod({
+        type: "card",
+        card: cardElement,
+        billing_details: {
+          email: isAuthenticated ? currentUser.email : email,
+          ...(postalCode && { address: { postal_code: postalCode } })
+        }
+      });
+
+      if (paymentMethodResult.error) {
+        // Handle specific card errors with actionable messages
+        setError(`Payment method error: ${paymentMethodResult.error.message}`);
+        setIsSubscribeLoading(false);
+        return;
+      }
+
+      setPaymentProcessingStep("processing_payment");
+
       // Different handling based on authentication status
       if (isAuthenticated) {
         // User is already authenticated, use regular subscription flow
-        await handleAuthenticatedSubscription(paymentMethod.id);
+        const response = await axios.post(
+          `${apiBaseUrl}/subscribe`, 
+          { paymentMethodId: paymentMethodResult.paymentMethod.id },
+          { 
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
+
+        // Handle different response scenarios
+        if (response.data.requires_action) {
+          // Payment requires additional authentication (3D Secure)
+          setPaymentProcessingStep("requires_authentication");
+          setRequiresAction(true);
+
+          const { error: confirmationError } = await stripe.confirmCardPayment(
+            response.data.payment_intent_client_secret
+          );
+
+          if (confirmationError) {
+            setError(`Payment authentication failed: ${confirmationError.message}`);
+            setIsSubscribeLoading(false);
+            return;
+          }
+
+          // Authentication succeeded
+          setPaymentProcessingStep("payment_confirmed");
+          onSuccess();
+        } 
+        else if (response.data.status === "pending") {
+          // Payment is pending, but no action required
+          setPaymentProcessingStep("payment_pending");
+          
+          // Confirm card payment to complete the transaction
+          const { error: confirmError } = await stripe.confirmCardPayment(
+            response.data.clientSecret
+          );
+
+          if (confirmError) {
+            setError(`Payment confirmation error: ${confirmError.message}`);
+            setIsSubscribeLoading(false);
+            return;
+          }
+
+          setPaymentProcessingStep("payment_confirmed");
+          onSuccess();
+        }
+        else if (response.data.success) {
+          // Payment immediately succeeded
+          setPaymentProcessingStep("subscription_active");
+          onSuccess();
+        } 
+        else {
+          // Unexpected response
+          setError(`Subscription error: ${response.data.error || "Unknown error"}`);
+          setIsSubscribeLoading(false);
+        }
       } else {
-        // User is not authenticated, attempt to log in first before registration
-        await handleUnauthenticatedSubscription(paymentMethod.id);
+        // Try logging in first to check if user already exists
+        try {
+          setPaymentProcessingStep("checking_existing_account");
+          const loginResult = await login(email, password);
+          
+          if (loginResult.success) {
+            // User already exists and credentials are correct
+            // Send another request for subscription with the new token
+            setPaymentProcessingStep("processing_existing_user");
+            
+            const subscribeResponse = await axios.post(
+              `${apiBaseUrl}/subscribe`, 
+              { paymentMethodId: paymentMethodResult.paymentMethod.id },
+              { 
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${loginResult.token}`
+                }
+              }
+            );
+
+            // Handle subscription response similar to authenticated branch
+            if (subscribeResponse.data.requires_action) {
+              setPaymentProcessingStep("requires_authentication");
+              setRequiresAction(true);
+
+              const { error: confirmationError } = await stripe.confirmCardPayment(
+                subscribeResponse.data.payment_intent_client_secret
+              );
+
+              if (confirmationError) {
+                setError(`Payment authentication failed: ${confirmationError.message}`);
+                setIsSubscribeLoading(false);
+                return;
+              }
+
+              setPaymentProcessingStep("payment_confirmed");
+              onSuccess();
+            } 
+            else if (subscribeResponse.data.success) {
+              setPaymentProcessingStep("subscription_active");
+              onSuccess();
+            } 
+            else {
+              setError(`Subscription error: ${subscribeResponse.data.error || "Unknown error"}`);
+              setIsSubscribeLoading(false);
+            }
+            
+            return;
+          } 
+          
+          // Login failed, but might be because user doesn't exist
+          // Continue with registration process
+        } catch (loginErr) {
+          // Silent handling - continue with registration flow
+        }
+
+        // Proceed with registration and subscription for new user
+        setPaymentProcessingStep("creating_new_account");
+        const result = await registerAndSubscribe(email, password, paymentMethodResult.paymentMethod.id);
+        
+        if (result.success) {
+          // Check if we need to confirm the payment (SCA/3DS)
+          if (result.clientSecret) {
+            setPaymentProcessingStep("requires_authentication");
+            
+            const { error: confirmError } = await stripe.confirmCardPayment(result.clientSecret);
+
+            if (confirmError) {
+              setError(`Payment authentication failed: ${confirmError.message}`);
+              setIsSubscribeLoading(false);
+              return;
+            }
+          }
+
+          setPaymentProcessingStep("subscription_active");
+          onSuccess();  // Notify parent component
+        } else {
+          const errorMsg = result.error || "Registration and subscription failed";
+          
+          // Check for specific error types
+          if (errorMsg.includes("email already registered")) {
+            setError("An account with this email already exists. Please log in instead.");
+          } else if (errorMsg.includes("declined")) {
+            setError("Your card was declined. Please try a different payment method.");
+          } else {
+            setError(errorMsg);
+          }
+          
+          setIsSubscribeLoading(false);
+        }
       }
     } catch (err) {
+      setPaymentProcessingStep(null);
       console.error("Error in subscription process:", err);
-      setError(`Subscription error: ${err.response?.data?.error || err.message || "Unknown error"}`);
-    } finally {
+      
+      // Extract error message from response if available
+      let errorMessage = "Payment processing failed";
+      
+      if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      // Make error messages more user-friendly
+      if (errorMessage.includes("rate limit") || errorMessage.includes("429")) {
+        errorMessage = "Too many payment attempts. Please try again in a few minutes.";
+      } else if (errorMessage.includes("network") || errorMessage.includes("connection")) {
+        errorMessage = "Network error. Please check your internet connection and try again.";
+      }
+      
+      setError(`Subscription error: ${errorMessage}`);
       setIsSubscribeLoading(false);
     }
   };
 
-  // Handle subscription for authenticated users
-  const handleAuthenticatedSubscription = async (paymentMethodId) => {
-    const response = await axios.post(
-      `${apiBaseUrl}/subscribe`, 
-      { paymentMethodId },
-      { 
-        withCredentials: true,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : ''
-        }
-      }
-    );
-
-    if (response.data.success) {
-      const { clientSecret } = response.data;
-
-      // Confirm subscription with Stripe
-      const { error: confirmError } = await stripe.confirmCardPayment(clientSecret);
-
-      if (confirmError) {
-        setError(`Subscription error: ${confirmError.message}`);
-      } else {
-        console.log("Subscription successful");
-        onSuccess();  // Notify parent component
-      }
-    } else {
-      setError(`Subscription error: ${response.data.error || "Unknown error"}`);
-    }
-  };
-
-  // Handle subscription for unauthenticated users with login attempt
-  const handleUnauthenticatedSubscription = async (paymentMethodId) => {
-    // Try logging in first to check if user already exists
-    try {
-      const loginResult = await login(email, password);
-      
-      if (loginResult.success) {
-        // User already exists and credentials are correct
-        // Proceed with subscription as authenticated user
-        console.log("Existing user logged in, proceeding with subscription");
-        await handleAuthenticatedSubscription(paymentMethodId);
-        return;
-      } 
-      
-      // Login failed, check if it's because of wrong password or user doesn't exist
-      if (loginResult.error && loginResult.error.includes("password")) {
-        // Likely wrong password for existing account
-        setError("Account already exists with this email. Please use correct password.");
-        return;
-      }
-      
-      // If we reach here, user likely doesn't exist, proceed with registration
-      console.log("New user, proceeding with registration and subscription");
-    } catch (loginErr) {
-      console.error("Login attempt error:", loginErr);
-      // Continue with registration process regardless of login error
-    }
-
-    // Proceed with registration and subscription for new user
-    const result = await registerAndSubscribe(email, password, paymentMethodId);
-    
-    if (result.success) {
-      // Confirm subscription with Stripe
-      const { error: confirmError } = await stripe.confirmCardPayment(result.clientSecret);
-
-      if (confirmError) {
-        setError(`Subscription error: ${confirmError.message}`);
-      } else {
-        console.log("Registration and subscription successful");
-        onSuccess();  // Notify parent component
-      }
-    } else {
-      setError(result.error);
+  // Helper for getting the payment step message
+  const getPaymentStepMessage = () => {
+    switch (paymentProcessingStep) {
+      case "initializing": return "Initializing payment...";
+      case "creating_payment_method": return "Processing your card...";
+      case "processing_payment": return "Processing payment...";
+      case "checking_existing_account": return "Checking account...";
+      case "processing_existing_user": return "Preparing subscription...";
+      case "creating_new_account": return "Creating your account...";
+      case "requires_authentication": return "Verifying payment...";
+      case "payment_pending": return "Confirming payment...";
+      case "payment_confirmed": return "Payment confirmed, finalizing...";
+      case "subscription_active": return "Subscription activated!";
+      default: return "Processing...";
     }
   };
 
@@ -235,6 +369,7 @@ const SubscriptionForm = ({ onSuccess, isMobile, isAuthenticated }) => {
                 className="email-input"
                 placeholder="your@email.com"
                 required
+                disabled={isSubscribeLoading}
               />
             </div>
 
@@ -267,6 +402,8 @@ const SubscriptionForm = ({ onSuccess, isMobile, isAuthenticated }) => {
                 }}
                 placeholder="••••••••"
                 required
+                disabled={isSubscribeLoading}
+                minLength={8}
               />
             </div>
 
@@ -299,10 +436,45 @@ const SubscriptionForm = ({ onSuccess, isMobile, isAuthenticated }) => {
                 }}
                 placeholder="••••••••"
                 required
+                disabled={isSubscribeLoading}
+                minLength={8}
               />
             </div>
           </>
         )}
+        
+        {/* Optional postal code input */}
+        <div className="input-group">
+          <label 
+            htmlFor="postalCode" 
+            style={{ 
+              display: "block", 
+              marginBottom: "5px", 
+              fontSize: "14px", 
+              fontWeight: "500", 
+              color: "#94a3b8" 
+            }}
+          >
+            Postal Code (optional)
+          </label>
+          <input
+            id="postalCode"
+            type="text"
+            value={postalCode}
+            onChange={(e) => setPostalCode(e.target.value)}
+            style={{ 
+              width: "100%", 
+              padding: "12px 12px 12px 12px", 
+              backgroundColor: "rgba(15, 23, 42, 0.7)", 
+              border: "1px solid rgba(255, 255, 255, 0.1)", 
+              borderRadius: "6px", 
+              color: "#f0f4f8", 
+              fontSize: "14px" 
+            }}
+            placeholder="12345"
+            disabled={isSubscribeLoading}
+          />
+        </div>
         
         <div className="card-element-container">
           <div className="card-element-icon">
@@ -321,9 +493,10 @@ const SubscriptionForm = ({ onSuccess, isMobile, isAuthenticated }) => {
                 },
                 invalid: { color: "#f43f5e" },
               },
-              hidePostalCode: true,
+              hidePostalCode: true, // We're collecting it separately
             }}
             className="stripe-element"
+            disabled={isSubscribeLoading}
           />
         </div>
         
@@ -341,6 +514,20 @@ const SubscriptionForm = ({ onSuccess, isMobile, isAuthenticated }) => {
           </div>
         )}
         
+        {requiresAction && (
+          <div style={{ 
+            color: "#f59e0b", 
+            marginBottom: "10px", 
+            padding: "8px", 
+            borderRadius: "6px",
+            backgroundColor: "rgba(245, 158, 11, 0.1)",
+            border: "1px solid rgba(245, 158, 11, 0.2)",
+            fontSize: isMobile ? "12px" : "14px"
+          }}>
+            Your card requires additional verification. A popup window may appear.
+          </div>
+        )}
+        
         <div className={`secure-badge ${isMobile ? 'mobile-smaller-text' : ''}`}>
           <LockIcon /> Secure payment - $10/month
         </div>
@@ -353,7 +540,7 @@ const SubscriptionForm = ({ onSuccess, isMobile, isAuthenticated }) => {
           {isSubscribeLoading ? (
             <>
               <span className="spinner"></span>
-              Processing...
+              {getPaymentStepMessage()}
             </>
           ) : (
             isAuthenticated ? "Subscribe Now" : "Register & Subscribe"

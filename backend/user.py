@@ -145,7 +145,7 @@ def register_and_subscribe():
         )
         
         # Create subscription
-        price_id = os.getenv("PRICE_ID")
+        price_id = os.getenv("PRICE_ID_TEST")
         subscription = stripe.Subscription.create(
             customer=customer.id,
             items=[{"price": price_id}],
@@ -197,7 +197,12 @@ def subscribe_user():
         data = request.get_json()
         payment_method_id = data.get("paymentMethodId")
         
+        if not payment_method_id:
+            return jsonify({"error": "Payment method ID is required"}), 400
+            
         price_id = os.getenv("PRICE_ID")
+        if not price_id:
+            return jsonify({"error": "Subscription price not configured"}), 500
         
         # Check for existing customers using authenticated user's email
         customers = stripe.Customer.list(email=user.email).data
@@ -208,35 +213,97 @@ def subscribe_user():
             customer = stripe.Customer.create(email=user.email)
 
         # Attach payment method
-        stripe.PaymentMethod.attach(payment_method_id, customer=customer.id)
+        try:
+            stripe.PaymentMethod.attach(payment_method_id, customer=customer.id)
+        except stripe.error.InvalidRequestError as e:
+            return jsonify({"error": "Invalid payment method", "details": str(e)}), 400
 
+        # Set as default payment method
         stripe.Customer.modify(
             customer.id,
             invoice_settings={"default_payment_method": payment_method_id}
         )
 
-        # Create subscription
+        # Create subscription with expanded payment intent
         subscription = stripe.Subscription.create(
             customer=customer.id,
             items=[{"price": price_id}],
+            payment_behavior='default_incomplete',  # Important for handling auth requirements
             expand=["latest_invoice.payment_intent"],
         )
 
-        # Update authenticated user with subscription data
-        user.customer_id = customer.id
-        user.subscription_id = subscription.id
-        user.subscription_status = "active"
-        db.session.commit()
+        # Check subscription status to determine next steps
+        if subscription.status == 'active':
+            # Payment succeeded without additional authentication
+            user.customer_id = customer.id
+            user.subscription_id = subscription.id
+            user.subscription_status = "active"
+            db.session.commit()
+            
+            return jsonify({
+                "success": True,
+                "status": "active",
+                "subscriptionId": subscription.id
+            })
+            
+        elif subscription.status == 'incomplete' or subscription.status == 'trialing':
+            # Store subscription data but mark as pending until payment is confirmed
+            user.customer_id = customer.id
+            user.subscription_id = subscription.id
+            user.subscription_status = "pending"  # Use pending status until confirmed
+            db.session.commit()
+            
+            # Check if further action required (3D Secure, etc.)
+            payment_intent = subscription.latest_invoice.payment_intent
+            if payment_intent.status == 'requires_action':
+                return jsonify({
+                    "success": False,
+                    "requires_action": True,
+                    "payment_intent_client_secret": payment_intent.client_secret,
+                    "subscriptionId": subscription.id
+                })
+            else:
+                # Awaiting payment confirmation
+                return jsonify({
+                    "success": True,
+                    "status": "pending",
+                    "subscriptionId": subscription.id,
+                    "clientSecret": payment_intent.client_secret
+                })
+        else:
+            # Unexpected status
+            return jsonify({
+                "success": False,
+                "error": f"Unexpected subscription status: {subscription.status}",
+                "subscriptionId": subscription.id
+            }), 400
 
+    except stripe.error.CardError as e:
+        # Since it's a decline, stripe.error.CardError will be caught
         return jsonify({
-            "success": True,
-            "subscriptionId": subscription.id,
-            "clientSecret": subscription.latest_invoice.payment_intent.client_secret,
-        })
+            "error": "Payment method declined",
+            "code": e.code,
+            "param": e.param,
+            "message": e.user_message or str(e)
+        }), 400
+    except stripe.error.RateLimitError as e:
+        # Too many requests made to the API too quickly
+        return jsonify({"error": "Rate limit exceeded. Please try again later"}), 429
+    except stripe.error.InvalidRequestError as e:
+        # Invalid parameters were supplied to Stripe's API
+        return jsonify({"error": f"Invalid parameters: {str(e)}"}), 400
+    except stripe.error.AuthenticationError as e:
+        # Authentication with Stripe's API failed
+        return jsonify({"error": "Authentication with payment processor failed"}), 500
+    except stripe.error.APIConnectionError as e:
+        # Network communication with Stripe failed
+        return jsonify({"error": "Network error. Please try again"}), 503
     except stripe.error.StripeError as e:
-        return jsonify({"error": str(e)}), 500
+        # Generic Stripe error
+        return jsonify({"error": f"Payment processing error: {str(e)}"}), 500
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        # Unexpected error
+        return jsonify({"error": "An unexpected error occurred. Please try again"}), 500
 
 @user_bp.route('/check-subscription', methods=['GET'])
 @jwt_required()
@@ -278,13 +345,10 @@ def cancel_subscription():
 
 @user_bp.route('/webhook', methods=['POST'])
 def stripe_webhook():
-    """Handle Stripe webhook events for subscription lifecycle management."""
     payload = request.get_data(as_text=True)
     sig_header = request.headers.get('Stripe-Signature')
-
     endpoint_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
-    event = None
-
+    
     try:
         event = stripe.Webhook.construct_event(
             payload, sig_header, endpoint_secret
@@ -293,7 +357,7 @@ def stripe_webhook():
         return jsonify({"error": "Invalid payload"}), 400
     except stripe.error.SignatureVerificationError:
         return jsonify({"error": "Invalid signature"}), 400
-
+    
     # Handle the event
     try:
         if event['type'] == 'invoice.payment_succeeded':
