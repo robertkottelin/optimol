@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as $3Dmol from '3dmol';
-import { styles } from '../styles/components';
 
 const MoleculeViewer = ({
   atoms,
@@ -11,7 +10,8 @@ const MoleculeViewer = ({
   molecule2Rotation,
   onMoleculeRotate,
   molecule1Name,
-  molecule2Name
+  molecule2Name,
+  bondParams
 }) => {
   const viewerRef = useRef();
   const containerRef = useRef();
@@ -24,54 +24,29 @@ const MoleculeViewer = ({
   const [showBondLengths, setShowBondLengths] = useState(true);
   const [showBondLegend, setShowBondLegend] = useState(true);
 
-
-  // Control button styles
-  const positionControlButtonStyle = {
-    width: isMobile ? '48px' : '40px',
-    height: isMobile ? '48px' : '40px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(56, 189, 248, 0.2)',
-    border: '1px solid rgba(56, 189, 248, 0.3)',
-    borderRadius: '8px',
-    color: '#f0f4f8',
-    fontSize: isMobile ? '20px' : '18px',
-    cursor: 'pointer',
-    padding: '4px',
-    touchAction: 'manipulation'
-  };
-
-  const rotationControlButtonStyle = {
-    width: isMobile ? '46px' : '40px',
-    height: isMobile ? '36px' : '30px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
-    border: '1px solid rgba(16, 185, 129, 0.3)',
-    borderRadius: '8px',
-    color: '#f0f4f8',
-    fontSize: isMobile ? '16px' : '14px',
-    cursor: 'pointer',
-    margin: '2px',
-    padding: '4px',
-    touchAction: 'manipulation'
-  };
-
-  const resetButtonStyle = {
-    backgroundColor: 'rgba(15, 23, 42, 0.7)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    borderRadius: '8px',
-    color: '#f0f4f8',
-    padding: '8px 12px',
-    cursor: 'pointer',
-    fontSize: isMobile ? '14px' : '12px',
-    touchAction: 'manipulation'
-  };
-
   // Extract atoms for both molecules
   const { molecule1, molecule2 } = atoms || { molecule1: null, molecule2: null };
+
+  // Calculate angle in degrees between two vectors
+  const calculateAngleDegrees = (vec1, vec2) => {
+    // Normalize vectors
+    const mag1 = Math.sqrt(vec1.x * vec1.x + vec1.y * vec1.y + vec1.z * vec1.z);
+    const mag2 = Math.sqrt(vec2.x * vec2.x + vec2.y * vec2.y + vec2.z * vec2.z);
+
+    if (mag1 === 0 || mag2 === 0) return 0;
+
+    const vec1Norm = { x: vec1.x / mag1, y: vec1.y / mag1, z: vec1.z / mag1 };
+    const vec2Norm = { x: vec2.x / mag2, y: vec2.y / mag2, z: vec2.z / mag2 };
+
+    // Dot product
+    const dotProduct = vec1Norm.x * vec2Norm.x + vec1Norm.y * vec2Norm.y + vec1Norm.z * vec2Norm.z;
+
+    // Clamp to avoid numerical issues
+    const clamped = Math.max(-1, Math.min(1, dotProduct));
+
+    // Convert to degrees
+    return Math.acos(clamped) * (180 / Math.PI);
+  };
 
   // Function to apply rotation transformation to coordinates
   const applyRotation = (coords, rotation, centerOfMass) => {
@@ -206,8 +181,15 @@ const MoleculeViewer = ({
       'P': 1.07, 'S': 1.05, 'Cl': 1.02, 'Br': 1.20
     };
 
-    // Maximum bond distance factor (multiplier for sum of covalent radii)
-    const bondDistanceFactor = 1.3;
+    // Define absolute maximum bond length in Angstroms
+    // This is an additional hard constraint regardless of element types
+    const MAX_BOND_LENGTH = 2.0;
+
+    // Calculate adaptive factor based on parameters or use default
+    const bondDistanceFactor =
+      (bondParams?.covalent_display_threshold)
+        ? bondParams.covalent_display_threshold / 0.96  // Normalized to water's O-H bond
+        : 1.3;
 
     // Check all possible atom pairs
     for (let i = 0; i < atoms.length; i++) {
@@ -226,11 +208,11 @@ const MoleculeViewer = ({
         const radius1 = covalentRadii[atom1.element] || 0.75;
         const radius2 = covalentRadii[atom2.element] || 0.75;
 
-        // Calculate bond threshold as sum of covalent radii with tolerance
-        const bondThreshold = (radius1 + radius2) * bondDistanceFactor;
-
-        // Check if distance is within bond threshold
-        if (distance <= bondThreshold) {
+        // Calculate adaptive bond threshold as sum of covalent radii with tolerance
+        const adaptiveThreshold = (radius1 + radius2) * bondDistanceFactor;
+        
+        // Apply both adaptive threshold and absolute maximum constraint
+        if (distance <= adaptiveThreshold && distance <= MAX_BOND_LENGTH) {
           bonds.push({
             atom1Index: i,
             atom2Index: j,
@@ -246,8 +228,9 @@ const MoleculeViewer = ({
   // Calculate hydrogen bonds between donor-H and acceptor atoms
   const calculateHydrogenBonds = (atoms) => {
     const hBonds = [];
-    const hBondLengthMax = 3.2; // Maximum H-bond length in Angstroms
-    const hBondLengthMin = 1.5; // Minimum length to avoid counting covalent bonds
+    const hBondLengthMax =
+      bondParams?.hydrogen_display_threshold ?? 3.2;
+    const hBondLengthMin = 1.5;
 
     // Identify potential hydrogen bond donors (H attached to O, N)
     const donors = [];
@@ -318,39 +301,20 @@ const MoleculeViewer = ({
             z: acceptorAtom.z - hAtom.z
           };
 
-          // Normalize vectors
-          const donorToHMag = Math.sqrt(
-            donorToH.x * donorToH.x + donorToH.y * donorToH.y + donorToH.z * donorToH.z
-          );
-          const hToAcceptorMag = Math.sqrt(
-            hToAcceptor.x * hToAcceptor.x + hToAcceptor.y * hToAcceptor.y + hToAcceptor.z * hToAcceptor.z
-          );
+          // Calculate angle in degrees
+          const angleDegrees = calculateAngleDegrees(donorToH, hToAcceptor);
 
-          const donorToHNorm = {
-            x: donorToH.x / donorToHMag,
-            y: donorToH.y / donorToHMag,
-            z: donorToH.z / donorToHMag
-          };
+          // Use angle threshold from bondParams if available
+          const angleThreshold = bondParams?.angle_display_threshold ?? 45;
 
-          const hToAcceptorNorm = {
-            x: hToAcceptor.x / hToAcceptorMag,
-            y: hToAcceptor.y / hToAcceptorMag,
-            z: hToAcceptor.z / hToAcceptorMag
-          };
-
-          // Calculate dot product to get cosine of angle
-          const dotProduct =
-            donorToHNorm.x * hToAcceptorNorm.x +
-            donorToHNorm.y * hToAcceptorNorm.y +
-            donorToHNorm.z * hToAcceptorNorm.z;
-
-          // For hydrogen bond, angle should be reasonably linear (cos > 0.7 is < 45°)
-          if (dotProduct > 0.7) {
+          // For hydrogen bond, angle should meet threshold
+          if (angleDegrees <= angleThreshold) {
             hBonds.push({
               hIndex: donor.hIndex,
               donorHeavyIndex: donor.donorHeavyIndex,
               acceptorIndex: acceptorIndex,
-              distance: distance
+              distance: distance,
+              angle: angleDegrees
             });
           }
         }
@@ -368,8 +332,10 @@ const MoleculeViewer = ({
    */
   const calculateIntermolecularHydrogenBonds = (molecule1, molecule2) => {
     const hBonds = [];
-    const hBondLengthMax = 3.2; // Maximum H-bond length in Angstroms
-    const hBondLengthMin = 1.5; // Minimum length to avoid counting covalent bonds
+    const hBondLengthMax =
+      bondParams?.hydrogen_display_threshold ?? 3.2;
+    const hBondLengthMin = 1.5;
+    const angleThreshold = bondParams?.angle_display_threshold ?? 45;
 
     // Identify donors and acceptors in molecule 1
     const donors1 = [];
@@ -480,34 +446,11 @@ const MoleculeViewer = ({
             z: acceptorAtom.z - hAtom.z
           };
 
-          // Normalize vectors
-          const donorToHMag = Math.sqrt(
-            donorToH.x * donorToH.x + donorToH.y * donorToH.y + donorToH.z * donorToH.z
-          );
-          const hToAcceptorMag = Math.sqrt(
-            hToAcceptor.x * hToAcceptor.x + hToAcceptor.y * hToAcceptor.y + hToAcceptor.z * hToAcceptor.z
-          );
+          // Calculate angle in degrees
+          const angleDegrees = calculateAngleDegrees(donorToH, hToAcceptor);
 
-          const donorToHNorm = {
-            x: donorToH.x / donorToHMag,
-            y: donorToH.y / donorToHMag,
-            z: donorToH.z / donorToHMag
-          };
-
-          const hToAcceptorNorm = {
-            x: hToAcceptor.x / hToAcceptorMag,
-            y: hToAcceptor.y / hToAcceptorMag,
-            z: hToAcceptor.z / hToAcceptorMag
-          };
-
-          // Calculate dot product to get cosine of angle
-          const dotProduct =
-            donorToHNorm.x * hToAcceptorNorm.x +
-            donorToHNorm.y * hToAcceptorNorm.y +
-            donorToHNorm.z * hToAcceptorNorm.z;
-
-          // For hydrogen bond, angle should be reasonably linear (cos > 0.7 is < 45°)
-          if (dotProduct > 0.7) {
+          // Apply angle threshold
+          if (angleDegrees <= angleThreshold) {
             hBonds.push({
               donor: {
                 hIndex: donor.hIndex,
@@ -518,7 +461,8 @@ const MoleculeViewer = ({
                 index: acceptor.index,
                 molecule: 2
               },
-              distance: distance
+              distance: distance,
+              angle: angleDegrees
             });
           }
         }
@@ -556,34 +500,11 @@ const MoleculeViewer = ({
             z: acceptorAtom.z - hAtom.z
           };
 
-          // Normalize vectors
-          const donorToHMag = Math.sqrt(
-            donorToH.x * donorToH.x + donorToH.y * donorToH.y + donorToH.z * donorToH.z
-          );
-          const hToAcceptorMag = Math.sqrt(
-            hToAcceptor.x * hToAcceptor.x + hToAcceptor.y * hToAcceptor.y + hToAcceptor.z * hToAcceptor.z
-          );
+          // Calculate angle in degrees
+          const angleDegrees = calculateAngleDegrees(donorToH, hToAcceptor);
 
-          const donorToHNorm = {
-            x: donorToH.x / donorToHMag,
-            y: donorToH.y / donorToHMag,
-            z: donorToH.z / donorToHMag
-          };
-
-          const hToAcceptorNorm = {
-            x: hToAcceptor.x / hToAcceptorMag,
-            y: hToAcceptor.y / hToAcceptorMag,
-            z: hToAcceptor.z / hToAcceptorMag
-          };
-
-          // Calculate dot product to get cosine of angle
-          const dotProduct =
-            donorToHNorm.x * hToAcceptorNorm.x +
-            donorToHNorm.y * hToAcceptorNorm.y +
-            donorToHNorm.z * hToAcceptorNorm.z;
-
-          // For hydrogen bond, angle should be reasonably linear (cos > 0.7 is < 45°)
-          if (dotProduct > 0.7) {
+          // Apply angle threshold
+          if (angleDegrees <= angleThreshold) {
             hBonds.push({
               donor: {
                 hIndex: donor.hIndex,
@@ -594,7 +515,8 @@ const MoleculeViewer = ({
                 index: acceptor.index,
                 molecule: 1
               },
-              distance: distance
+              distance: distance,
+              angle: angleDegrees
             });
           }
         }
@@ -677,6 +599,11 @@ const MoleculeViewer = ({
     if ((!molecule1 && !molecule2) || !viewerInstance) {
       return;
     }
+
+    console.debug("Bond parameters updated:",
+      bondParams?.covalent_display_threshold,
+      bondParams?.hydrogen_display_threshold,
+      bondParams?.angle_display_threshold);
 
     // Add a slight delay to ensure container is fully rendered
     const timer = setTimeout(() => {
@@ -1224,7 +1151,7 @@ const MoleculeViewer = ({
       window.removeEventListener('resize', handleResize);
       clearTimeout(timer);
     };
-  }, [atoms, isMobile, molecule2Offset, molecule2Rotation, positioningMode, viewerInstance, isInitialRender, showBondLengths]);
+  }, [atoms, isMobile, molecule2Offset, molecule2Rotation, positioningMode, viewerInstance, isInitialRender, showBondLengths, bondParams]);
 
   // Effect to handle keyboard events for positioning mode
   useEffect(() => {
@@ -1308,97 +1235,88 @@ const MoleculeViewer = ({
   return (
     <>
       {positioningMode && molecule2 && (
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '10px',
-          marginBottom: '16px',
-          backgroundColor: 'rgba(15, 23, 42, 0.7)',
-          padding: isMobile ? '12px' : '16px',
-          borderRadius: '8px',
-          border: '1px solid rgba(255, 255, 255, 0.1)'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h4 style={{ margin: '0 0 8px 0', fontSize: '16px' }}>Position Controls</h4>
+        <div className="molecule-positioning-container">
+          <div className="positioning-header">
+            <h4 className="positioning-title">Position Controls</h4>
           </div>
 
           {/* XY position control buttons */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+          <div className="position-xy-controls">
             <button
               onClick={() => onMoleculeMove({ ...molecule2Offset, y: molecule2Offset.y + 0.5 })}
-              style={positionControlButtonStyle}>
+              className="position-control-button">
               ↑
             </button>
-            <div style={{ display: 'flex', gap: '4px' }}>
+            <div className="position-xy-row">
               <button
                 onClick={() => onMoleculeMove({ ...molecule2Offset, x: molecule2Offset.x - 0.5 })}
-                style={positionControlButtonStyle}>
+                className="position-control-button">
                 ←
               </button>
               <button
                 onClick={() => onMoleculeMove({ ...molecule2Offset, y: molecule2Offset.y - 0.5 })}
-                style={positionControlButtonStyle}>
+                className="position-control-button">
                 ↓
               </button>
               <button
                 onClick={() => onMoleculeMove({ ...molecule2Offset, x: molecule2Offset.x + 0.5 })}
-                style={positionControlButtonStyle}>
+                className="position-control-button">
                 →
               </button>
             </div>
           </div>
 
           {/* Z position control buttons */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '4px', marginTop: '4px' }}>
+          <div className="position-z-controls">
             <button
               onClick={() => onMoleculeMove({ ...molecule2Offset, z: molecule2Offset.z - 0.5 })}
-              style={positionControlButtonStyle}>
+              className="position-control-button">
               Z−
             </button>
             <button
               onClick={() => onMoleculeMove({ ...molecule2Offset, z: molecule2Offset.z + 0.5 })}
-              style={positionControlButtonStyle}>
+              className="position-control-button">
               Z+
             </button>
           </div>
 
           {/* Rotation control buttons */}
-          <div style={{ marginTop: '8px', padding: '8px 0', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-            <h4 style={{ margin: '0 0 8px 0', fontSize: '16px' }}>Rotation Controls</h4>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div className="rotation-control-container">
+            <h4 className="positioning-title">Rotation Controls</h4>
+            <div className="rotation-controls-group">
+              <div className="rotation-axis-group">
                 <button
                   onClick={() => onMoleculeRotate({ ...molecule2Rotation, x: (molecule2Rotation.x - 15 + 360) % 360 })}
-                  style={rotationControlButtonStyle}>
+                  className="rotation-control-button">
                   X−
                 </button>
                 <button
                   onClick={() => onMoleculeRotate({ ...molecule2Rotation, x: (molecule2Rotation.x + 15) % 360 })}
-                  style={rotationControlButtonStyle}>
+                  className="rotation-control-button">
                   X+
                 </button>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div className="rotation-axis-group">
                 <button
                   onClick={() => onMoleculeRotate({ ...molecule2Rotation, y: (molecule2Rotation.y - 15 + 360) % 360 })}
-                  style={rotationControlButtonStyle}>
+                  className="rotation-control-button">
                   Y−
                 </button>
                 <button
                   onClick={() => onMoleculeRotate({ ...molecule2Rotation, y: (molecule2Rotation.y + 15) % 360 })}
-                  style={rotationControlButtonStyle}>
+                  className="rotation-control-button">
                   Y+
                 </button>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div className="rotation-axis-group">
                 <button
                   onClick={() => onMoleculeRotate({ ...molecule2Rotation, z: (molecule2Rotation.z - 15 + 360) % 360 })}
-                  style={rotationControlButtonStyle}>
+                  className="rotation-control-button">
                   Z−
                 </button>
                 <button
                   onClick={() => onMoleculeRotate({ ...molecule2Rotation, z: (molecule2Rotation.z + 15) % 360 })}
-                  style={rotationControlButtonStyle}>
+                  className="rotation-control-button">
                   Z+
                 </button>
               </div>
@@ -1406,22 +1324,15 @@ const MoleculeViewer = ({
           </div>
 
           {/* Reset buttons */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: '8px',
-            marginTop: '8px',
-            paddingTop: '8px',
-            borderTop: '1px solid rgba(255, 255, 255, 0.1)'
-          }}>
+          <div className="reset-buttons-container">
             <button
               onClick={() => onMoleculeMove({ x: 0, y: 0, z: 0 })}
-              style={resetButtonStyle}>
+              className="reset-button">
               Reset Position
             </button>
             <button
               onClick={() => onMoleculeRotate({ x: 0, y: 0, z: 0 })}
-              style={resetButtonStyle}>
+              className="reset-button">
               Reset Rotation
             </button>
           </div>
@@ -1429,141 +1340,67 @@ const MoleculeViewer = ({
       )}
 
       {/* Bond Length Display Toggle */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        marginBottom: '8px',
-        padding: '8px',
-        backgroundColor: 'rgba(15, 23, 42, 0.7)',
-        borderRadius: '8px',
-        border: '1px solid rgba(255, 255, 255, 0.1)'
-      }}>
-        <div style={{ display: 'flex', gap: isMobile ? '8px' : '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
-          <label style={{
-            display: 'flex',
-            alignItems: 'center',
-            cursor: 'pointer'
-          }}>
+      <div className="bond-display-options">
+        <div className="bond-display-checkboxes">
+          <label className="bond-display-label">
             <input
               type="checkbox"
               checked={showBondLengths}
               onChange={(e) => setShowBondLengths(e.target.checked)}
-              style={{
-                marginRight: '8px',
-                cursor: 'pointer',
-                accentColor: '#38bdf8'
-              }}
+              className="bond-display-checkbox"
             />
             <span>Show Bond Lengths (Å)</span>
           </label>
 
-          <label style={{
-            display: 'flex',
-            alignItems: 'center',
-            cursor: 'pointer'
-          }}>
+          <label className="bond-display-label">
             <input
               type="checkbox"
               checked={showBondLegend}
               onChange={(e) => setShowBondLegend(e.target.checked)}
-              style={{
-                marginRight: '8px',
-                cursor: 'pointer',
-                accentColor: '#38bdf8'
-              }}
+              className="bond-display-checkbox"
             />
             <span>Show Controls and Bond Types</span>
           </label>
         </div>
       </div>
 
-
       <div
         ref={containerRef}
-        className="viewer-container"
+        className={`molecule-viewer-container ${isMobile ? 'mobile-height' : ''}`}
         tabIndex="0"
-        style={{
-          position: 'relative',
-          width: '100%',
-          height: isMobile ? '350px' : '450px',
-          margin: '0 auto',
-          borderRadius: '12px',
-          overflow: 'hidden',
-          backgroundColor: "rgba(15, 23, 42, 0.5)",
-          boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.2)",
-          border: "1px solid rgba(255, 255, 255, 0.1)",
-          cursor: "auto",
-          outline: "none"
-        }}
       >
         <div
           ref={viewerRef}
           id={viewerIdRef.current}
-          style={{
-            width: "100%",
-            height: "100%",
-            position: "absolute",
-            top: 0,
-            left: 0,
-            borderRadius: "12px",
-            pointerEvents: "auto"
-          }}
+          className="molecule-viewer-3d"
         ></div>
 
         {/* Static Bond Legend Overlay */}
         {(molecule1 || molecule2) && showBondLegend && (
-          <div style={{
-            position: 'absolute',
-            top: '10px',
-            left: '10px',
-            backgroundColor: 'rgba(0,0,0,0.7)',
-            borderRadius: '5px',
-            padding: '8px 10px',
-            color: 'white',
-            fontSize: '12px',
-            pointerEvents: 'none',
-            zIndex: 20,
-            maxWidth: isMobile ? '160px' : '180px'
-          }}>
-            <div style={{ fontWeight: 'bold', marginBottom: '6px' }}>Controls:</div>
-            <div style={{ marginBottom: '6px' }}>• Click and drag to rotate</div>
-            <div style={{ marginBottom: '6px' }}>• Scroll to zoom</div>
-            <div style={{ marginBottom: '6px' }}>• Press scroll-wheel to pan. Mobile: pan with three fingers</div>
+          <div className={`bond-legend ${isMobile ? 'mobile-legend' : ''}`}>
+            <div className="legend-section-title">Controls:</div>
+            <div className="legend-item">• Click and drag to rotate</div>
+            <div className="legend-item">• Scroll to zoom</div>
+            <div className="legend-item">• Press scroll-wheel to pan. Mobile: pan with three fingers</div>
 
-            <div style={{ fontWeight: 'bold', marginBottom: '6px' }}>Bond Types:</div>
+            <div className="legend-section-title">Bond Types:</div>
 
             {/* Covalent Bond */}
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
-              <div style={{
-                width: '30px',
-                height: isMobile ? '4px' : '5px',
-                backgroundColor: molecule1 ? '#38bdf8' : '#10b981',
-                borderRadius: '4px',
-                marginRight: '8px'
-              }}></div>
+            <div className="bond-type-row">
+              <div className={`bond-type-indicator covalent-bond ${molecule1 ? 'molecule1-color' : 'molecule2-color'}`}></div>
               <div>Covalent</div>
             </div>
 
             {/* Hydrogen Bond */}
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
-              <div style={{
-                width: '30px',
-                height: '0',
-                borderTop: isMobile ? '2px dashed white' : '3px dashed white',
-                marginRight: '8px'
-              }}></div>
+            <div className="bond-type-row">
+              <div className={`bond-type-indicator hydrogen-bond ${isMobile ? 'mobile-dash' : ''}`}></div>
               <div>Hydrogen</div>
             </div>
 
             {/* Intermolecular Hydrogen Bond - only show if both molecules present */}
             {molecule1 && molecule2 && (
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <div style={{
-                  width: '30px',
-                  height: '0',
-                  borderTop: isMobile ? '2px dashed #FFD700' : '3px dashed #FFD700',
-                  marginRight: '8px'
-                }}></div>
+              <div className="bond-type-row">
+                <div className={`bond-type-indicator intermolecular-bond ${isMobile ? 'mobile-dash' : ''}`}></div>
                 <div>Intermolecular H-bond</div>
               </div>
             )}
@@ -1571,21 +1408,10 @@ const MoleculeViewer = ({
         )}
 
         {positioningMode && molecule2 && (
-          <div style={{
-            position: 'absolute',
-            bottom: '10px',
-            right: '10px',
-            backgroundColor: 'rgba(0,0,0,0.7)',
-            borderRadius: '5px',
-            padding: '8px 10px',
-            color: 'white',
-            fontSize: '12px',
-            pointerEvents: 'none',
-            zIndex: 20
-          }}>
+          <div className="molecule-position-info">
             <div>Offset: X: {molecule2Offset.x.toFixed(2)}, Y: {molecule2Offset.y.toFixed(2)}, Z: {molecule2Offset.z.toFixed(2)}</div>
             <div>Rotation: X: {molecule2Rotation.x}°, Y: {molecule2Rotation.y}°, Z: {molecule2Rotation.z}°</div>
-            <div style={{ marginTop: '4px', borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '4px' }}>
+            <div className="keyboard-controls-info">
               <strong>Keyboard Controls:</strong>
               <div>• Arrow keys (←→↑↓): X/Y position</div>
               <div>• PageUp/PageDown: Z position</div>

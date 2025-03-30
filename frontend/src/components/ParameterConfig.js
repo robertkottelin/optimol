@@ -270,6 +270,98 @@ export const ClassicalParametersConfig = ({
               }}
             />
           </div>
+
+          {/* New Bond Visualization Settings Section */}
+          <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', marginTop: '12px', paddingTop: '12px' }}>
+            <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>Bond Visualization Settings:</div>
+            
+            {/* Covalent Bond Threshold */}
+            <div className="parameter-group-wrapper" style={{ margin: isMobile ? '0 0 8px 0' : undefined }}>
+              <label 
+                style={{ 
+                  ...styles.parameterLabel, 
+                  display: 'block', 
+                  margin: isMobile ? '0 0 2px 0' : undefined,
+                  padding: 0
+                }}
+              >
+                Covalent Bond Display Length (Å):
+              </label>
+              <input 
+                type="number" 
+                value={classicalParams.covalent_display_threshold}
+                min="0.1"
+                max="3.0"
+                step="0.1"
+                onChange={(e) => handleParamChange('classical', 'covalent_display_threshold', Number(e.target.value))}
+                style={{ 
+                  ...styles.parameterInput, 
+                  width: isMobile ? '100%' : undefined,
+                  margin: 0,
+                  height: isMobile ? '36px' : undefined,
+                  padding: isMobile ? '8px' : undefined
+                }}
+              />
+            </div>
+            
+            {/* Hydrogen Bond Threshold */}
+            <div className="parameter-group-wrapper" style={{ margin: isMobile ? '0 0 8px 0' : undefined }}>
+              <label 
+                style={{ 
+                  ...styles.parameterLabel, 
+                  display: 'block', 
+                  margin: isMobile ? '0 0 2px 0' : undefined,
+                  padding: 0
+                }}
+              >
+                Hydrogen Bond Display Length (Å):
+              </label>
+              <input 
+                type="number" 
+                value={classicalParams.hydrogen_display_threshold}
+                min="1.5"
+                max="4.0"
+                step="0.1"
+                onChange={(e) => handleParamChange('classical', 'hydrogen_display_threshold', Number(e.target.value))}
+                style={{ 
+                  ...styles.parameterInput, 
+                  width: isMobile ? '100%' : undefined,
+                  margin: 0,
+                  height: isMobile ? '36px' : undefined,
+                  padding: isMobile ? '8px' : undefined
+                }}
+              />
+            </div>
+            
+            {/* Angle Display Threshold */}
+            <div className="parameter-group-wrapper" style={{ margin: isMobile ? '0 0 8px 0' : undefined }}>
+              <label 
+                style={{ 
+                  ...styles.parameterLabel, 
+                  display: 'block', 
+                  margin: isMobile ? '0 0 2px 0' : undefined,
+                  padding: 0
+                }}
+              >
+                Angle Display Threshold (degrees):
+              </label>
+              <input 
+                type="number" 
+                value={classicalParams.angle_display_threshold}
+                min="5"
+                max="180"
+                step="5"
+                onChange={(e) => handleParamChange('classical', 'angle_display_threshold', Number(e.target.value))}
+                style={{ 
+                  ...styles.parameterInput, 
+                  width: isMobile ? '100%' : undefined,
+                  margin: 0,
+                  height: isMobile ? '36px' : undefined,
+                  padding: isMobile ? '8px' : undefined
+                }}
+              />
+            </div>
+          </div>
         </>
       )}
     </div>
@@ -319,7 +411,6 @@ export const ClassicalParametersConfig = ({
   </div>
 );
 
-// Quantum parameters configuration component
 // Quantum parameters configuration component
 export const QuantumParametersConfig = ({ 
   isSubscribed, 
@@ -471,6 +562,98 @@ export const QuantumParametersConfig = ({
                 padding: isMobile ? '8px' : undefined
               }}
             />
+          </div>
+
+          {/* New Bond Visualization Settings Section */}
+          <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', marginTop: '12px', paddingTop: '12px' }}>
+            <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>Bond Visualization Settings:</div>
+            
+            {/* Covalent Bond Threshold */}
+            <div className="parameter-group-wrapper" style={{ margin: isMobile ? '0 0 8px 0' : undefined }}>
+              <label 
+                style={{ 
+                  ...styles.parameterLabel, 
+                  display: 'block', 
+                  margin: isMobile ? '0 0 2px 0' : undefined,
+                  padding: 0
+                }}
+              >
+                Covalent Bond Display Length (Å):
+              </label>
+              <input 
+                type="number" 
+                value={quantumParams.covalent_display_threshold}
+                min="0.1"
+                max="3.0"
+                step="0.1"
+                onChange={(e) => handleParamChange('quantum', 'covalent_display_threshold', Number(e.target.value))}
+                style={{ 
+                  ...styles.parameterInput, 
+                  width: isMobile ? '100%' : undefined,
+                  margin: 0,
+                  height: isMobile ? '36px' : undefined,
+                  padding: isMobile ? '8px' : undefined
+                }}
+              />
+            </div>
+            
+            {/* Hydrogen Bond Threshold */}
+            <div className="parameter-group-wrapper" style={{ margin: isMobile ? '0 0 8px 0' : undefined }}>
+              <label 
+                style={{ 
+                  ...styles.parameterLabel, 
+                  display: 'block', 
+                  margin: isMobile ? '0 0 2px 0' : undefined,
+                  padding: 0
+                }}
+              >
+                Hydrogen Bond Display Length (Å):
+              </label>
+              <input 
+                type="number" 
+                value={quantumParams.hydrogen_display_threshold}
+                min="1.5"
+                max="4.0"
+                step="0.1"
+                onChange={(e) => handleParamChange('quantum', 'hydrogen_display_threshold', Number(e.target.value))}
+                style={{ 
+                  ...styles.parameterInput, 
+                  width: isMobile ? '100%' : undefined,
+                  margin: 0,
+                  height: isMobile ? '36px' : undefined,
+                  padding: isMobile ? '8px' : undefined
+                }}
+              />
+            </div>
+            
+            {/* Angle Display Threshold */}
+            <div className="parameter-group-wrapper" style={{ margin: isMobile ? '0 0 8px 0' : undefined }}>
+              <label 
+                style={{ 
+                  ...styles.parameterLabel, 
+                  display: 'block', 
+                  margin: isMobile ? '0 0 2px 0' : undefined,
+                  padding: 0
+                }}
+              >
+                Angle Display Threshold (degrees):
+              </label>
+              <input 
+                type="number" 
+                value={quantumParams.angle_display_threshold}
+                min="5"
+                max="180"
+                step="5"
+                onChange={(e) => handleParamChange('quantum', 'angle_display_threshold', Number(e.target.value))}
+                style={{ 
+                  ...styles.parameterInput, 
+                  width: isMobile ? '100%' : undefined,
+                  margin: 0,
+                  height: isMobile ? '36px' : undefined,
+                  padding: isMobile ? '8px' : undefined
+                }}
+              />
+            </div>
           </div>
         </>
       )}

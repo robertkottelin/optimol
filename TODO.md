@@ -1,0 +1,2 @@
+- Add hydrogen bond length and angle criterions for user input
+- Real stripe integration 
