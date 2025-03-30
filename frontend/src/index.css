@@ -375,6 +375,15 @@ button:disabled {
   margin: 0 auto 20px auto;
 }
 
+.subscribe-button .spinner {
+  width: 18px;
+  height: 18px;
+  border-width: 2px;
+  margin: 0;
+  margin-right: 8px;
+  display: inline-block;
+}
+
 .optimize-spinner {
   display: inline-block;
   margin-right: 12px;
