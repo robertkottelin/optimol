@@ -494,7 +494,7 @@ const SubscriptionForm = ({ onSuccess, isMobile, isAuthenticated }) => {
         )}
         
         <div className={`secure-badge ${isMobile ? 'mobile-smaller-text' : ''}`}>
-          <LockIcon /> Secure payment - $10/month
+          <LockIcon /> Secure payment - $4.99/month
         </div>
         
         <button

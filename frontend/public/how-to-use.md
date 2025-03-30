@@ -40,7 +40,7 @@ Advanced feature set, expanded computational limits. Requires email, password, a
 - Basis set access: Limited to STO-3G and 6-31G
 - System size constraints based on optimization method
 
-**Premium Tier ($10/month)**:
+**Premium Tier ($4.99/month)**:
 - Classical optimization: Maximum 1,000,000 iterations
 - Quantum optimization: Maximum 1,000 iterations
 - Full basis set access: STO-3G, 6-31G, 6-311G, cc-pVDZ
