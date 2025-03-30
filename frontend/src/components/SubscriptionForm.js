@@ -43,7 +43,6 @@ const SubscriptionForm = ({ onSuccess, isMobile, isAuthenticated }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [postalCode, setPostalCode] = useState("");
   
   const apiBaseUrl = "/api";
 
@@ -319,7 +318,7 @@ const SubscriptionForm = ({ onSuccess, isMobile, isAuthenticated }) => {
     <div className={`subscription-form glass ${isMobile ? 'mobile-smaller-padding' : ''}`}>
       <h3 className={`form-title ${isMobile ? 'mobile-stack' : ''}`}>
         <span className="premium-badge"><SparkleIcon /> PRO</span>
-        <span>Unlock Advanced Molecular Optimization</span>
+        <span>Unlock Advanced Molecular Optimization (Contact for Enterprise Subscription)</span>
       </h3>
       
       <div className={`benefits-list ${isMobile ? 'mobile-smaller-padding' : ''}`}>
@@ -442,40 +441,7 @@ const SubscriptionForm = ({ onSuccess, isMobile, isAuthenticated }) => {
             </div>
           </>
         )}
-        
-        {/* Optional postal code input */}
-        <div className="input-group">
-          <label 
-            htmlFor="postalCode" 
-            style={{ 
-              display: "block", 
-              marginBottom: "5px", 
-              fontSize: "14px", 
-              fontWeight: "500", 
-              color: "#94a3b8" 
-            }}
-          >
-            Postal Code (optional)
-          </label>
-          <input
-            id="postalCode"
-            type="text"
-            value={postalCode}
-            onChange={(e) => setPostalCode(e.target.value)}
-            style={{ 
-              width: "100%", 
-              padding: "12px 12px 12px 12px", 
-              backgroundColor: "rgba(15, 23, 42, 0.7)", 
-              border: "1px solid rgba(255, 255, 255, 0.1)", 
-              borderRadius: "6px", 
-              color: "#f0f4f8", 
-              fontSize: "14px" 
-            }}
-            placeholder="12345"
-            disabled={isSubscribeLoading}
-          />
-        </div>
-        
+                
         <div className="card-element-container">
           <div className="card-element-icon">
             <LockIcon />
