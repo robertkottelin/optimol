@@ -1355,7 +1355,7 @@ const App = () => {
               </button>
               <button
                 onClick={() => handleTestMoleculeSelect('ibuprofen')}
-                className={`test-molecule-button ${isMobile ? 'mobile-full-width' : ''}`}
+                className={`test-molecule-button ${isMobile ? 'mobile-full-width mobile-margin-bottom' : ''}`}
               >
                 <span className="test-molecule-icon"><Icons.molecule /></span>
                 Ibuprofen (C₁₃H₁₈O₂)
