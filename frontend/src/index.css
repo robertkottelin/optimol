@@ -1915,6 +1915,7 @@ button:disabled {
 
   .mobile-stack {
     flex-direction: column !important;
+    gap: 16px !important;
   }
 
   .mobile-center {
