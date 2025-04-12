@@ -426,7 +426,7 @@ def optimize_classical(atoms, params=None):
         }   
 
 
-def optimize_classical_combined(molecule1_atoms, molecule2_atoms, params=None):
+def optimize_classical_combined(molecule1_atoms, molecule2_atoms, params=None, optimize_molecule1=True, optimize_molecule2=True):
     """
     Optimize combined molecule system using classical molecular dynamics with OpenMM.
     
@@ -434,6 +434,8 @@ def optimize_classical_combined(molecule1_atoms, molecule2_atoms, params=None):
         molecule1_atoms: Atoms from the first molecule (can be None)
         molecule2_atoms: Atoms from the second molecule (can be None)
         params: Optimization parameters
+        optimize_molecule1: Whether to optimize molecule 1 atoms (default: True)
+        optimize_molecule2: Whether to optimize molecule 2 atoms (default: True)
         
     Returns:
         Dictionary with optimized atoms and metadata
@@ -599,6 +601,29 @@ def optimize_classical_combined(molecule1_atoms, molecule2_atoms, params=None):
                 exception_pairs.add((i, k))
             
         system.addForce(nonbonded_force)
+        
+        # Apply position constraints for static molecules
+        if not optimize_molecule1 or not optimize_molecule2:
+            force = mm.CustomExternalForce("k*((x-x0)^2+(y-y0)^2+(z-z0)^2)")
+            force.addGlobalParameter("k", 1000.0)  # Strong force constant to fix positions
+            force.addPerParticleParameter("x0")
+            force.addPerParticleParameter("y0")
+            force.addPerParticleParameter("z0")
+            
+            # Apply constraints to molecule 1 if it's static
+            if not optimize_molecule1:
+                for i, origin in enumerate(atom_origins):
+                    if origin == 1:  # Molecule 1 atom
+                        force.addParticle(i, [positions_nm[i][0], positions_nm[i][1], positions_nm[i][2]])
+            
+            # Apply constraints to molecule 2 if it's static
+            if not optimize_molecule2:
+                for i, origin in enumerate(atom_origins):
+                    if origin == 2:  # Molecule 2 atom
+                        force.addParticle(i, [positions_nm[i][0], positions_nm[i][1], positions_nm[i][2]])
+            
+            system.addForce(force)
+            logger.info(f"Applied position constraints: optimize_molecule1={optimize_molecule1}, optimize_molecule2={optimize_molecule2}")
         
         # Create Integrator with parameterized temperature
         integrator = mm.LangevinIntegrator(temperature*unit.kelvin, 1.0/unit.picosecond, 0.002*unit.picoseconds)
@@ -874,7 +899,9 @@ def optimize_classical_combined(molecule1_atoms, molecule2_atoms, params=None):
                     "bond_force_constant": bond_force_constant,
                     "angle_force_constant": angle_force_constant,
                     "tolerance": tolerance,
-                    "force_iterations": force_iterations
+                    "force_iterations": force_iterations,
+                    "optimize_molecule1": optimize_molecule1,
+                    "optimize_molecule2": optimize_molecule2
                 },
                 "molecules": 2 if molecule1_atoms and molecule2_atoms else 1,
                 "molecule1_atom_count": len(molecule1_atoms) if molecule1_atoms else 0,
@@ -904,8 +931,7 @@ def optimize_classical_combined(molecule1_atoms, molecule2_atoms, params=None):
                 "library": "OpenMM",
                 "status": "failed"
             }
-        }      
-
+        }
 
 def optimize_quantum(atoms, params=None):
     """
@@ -1106,7 +1132,7 @@ def optimize_quantum(atoms, params=None):
         }
     
 
-def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None):
+def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None, optimize_molecule1=True, optimize_molecule2=True):
     """
     Optimize combined molecule system using quantum chemistry with PySCF.
     
@@ -1114,6 +1140,8 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None):
         molecule1_atoms: Atoms from the first molecule (can be None)
         molecule2_atoms: Atoms from the second molecule (can be None)
         params: Optimization parameters
+        optimize_molecule1: Whether to optimize molecule 1 atoms
+        optimize_molecule2: Whether to optimize molecule 2 atoms
         
     Returns:
         Dictionary with optimized atoms and metadata
@@ -1305,8 +1333,17 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None):
             # Get coordinates
             coords = np.array([atom[1] for atom in current_atoms])
             
-            # Update geometry based on gradient using parameterized step size
-            new_coords = coords - step_size * gradients
+            # Create a mask for atoms that should be optimized
+            optimization_mask = np.ones_like(coords)
+            
+            # Apply optimization flags - set gradient to zero for static molecules
+            for i, origin in enumerate(atom_origins):
+                if (origin == 1 and not optimize_molecule1) or (origin == 2 and not optimize_molecule2):
+                    optimization_mask[i, :] = 0.0
+            
+            # Apply masked gradient - only update coordinates for molecules being optimized
+            masked_gradients = gradients * optimization_mask
+            new_coords = coords - step_size * masked_gradients
             
             # Update atom list
             new_atom_list = []
@@ -1484,7 +1521,9 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None):
                     "convergence_threshold": convergence_threshold,
                     "step_size": step_size,
                     "direct_scf": use_direct_scf,
-                    "density_fitting": use_density_fitting
+                    "density_fitting": use_density_fitting,
+                    "optimize_molecule1": optimize_molecule1,
+                    "optimize_molecule2": optimize_molecule2
                 },
                 "molecules": 2 if molecule1_atoms and molecule2_atoms else 1,
                 "molecule1_atom_count": len(molecule1_atoms) if molecule1_atoms else 0,
@@ -1516,7 +1555,6 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None):
                 "status": "failed"
             }
         }
-
 
 def extract_molecule_atoms(molecule_data):
     """
@@ -1582,7 +1620,9 @@ def optimize_molecule():
                 ]
             }
         },
-        "interaction_mode": true/false  // Whether to optimize molecular interaction
+        "interaction_mode": true/false,  // Whether to optimize molecular interaction
+        "optimize_molecule1": true/false,  // Whether to optimize molecule 1 structure
+        "optimize_molecule2": true/false   // Whether to optimize molecule 2 structure
     }
     
     Returns:
@@ -1602,6 +1642,8 @@ def optimize_molecule():
         optimization_type = data.get("optimization_type")
         optimization_params = data.get("optimization_params", {})
         interaction_mode = data.get("interaction_mode", False)
+        optimize_molecule1 = data.get("optimize_molecule1", True)
+        optimize_molecule2 = data.get("optimize_molecule2", True)
         
         # Extract atoms with robust parsing
         molecule1_atoms = extract_molecule_atoms(molecule1_data)
@@ -1616,6 +1658,10 @@ def optimize_molecule():
             
         if not optimization_type or optimization_type not in ["classical", "quantum"]:
             return jsonify({"error": "Invalid input: Missing or invalid 'optimization_type' (must be 'classical' or 'quantum')"}), 400
+        
+        # Validate that at least one molecule is being optimized in interaction mode
+        if interaction_mode and not optimize_molecule1 and not optimize_molecule2:
+            return jsonify({"error": "At least one molecule must be selected for optimization in interaction mode"}), 400
         
         # Determine user subscription status - default to unsubscribed
         is_subscribed = False
@@ -1675,7 +1721,8 @@ def optimize_molecule():
         # Log the optimization request
         logger.info(f"Starting {optimization_type} optimization, interaction_mode={interaction_mode}, "
                   f"molecule1_atoms={len(molecule1_atoms) if molecule1_atoms else 0}, "
-                  f"molecule2_atoms={len(molecule2_atoms) if molecule2_atoms else 0}")
+                  f"molecule2_atoms={len(molecule2_atoms) if molecule2_atoms else 0}, "
+                  f"optimize_molecule1={optimize_molecule1}, optimize_molecule2={optimize_molecule2}")
         
         # Import task functions only when needed
         from tasks import (
@@ -1693,7 +1740,7 @@ def optimize_molecule():
             # For molecular interaction, use the combined optimization tasks
             if optimization_type == "classical":
                 task = optimize_classical_combined_task.apply_async(
-                    args=[molecule1_atoms, molecule2_atoms, optimization_params, user_id],
+                    args=[molecule1_atoms, molecule2_atoms, optimization_params, user_id, optimize_molecule1, optimize_molecule2],
                     queue='classical'
                 )
                 # Estimate processing time based on molecule size and parameters
@@ -1702,7 +1749,7 @@ def optimize_molecule():
                 estimated_time = min(300, molecule_size * optimization_params.get('max_iterations', 1000) / 1000)
             elif optimization_type == "quantum":
                 task = optimize_quantum_combined_task.apply_async(
-                    args=[molecule1_atoms, molecule2_atoms, optimization_params, user_id],
+                    args=[molecule1_atoms, molecule2_atoms, optimization_params, user_id, optimize_molecule1, optimize_molecule2],
                     queue='quantum'
                 )
                 # Quantum calculations take longer
@@ -1737,7 +1784,9 @@ def optimize_molecule():
                     "optimization_params": optimization_params,
                     "interaction_mode": interaction_mode,
                     "molecule1_atom_count": len(molecule1_atoms) if molecule1_atoms else 0,
-                    "molecule2_atom_count": len(molecule2_atoms) if molecule2_atoms else 0
+                    "molecule2_atom_count": len(molecule2_atoms) if molecule2_atoms else 0,
+                    "optimize_molecule1": optimize_molecule1,
+                    "optimize_molecule2": optimize_molecule2
                 }),
                 result=None  # Result will be updated when task completes
             )
@@ -1758,7 +1807,7 @@ def optimize_molecule():
     except Exception as e:
         logger.error(f"Unexpected error in optimize_molecule endpoint: {str(e)}", exc_info=True)
         return jsonify({"error": str(e)}), 500
-
+    
 @opti_bp.route('/optimization-status/<task_id>', methods=['GET'])
 def optimization_status(task_id):
     """

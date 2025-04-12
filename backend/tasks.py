@@ -129,16 +129,22 @@ def optimize_quantum_task(self, atoms, params=None, user_id=None):
 
 
 @celery.task(bind=True, name='tasks.optimize_classical_combined_task')
-def optimize_classical_combined_task(self, molecule1_atoms, molecule2_atoms, params=None, user_id=None):
+def optimize_classical_combined_task(self, molecule1_atoms, molecule2_atoms, params=None, user_id=None, optimize_molecule1=True, optimize_molecule2=True):
     """Celery task for classical combined optimization"""
     import_dependencies()
     
-    logger.info(f"Starting classical combined optimization task {self.request.id} for user {user_id}")
+    logger.info(f"Starting classical combined optimization task {self.request.id} for user {user_id}, optimize_molecule1={optimize_molecule1}, optimize_molecule2={optimize_molecule2}")
     
     try:
         with app.app_context():
-            # Execute optimization
-            result = optimization_funcs['optimize_classical_combined'](molecule1_atoms, molecule2_atoms, params)
+            # Execute optimization with the additional parameters
+            result = optimization_funcs['optimize_classical_combined'](
+                molecule1_atoms, 
+                molecule2_atoms, 
+                params, 
+                optimize_molecule1, 
+                optimize_molecule2
+            )
             
             # Store result in database if user_id is provided
             if user_id is not None:
@@ -150,7 +156,9 @@ def optimize_classical_combined_task(self, molecule1_atoms, molecule2_atoms, par
                         'optimization_params': params,
                         'interaction_mode': True,
                         'molecule1_atom_count': len(molecule1_atoms) if molecule1_atoms else 0,
-                        'molecule2_atom_count': len(molecule2_atoms) if molecule2_atoms else 0
+                        'molecule2_atom_count': len(molecule2_atoms) if molecule2_atoms else 0,
+                        'optimize_molecule1': optimize_molecule1,
+                        'optimize_molecule2': optimize_molecule2
                     }),
                     result=json.dumps(result)
                 )
@@ -162,16 +170,22 @@ def optimize_classical_combined_task(self, molecule1_atoms, molecule2_atoms, par
 
 
 @celery.task(bind=True, name='tasks.optimize_quantum_combined_task')
-def optimize_quantum_combined_task(self, molecule1_atoms, molecule2_atoms, params=None, user_id=None):
+def optimize_quantum_combined_task(self, molecule1_atoms, molecule2_atoms, params=None, user_id=None, optimize_molecule1=True, optimize_molecule2=True):
     """Celery task for quantum combined optimization"""
     import_dependencies()
     
-    logger.info(f"Starting quantum combined optimization task {self.request.id} for user {user_id}")
+    logger.info(f"Starting quantum combined optimization task {self.request.id} for user {user_id}, optimize_molecule1={optimize_molecule1}, optimize_molecule2={optimize_molecule2}")
     
     try:
         with app.app_context():
-            # Execute optimization
-            result = optimization_funcs['optimize_quantum_combined'](molecule1_atoms, molecule2_atoms, params)
+            # Execute optimization with selective molecule optimization parameters
+            result = optimization_funcs['optimize_quantum_combined'](
+                molecule1_atoms, 
+                molecule2_atoms, 
+                params, 
+                optimize_molecule1, 
+                optimize_molecule2
+            )
             
             # Store result in database if user_id is provided
             if user_id is not None:
@@ -183,7 +197,9 @@ def optimize_quantum_combined_task(self, molecule1_atoms, molecule2_atoms, param
                         'optimization_params': params,
                         'interaction_mode': True,
                         'molecule1_atom_count': len(molecule1_atoms) if molecule1_atoms else 0,
-                        'molecule2_atom_count': len(molecule2_atoms) if molecule2_atoms else 0
+                        'molecule2_atom_count': len(molecule2_atoms) if molecule2_atoms else 0,
+                        'optimize_molecule1': optimize_molecule1,
+                        'optimize_molecule2': optimize_molecule2
                     }),
                     result=json.dumps(result)
                 )

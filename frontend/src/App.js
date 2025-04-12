@@ -78,6 +78,9 @@ const App = () => {
   const [taskStatus, setTaskStatus] = useState(null);
   const [statusPollInterval, setStatusPollInterval] = useState(null);
 
+  const [optimizeMolecule1, setOptimizeMolecule1] = useState(true);
+  const [optimizeMolecule2, setOptimizeMolecule2] = useState(true);
+
   const countAtoms = (molecule) => {
     if (!molecule) return 0;
     return molecule.length;
@@ -535,6 +538,11 @@ const App = () => {
       return;
     }
 
+    if (interactionMode && !optimizeMolecule1 && !optimizeMolecule2) {
+      alert("At least one molecule must be selected for optimization.");
+      return;
+    }
+
     // Get the current atoms based on the active view for subsequent optimizations
     const { molecule1, molecule2 } = getAtoms();
 
@@ -701,7 +709,9 @@ const App = () => {
         // Keep these for backward compatibility with backend
         // Pass zero values when using optimized coordinates to avoid backend re-applying them
         molecule2_offset: interactionMode ? (activeView === "original" ? molecule2Offset : { x: 0, y: 0, z: 0 }) : null,
-        molecule2_rotation: interactionMode ? (activeView === "original" ? molecule2Rotation : { x: 0, y: 0, z: 0 }) : null
+        molecule2_rotation: interactionMode ? (activeView === "original" ? molecule2Rotation : { x: 0, y: 0, z: 0 }) : null,
+        optimize_molecule1: optimizeMolecule1,
+        optimize_molecule2: optimizeMolecule2
       };
 
       console.log('Optimization payload:', JSON.stringify(payload, null, 2));
@@ -1310,6 +1320,38 @@ const App = () => {
                 <span>Optimize Molecular Interaction</span>
               </label>
             </div>
+
+            {/* Add molecule optimization controls when in interaction mode */}
+            {interactionMode && molecule1Data && molecule2Data && (
+              <div className="molecule-optimization-options" style={{ marginTop: '10px', padding: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                <div style={{ marginBottom: '5px', fontWeight: 'bold' }}>Optimization Control:</div>
+                <label className="optimization-checkbox-label" style={{ display: 'block', margin: '5px 0' }}>
+                  <input
+                    type="checkbox"
+                    checked={optimizeMolecule1}
+                    onChange={(e) => setOptimizeMolecule1(e.target.checked)}
+                    className="optimization-checkbox"
+                    style={{ marginRight: '8px' }}
+                  />
+                  <span>Optimize Molecule 1 Structure</span>
+                </label>
+                <label className="optimization-checkbox-label" style={{ display: 'block', margin: '5px 0' }}>
+                  <input
+                    type="checkbox"
+                    checked={optimizeMolecule2}
+                    onChange={(e) => setOptimizeMolecule2(e.target.checked)}
+                    className="optimization-checkbox"
+                    style={{ marginRight: '8px' }}
+                  />
+                  <span>Optimize Molecule 2 Structure</span>
+                </label>
+                {!optimizeMolecule1 && !optimizeMolecule2 && (
+                  <div style={{ color: '#f87171', fontSize: '0.85rem', marginTop: '5px' }}>
+                    Warning: At least one molecule should be optimized
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Default Offset Checkbox */}
             <div className="default-offset-checkbox-container">
