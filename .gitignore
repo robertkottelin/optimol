@@ -11,3 +11,4 @@ backend/__pycache__/opti.cpython-310.pyc
 instance/*
 backend/__pycache__/extensions.cpython-310.pyc
 backend/__pycache__/user.cpython-310.pyc
+backend/Miniconda3-latest-Linux-x86_64.sh

@@ -167,7 +167,6 @@ export const ClassicalParametersConfig = ({
         </label>
         <select 
           value={classicalParams.solution}
-          onChange={(e) => handleParamChange('classical', 'solution', e.target.value)}
           style={{ 
             ...styles.parameterSelect, 
             width: isMobile ? '100%' : undefined,
@@ -556,7 +555,6 @@ export const QuantumParametersConfig = ({
         </label>
         <select 
           value={quantumParams.solution}
-          onChange={(e) => handleParamChange('quantum', 'solution', e.target.value)}
           style={{ 
             ...styles.parameterSelect, 
             width: isMobile ? '100%' : undefined,
