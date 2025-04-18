@@ -181,7 +181,7 @@ def displace_molecule(atoms, displacement_vector=None, magnitude=1.0):
 def optimize_classical(atoms, params=None):
     """
     Optimize molecule using classical molecular dynamics with OpenMM.
-    Template-free approach for arbitrary molecules with solution environment support.
+    Template-free approach for arbitrary molecules.
     """
     try:   
         start_time = datetime.now()
@@ -198,26 +198,6 @@ def optimize_classical(atoms, params=None):
         angle_force_constant = params.get("angle_force_constant", 500.0)  # kJ/mol/radian^2
         tolerance = params.get("tolerance", 10.0)  # kJ/mol/nm (force units)
         force_iterations = params.get("force_iterations", False)  # Whether to force all iterations
-        solution = params.get("solution", "water")  # Solution environment parameter
-        
-        # Define solution parameters mapping
-        solution_params = {
-            "water": {
-                "dielectric": 78.4,
-                "pH": 7.0,
-                "ionic_strength": 0.0
-            },
-            "blood": {
-                "dielectric": 80.0,
-                "pH": 7.4,
-                "ionic_strength": 0.15
-            },
-            "intracellular": {
-                "dielectric": 75.0,
-                "pH": 7.2,
-                "ionic_strength": 0.15
-            }
-        }.get(solution, {"dielectric": 78.4, "pH": 7.0, "ionic_strength": 0.0})
         
         # Create system from atoms
         positions = []
@@ -320,45 +300,7 @@ def optimize_classical(atoms, params=None):
             if pair not in exception_pairs:
                 nonbonded_force.addException(i, k, 0.0, 0.1, 0.0)
                 exception_pairs.add(pair)
-                
-        # Apply solution environment effects
-        if solution != "vacuum":
-            # Set reaction field dielectric constant based on solution
-            nonbonded_force.setReactionFieldDielectric(solution_params["dielectric"])
             
-            # Add implicit solvent model
-            gb_force = mm.GBSAOBCForce()
-            gb_force.setSoluteDielectric(1.0)
-            gb_force.setSolventDielectric(solution_params["dielectric"])
-            
-            # Set salt concentration (correct method)
-            if solution_params["ionic_strength"] > 0.0:
-                gb_force.setSaltConcentration(solution_params["ionic_strength"] * unit.molar)
-            
-            # Add atoms to GB force
-            for i, element in enumerate(elements):
-                # Determine parameters based on element
-                if element.lower() == 'h':
-                    radius = 0.12 * unit.nanometer
-                    scale = 0.85
-                elif element.lower() == 'c':
-                    radius = 0.17 * unit.nanometer
-                    scale = 0.72
-                elif element.lower() == 'n':
-                    radius = 0.155 * unit.nanometer
-                    scale = 0.79
-                elif element.lower() == 'o':
-                    radius = 0.15 * unit.nanometer
-                    scale = 0.85
-                else:
-                    # Default for other elements
-                    radius = 0.15 * unit.nanometer
-                    scale = 0.8
-                
-                charge = get_element_nonbonded_params(element)[0]
-                gb_force.addParticle(charge, radius, scale)
-            
-            system.addForce(gb_force)            
         system.addForce(nonbonded_force)
         
         # Create Integrator with parameterized temperature
@@ -459,10 +401,8 @@ def optimize_classical(atoms, params=None):
                     "bond_force_constant": bond_force_constant,
                     "angle_force_constant": angle_force_constant,
                     "tolerance": tolerance,
-                    "force_iterations": force_iterations,
-                    "solution": solution
+                    "force_iterations": force_iterations
                 },
-                "solution_properties": solution_params,
                 "iterations_performed": iterations_performed,
                 "final_energy_kj_mol": final_energy,
                 "initial_energy_kj_mol": start_energy,
@@ -483,7 +423,8 @@ def optimize_classical(atoms, params=None):
                 "library": "OpenMM",
                 "status": "failed"
             }
-        }
+        }   
+
 
 def optimize_classical_combined(molecule1_atoms, molecule2_atoms, params=None, optimize_molecule1=True, optimize_molecule2=True):
     """
@@ -514,26 +455,6 @@ def optimize_classical_combined(molecule1_atoms, molecule2_atoms, params=None, o
         angle_force_constant = params.get("angle_force_constant", 500.0)  # kJ/mol/radian^2
         tolerance = params.get("tolerance", 10.0)  # kJ/mol/nm (force units)
         force_iterations = params.get("force_iterations", False)  # Whether to force all iterations
-        solution = params.get("solution", "water")  # Solution environment parameter
-        
-        # Define solution parameters mapping
-        solution_params = {
-            "water": {
-                "dielectric": 78.4,
-                "pH": 7.0,
-                "ionic_strength": 0.0
-            },
-            "blood": {
-                "dielectric": 80.0,
-                "pH": 7.4,
-                "ionic_strength": 0.15
-            },
-            "intracellular": {
-                "dielectric": 75.0,
-                "pH": 7.2,
-                "ionic_strength": 0.15
-            }
-        }.get(solution, {"dielectric": 78.4, "pH": 7.0, "ionic_strength": 0.0})
         
         # Check if molecules are too similar (causes numerical instability)
         is_similar = False
@@ -678,47 +599,6 @@ def optimize_classical_combined(molecule1_atoms, molecule2_atoms, params=None, o
             if (i, k) not in exception_pairs:
                 nonbonded_force.addException(i, k, 0.0, 0.1, 0.0)
                 exception_pairs.add((i, k))
-        
-        # Apply solution environment effects
-        if solution != "vacuum":
-            # Set reaction field dielectric constant based on solution
-            nonbonded_force.setReactionFieldDielectric(solution_params["dielectric"])
-            
-            # Add implicit solvent model
-            gb_force = mm.GBSAOBCForce()
-            gb_force.setSoluteDielectric(1.0)
-            gb_force.setSolventDielectric(solution_params["dielectric"])
-            gb_force.setNonbondedMethod(mm.GBSAOBCForce.CutoffNonPeriodic)
-            gb_force.setCutoffDistance(1.0 * unit.nanometer)
-            
-            # Add ions based on ionic strength
-            if solution_params["ionic_strength"] > 0.0:
-                gb_force.setIonicStrength(solution_params["ionic_strength"] * unit.molar)
-            
-            # Add atoms to GB force
-            for i, element in enumerate(elements):
-                # Determine parameters based on element
-                if element.lower() == 'h':
-                    radius = 0.12 * unit.nanometer
-                    scale = 0.85
-                elif element.lower() == 'c':
-                    radius = 0.17 * unit.nanometer
-                    scale = 0.72
-                elif element.lower() == 'n':
-                    radius = 0.155 * unit.nanometer
-                    scale = 0.79
-                elif element.lower() == 'o':
-                    radius = 0.15 * unit.nanometer
-                    scale = 0.85
-                else:
-                    # Default for other elements
-                    radius = 0.15 * unit.nanometer
-                    scale = 0.8
-                
-                charge = get_element_nonbonded_params(element)[0]
-                gb_force.addParticle(charge, radius, scale)
-            
-            system.addForce(gb_force)
             
         system.addForce(nonbonded_force)
         
@@ -1021,10 +901,8 @@ def optimize_classical_combined(molecule1_atoms, molecule2_atoms, params=None, o
                     "tolerance": tolerance,
                     "force_iterations": force_iterations,
                     "optimize_molecule1": optimize_molecule1,
-                    "optimize_molecule2": optimize_molecule2,
-                    "solution": solution
+                    "optimize_molecule2": optimize_molecule2
                 },
-                "solution_properties": solution_params,
                 "molecules": 2 if molecule1_atoms and molecule2_atoms else 1,
                 "molecule1_atom_count": len(molecule1_atoms) if molecule1_atoms else 0,
                 "molecule2_atom_count": len(molecule2_atoms) if molecule2_atoms else 0,
@@ -1034,7 +912,7 @@ def optimize_classical_combined(molecule1_atoms, molecule2_atoms, params=None, o
                 "energy_change_kj_mol": float(abs(start_energy - final_energy)),
                 "duration_seconds": duration,
                 "convergence": "energy_minimized",
-                "identical_molecules_detected": bool(is_similar),
+                "identical_molecules_detected": bool(is_similar),  # Convert NumPy boolean to Python boolean
                 "molecule_rmsd": float(rmsd) if rmsd is not None else None,
                 "bonds_detected": len(bonds),
                 "intermolecular_bonds": intermolecular_bonds,
@@ -1072,36 +950,15 @@ def optimize_quantum(atoms, params=None):
         # Set default parameters if not provided
         if params is None:
             params = {}
-            
         # Extract parameters with defaults
         basis = params.get("basis", "6-31g")
         max_iterations = params.get("max_iterations", 10)
         convergence_threshold = params.get("convergence_threshold", 1e-5)
         step_size = params.get("step_size", 0.1)
-        solution = params.get("solution", "water")  # Solution environment parameter
         
         # New memory optimization parameters
         use_direct_scf = params.get("direct_scf", True)  # Enable direct SCF by default
         use_density_fitting = params.get("density_fitting", False)  # Optional density fitting
-        
-        # Define solution parameters mapping
-        solution_params = {
-            "water": {
-                "dielectric": 78.4,
-                "pH": 7.0,
-                "ionic_strength": 0.0
-            },
-            "blood": {
-                "dielectric": 80.0,
-                "pH": 7.4,
-                "ionic_strength": 0.15
-            },
-            "intracellular": {
-                "dielectric": 75.0,
-                "pH": 7.2,
-                "ionic_strength": 0.15
-            }
-        }.get(solution, {"dielectric": 78.4, "pH": 7.0, "ionic_strength": 0.0})
         
         # Check system size against thresholds
         atom_count = len(atoms)
@@ -1143,21 +1000,6 @@ def optimize_quantum(atoms, params=None):
             mf = scf.density_fit(mf)
             logger.info("Using density fitting approximation for quantum optimization")
         
-        # Apply solvent model based on solution environment
-        if solution != "vacuum":
-            try:
-                from pyscf import solvent
-                
-                # Create PCM solvent model
-                mf = solvent.PCM(mf)
-                
-                # Set dielectric constant based on solution
-                mf.with_solvent.eps = solution_params["dielectric"]
-                
-                logger.info(f"Applied {solution} solvent model with dielectric {mf.with_solvent.eps}")
-            except ImportError:
-                logger.warning("PCM solvent module not available, continuing without solvent effects")
-                
         energy = mf.kernel()
         
         # Check if SCF converged
@@ -1210,15 +1052,6 @@ def optimize_quantum(atoms, params=None):
                 
             if use_density_fitting:
                 new_mf = scf.density_fit(new_mf)
-            
-            # Apply solvent model to new molecule if needed
-            if solution != "vacuum":
-                try:
-                    from pyscf import solvent
-                    new_mf = solvent.PCM(new_mf)
-                    new_mf.with_solvent.eps = solution_params["dielectric"]
-                except ImportError:
-                    pass
                 
             new_energy = new_mf.kernel()
             
@@ -1276,14 +1109,12 @@ def optimize_quantum(atoms, params=None):
                     "convergence_threshold": convergence_threshold,
                     "step_size": step_size,
                     "direct_scf": use_direct_scf,
-                    "density_fitting": use_density_fitting,
-                    "solution": solution
+                    "density_fitting": use_density_fitting
                 },
-                "solution_properties": solution_params,
                 "theory_level": f"RHF/{basis}",
                 "final_energy_hartree": float(current_energy),
                 "iterations": iteration,
-                "converged": bool(converged),
+                "converged": bool(converged),  # Convert NumPy boolean to Python boolean
                 "duration_seconds": duration,
                 "optimization_history": optimization_history
             }
@@ -1300,6 +1131,7 @@ def optimize_quantum(atoms, params=None):
             }
         }
     
+
 def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None, optimize_molecule1=True, optimize_molecule2=True):
     """
     Optimize combined molecule system using quantum chemistry with PySCF.
@@ -1326,30 +1158,10 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None, opt
         max_iterations = params.get("max_iterations", 10)
         convergence_threshold = params.get("convergence_threshold", 1e-5)
         step_size = params.get("step_size", 0.1)
-        solution = params.get("solution", "water")  # Solution environment parameter
         
         # New memory optimization parameters
         use_direct_scf = params.get("direct_scf", True)  # Enable direct SCF by default
         use_density_fitting = params.get("density_fitting", False)  # Optional density fitting
-        
-        # Define solution parameters mapping
-        solution_params = {
-            "water": {
-                "dielectric": 78.4,
-                "pH": 7.0,
-                "ionic_strength": 0.0
-            },
-            "blood": {
-                "dielectric": 80.0,
-                "pH": 7.4,
-                "ionic_strength": 0.15
-            },
-            "intracellular": {
-                "dielectric": 75.0,
-                "pH": 7.2,
-                "ionic_strength": 0.15
-            }
-        }.get(solution, {"dielectric": 78.4, "pH": 7.0, "ionic_strength": 0.0})
         
         # Check if molecules are too similar (causes numerical instability)
         is_similar = False
@@ -1429,16 +1241,7 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None, opt
                     
                 if use_density_fitting:
                     mf_combined = scf.density_fit(mf_combined)
-                
-                # Apply solvent model to combined system
-                if solution != "vacuum":
-                    try:
-                        from pyscf import solvent
-                        mf_combined = solvent.PCM(mf_combined)
-                        mf_combined.with_solvent.eps = solution_params["dielectric"]
-                    except ImportError:
-                        logger.warning("PCM solvent module not available for combined system")
-                
+                    
                 energy_combined = mf_combined.kernel()
                 
                 # Create and calculate energy for molecule 1 with memory optimizations
@@ -1455,16 +1258,7 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None, opt
                     
                 if use_density_fitting:
                     mf1 = scf.density_fit(mf1)
-                
-                # Apply solvent model to molecule 1
-                if solution != "vacuum":
-                    try:
-                        from pyscf import solvent
-                        mf1 = solvent.PCM(mf1)
-                        mf1.with_solvent.eps = solution_params["dielectric"]
-                    except ImportError:
-                        pass
-                
+                    
                 energy1 = mf1.kernel()
                 initial_energy1 = energy1
                 
@@ -1482,16 +1276,7 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None, opt
                     
                 if use_density_fitting:
                     mf2 = scf.density_fit(mf2)
-                
-                # Apply solvent model to molecule 2
-                if solution != "vacuum":
-                    try:
-                        from pyscf import solvent
-                        mf2 = solvent.PCM(mf2)
-                        mf2.with_solvent.eps = solution_params["dielectric"]
-                    except ImportError:
-                        pass
-                
+                    
                 energy2 = mf2.kernel()
                 initial_energy2 = energy2
                 
@@ -1519,16 +1304,6 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None, opt
         if use_density_fitting:
             mf = scf.density_fit(mf)
             logger.info("Using density fitting approximation for quantum combined optimization")
-        
-        # Apply solvent model to main calculation
-        if solution != "vacuum":
-            try:
-                from pyscf import solvent
-                mf = solvent.PCM(mf)
-                mf.with_solvent.eps = solution_params["dielectric"]
-                logger.info(f"Applied {solution} solvent model with dielectric {mf.with_solvent.eps}")
-            except ImportError:
-                logger.warning("PCM solvent module not available, continuing without solvent effects")
             
         energy = mf.kernel()
         
@@ -1591,15 +1366,6 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None, opt
                 
             if use_density_fitting:
                 new_mf = scf.density_fit(new_mf)
-            
-            # Apply solvent model to new geometry
-            if solution != "vacuum":
-                try:
-                    from pyscf import solvent
-                    new_mf = solvent.PCM(new_mf)
-                    new_mf.with_solvent.eps = solution_params["dielectric"]
-                except ImportError:
-                    pass
                 
             new_energy = new_mf.kernel()
             
@@ -1667,16 +1433,7 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None, opt
                     
                 if use_density_fitting:
                     mf_combined_opt = scf.density_fit(mf_combined_opt)
-                
-                # Apply solvent model to final combined system
-                if solution != "vacuum":
-                    try:
-                        from pyscf import solvent
-                        mf_combined_opt = solvent.PCM(mf_combined_opt)
-                        mf_combined_opt.with_solvent.eps = solution_params["dielectric"]
-                    except ImportError:
-                        pass
-                
+                    
                 energy_combined_opt = mf_combined_opt.kernel()
                 
                 # Calculate energy for optimized molecule 1 with memory optimizations
@@ -1694,16 +1451,7 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None, opt
                         
                     if use_density_fitting:
                         mf1_opt = scf.density_fit(mf1_opt)
-                    
-                    # Apply solvent model to optimized molecule 1
-                    if solution != "vacuum":
-                        try:
-                            from pyscf import solvent
-                            mf1_opt = solvent.PCM(mf1_opt)
-                            mf1_opt.with_solvent.eps = solution_params["dielectric"]
-                        except ImportError:
-                            pass
-                    
+                        
                     energy1_opt = mf1_opt.kernel()
                     final_energy1 = energy1_opt
                 else:
@@ -1724,16 +1472,7 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None, opt
                         
                     if use_density_fitting:
                         mf2_opt = scf.density_fit(mf2_opt)
-                    
-                    # Apply solvent model to optimized molecule 2
-                    if solution != "vacuum":
-                        try:
-                            from pyscf import solvent
-                            mf2_opt = solvent.PCM(mf2_opt)
-                            mf2_opt.with_solvent.eps = solution_params["dielectric"]
-                        except ImportError:
-                            pass
-                    
+                        
                     energy2_opt = mf2_opt.kernel()
                     final_energy2 = energy2_opt
                 else:
@@ -1783,15 +1522,13 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None, opt
                     "step_size": step_size,
                     "direct_scf": use_direct_scf,
                     "density_fitting": use_density_fitting,
-                    "solution": solution,
                     "optimize_molecule1": optimize_molecule1,
                     "optimize_molecule2": optimize_molecule2
                 },
-                "solution_properties": solution_params,
                 "molecules": 2 if molecule1_atoms and molecule2_atoms else 1,
                 "molecule1_atom_count": len(molecule1_atoms) if molecule1_atoms else 0,
                 "molecule2_atom_count": len(molecule2_atoms) if molecule2_atoms else 0,
-                "identical_molecules_detected": bool(is_similar),
+                "identical_molecules_detected": bool(is_similar),  # Convert NumPy boolean to Python boolean
                 "molecule_rmsd": float(rmsd) if rmsd is not None else None,
                 "theory_level": f"RHF/{basis}",
                 "final_energy_hartree": float(current_energy),
@@ -1800,7 +1537,7 @@ def optimize_quantum_combined(molecule1_atoms, molecule2_atoms, params=None, opt
                 "final_molecule1_energy_hartree": float(final_energy1) if final_energy1 is not None else None,
                 "final_molecule2_energy_hartree": float(final_energy2) if final_energy2 is not None else None,
                 "iterations": iteration,
-                "converged": bool(converged),
+                "converged": bool(converged),  # Convert NumPy boolean to Python boolean
                 "duration_seconds": duration,
                 "initial_interaction_energy_hartree": float(initial_interaction_energy) if initial_interaction_energy is not None else None,
                 "interaction_energy_hartree": float(final_interaction_energy) if final_interaction_energy is not None else None,
