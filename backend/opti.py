@@ -330,12 +330,10 @@ def optimize_classical(atoms, params=None):
             gb_force = mm.GBSAOBCForce()
             gb_force.setSoluteDielectric(1.0)
             gb_force.setSolventDielectric(solution_params["dielectric"])
-            gb_force.setNonbondedMethod(mm.GBSAOBCForce.CutoffNonPeriodic)
-            gb_force.setCutoffDistance(1.0 * unit.nanometer)
             
-            # Add ions based on ionic strength
+            # Set salt concentration (correct method)
             if solution_params["ionic_strength"] > 0.0:
-                gb_force.setIonicStrength(solution_params["ionic_strength"] * unit.molar)
+                gb_force.setSaltConcentration(solution_params["ionic_strength"] * unit.molar)
             
             # Add atoms to GB force
             for i, element in enumerate(elements):
@@ -360,8 +358,7 @@ def optimize_classical(atoms, params=None):
                 charge = get_element_nonbonded_params(element)[0]
                 gb_force.addParticle(charge, radius, scale)
             
-            system.addForce(gb_force)
-            
+            system.addForce(gb_force)            
         system.addForce(nonbonded_force)
         
         # Create Integrator with parameterized temperature
