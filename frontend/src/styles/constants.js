@@ -126,17 +126,44 @@ export const defaultClassicalParams = {
   angle_force_constant: 500.0,
   tolerance: 10.0,
   force_iterations: false,
-  covalent_display_threshold: 1.1,  // in Angstroms
-  hydrogen_display_threshold: 3.2,  // in Angstroms 
-  angle_display_threshold: 45 // in degrees
+  covalent_display_threshold: 1.1,
+  hydrogen_display_threshold: 3.2,
+  angle_display_threshold: 45,
+  solution: "water"
 };
 
 export const defaultQuantumParams = {
   basis: "6-31g",
   max_iterations: 10,
   convergence_threshold: 0.00001,
-  step_size: 0.1
+  step_size: 0.1,
+  solution: "water"
 };
+
+export const SOLUTION_TYPES = {
+  water: {
+    name: "Water",
+    description: "Pure water environment (pH 7.0)",
+    dielectric: 78.4,
+    pH: 7.0,
+    ionicStrength: 0.0
+  },
+  blood: {
+    name: "Blood",
+    description: "Blood plasma environment (pH 7.4)",
+    dielectric: 80.0,
+    pH: 7.4,
+    ionicStrength: 0.15
+  },
+  intracellular: {
+    name: "Intracellular",
+    description: "Cytoplasmic environment (pH 7.2)",
+    dielectric: 75.0,
+    pH: 7.2,
+    ionicStrength: 0.15
+  }
+};
+
 
 // Test molecule structures
 export const TEST_MOLECULES = {

@@ -153,6 +153,44 @@ export const ClassicalParametersConfig = ({
         </span>
       </div>
       
+      {/* Solution Environment Selector - NEW */}
+      <div className="parameter-group-wrapper" style={{ margin: isMobile ? '0 0 8px 0' : undefined }}>
+        <label 
+          style={{ 
+            ...styles.parameterLabel, 
+            display: 'block', 
+            margin: isMobile ? '0 0 2px 0' : undefined,
+            padding: 0
+          }}
+        >
+          Solution Environment:
+        </label>
+        <select 
+          value={classicalParams.solution}
+          onChange={(e) => handleParamChange('classical', 'solution', e.target.value)}
+          style={{ 
+            ...styles.parameterSelect, 
+            width: isMobile ? '100%' : undefined,
+            margin: 0,
+            height: isMobile ? '36px' : undefined,
+            padding: isMobile ? '8px' : undefined
+          }}
+        >
+          <option value="water">Water (pH 7.0)</option>
+          <option value="blood">Blood Plasma (pH 7.4)</option>
+          <option value="intracellular">Intracellular (pH 7.2)</option>
+        </select>
+        <span style={{ 
+          ...styles.parameterHelp, 
+          marginLeft: isMobile ? '0' : undefined,
+          display: 'block',
+          marginTop: '4px',
+          fontSize: '0.8rem'
+        }}>
+          Solution affects molecular interactions
+        </span>
+      </div>
+      
       {showAdvancedParams && (
         <>
           {/* Convergence Tolerance - using direct structure for mobile */}
@@ -502,6 +540,44 @@ export const QuantumParametersConfig = ({
             Will be capped at {ITERATION_LIMITS.subscribed.quantum}
           </span>
         )}
+      </div>
+      
+      {/* Solution Environment Selector - NEW */}
+      <div className="parameter-group-wrapper" style={{ margin: isMobile ? '0 0 8px 0' : undefined }}>
+        <label 
+          style={{ 
+            ...styles.parameterLabel, 
+            display: 'block', 
+            margin: isMobile ? '0 0 2px 0' : undefined,
+            padding: 0
+          }}
+        >
+          Solution Environment:
+        </label>
+        <select 
+          value={quantumParams.solution}
+          onChange={(e) => handleParamChange('quantum', 'solution', e.target.value)}
+          style={{ 
+            ...styles.parameterSelect, 
+            width: isMobile ? '100%' : undefined,
+            margin: 0,
+            height: isMobile ? '36px' : undefined,
+            padding: isMobile ? '8px' : undefined
+          }}
+        >
+          <option value="water">Water (pH 7.0)</option>
+          <option value="blood">Blood Plasma (pH 7.4)</option>
+          <option value="intracellular">Intracellular (pH 7.2)</option>
+        </select>
+        <span style={{ 
+          ...styles.parameterHelp, 
+          marginLeft: isMobile ? '0' : undefined,
+          display: 'block',
+          marginTop: '4px',
+          fontSize: '0.8rem'
+        }}>
+          Solution affects molecular interactions
+        </span>
       </div>
       
       {showAdvancedParams && (
