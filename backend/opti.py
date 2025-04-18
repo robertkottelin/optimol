@@ -1776,22 +1776,39 @@ def optimize_molecule():
         
         # Store optimization request in database
         try:
-            optimization = Optimization(
-                id=task.id,  # Use task ID as optimization ID
-                user_id=user_id,
-                optimization_type=optimization_type,
-                parameters=json.dumps({
+            # Check if an optimization with this ID already exists
+            existing_optimization = Optimization.query.get(task.id)
+            
+            if existing_optimization:
+                # Update the existing record instead of creating a new one
+                existing_optimization.parameters = json.dumps({
                     "optimization_params": optimization_params,
                     "interaction_mode": interaction_mode,
                     "molecule1_atom_count": len(molecule1_atoms) if molecule1_atoms else 0,
                     "molecule2_atom_count": len(molecule2_atoms) if molecule2_atoms else 0,
                     "optimize_molecule1": optimize_molecule1,
                     "optimize_molecule2": optimize_molecule2
-                }),
-                result=None  # Result will be updated when task completes
-            )
-            db.session.add(optimization)
-            db.session.commit()
+                })
+                existing_optimization.result = None  # Reset result field
+                db.session.commit()
+            else:
+                # Create new record
+                optimization = Optimization(
+                    id=task.id,  # Use task ID as optimization ID
+                    user_id=user_id,
+                    optimization_type=optimization_type,
+                    parameters=json.dumps({
+                        "optimization_params": optimization_params,
+                        "interaction_mode": interaction_mode,
+                        "molecule1_atom_count": len(molecule1_atoms) if molecule1_atoms else 0,
+                        "molecule2_atom_count": len(molecule2_atoms) if molecule2_atoms else 0,
+                        "optimize_molecule1": optimize_molecule1,
+                        "optimize_molecule2": optimize_molecule2
+                    }),
+                    result=None  # Result will be updated when task completes
+                )
+                db.session.add(optimization)
+                db.session.commit()
         except Exception as db_error:
             logger.error(f"Database error: {str(db_error)}")
             # Continue without database storage

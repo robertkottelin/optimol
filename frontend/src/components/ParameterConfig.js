@@ -175,9 +175,9 @@ export const ClassicalParametersConfig = ({
             padding: isMobile ? '8px' : undefined
           }}
         >
-          <option value="water">Water (pH 7.0)</option>
-          <option value="blood">Blood Plasma (pH 7.4)</option>
-          <option value="intracellular">Intracellular (pH 7.2)</option>
+          <option value="water">Water</option>
+          <option value="blood">Blood Plasma</option>
+          <option value="intracellular">Intracellular</option>
         </select>
         <span style={{ 
           ...styles.parameterHelp, 
