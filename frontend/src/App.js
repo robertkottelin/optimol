@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
-import { loadStripe } from '@stripe/stripe-js';
-import { Elements } from '@stripe/react-stripe-js';
 import ReactMarkdown from "react-markdown";
 
 // Import authentication context
@@ -18,9 +16,8 @@ import {
   TEST_MOLECULES
 } from './styles/constants';
 
-// Import components 
+// Import components
 import { Icons } from './components/Icons';
-import SubscriptionForm from './components/SubscriptionForm';
 import MoleculeViewer from './components/MoleculeViewer';
 import {
   ClassicalParametersConfig,
@@ -28,15 +25,12 @@ import {
 } from './components/ParameterConfig';
 import OptimizationResults from './components/OptimizationResults';
 
-// Initialize Stripe with public key
-const stripePromise = loadStripe('pk_live_Tfh90MeFSg6jVjRCaMExaGug0078PAfanh');
-
 // Configure axios to include credentials with all requests
 axios.defaults.withCredentials = true;
 
 const App = () => {
   // Authentication context
-  const { currentUser, isAuthenticated, isSubscribed, isLoading, logout, token } = useContext(AuthContext);
+  const { currentUser, isAuthenticated, isLoading, logout, token } = useContext(AuthContext);
 
   // FIXED: Moved all useState declarations to component top level
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -62,8 +56,6 @@ const App = () => {
   const [isAboutUsVisible, setIsAboutUsVisible] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isSubscribeLoading, setIsSubscribeLoading] = useState(false);
-  const [isCancelLoading, setIsCancelLoading] = useState(false);
   const [isOptimizeLoading, setIsOptimizeLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [serverHealth, setServerHealth] = useState(null);
@@ -197,12 +189,6 @@ const App = () => {
       });
   }, []);
 
-  // Apply limits on initial load and whenever subscription status changes
-  useEffect(() => {
-    if (!isLoading) {
-      applyIterationLimits(isSubscribed);
-    }
-  }, [isLoading, isSubscribed]);
 
   useEffect(() => {
     // Cleanup function for component unmount
@@ -213,45 +199,6 @@ const App = () => {
     };
   }, [statusPollInterval]);
 
-  // Helper function to consistently apply iteration limits
-  const applyIterationLimits = (isUserSubscribed) => {
-    // Apply limits to classical parameters - preserving existing values
-    setClassicalParams(prevParams => {
-      const classicalMaxIterations = isUserSubscribed
-        ? ITERATION_LIMITS.subscribed.classical
-        : ITERATION_LIMITS.unsubscribed.classical;
-
-      return {
-        ...prevParams, // Preserve existing params including force_iterations
-        max_iterations: Math.min(
-          prevParams.max_iterations,
-          classicalMaxIterations
-        )
-      };
-    });
-
-    // Apply limits to quantum parameters - preserving existing values
-    setQuantumParams(prevParams => {
-      const quantumMaxIterations = isUserSubscribed
-        ? ITERATION_LIMITS.subscribed.quantum
-        : ITERATION_LIMITS.unsubscribed.quantum;
-
-      // Apply basis set restrictions for non-subscribers
-      let updatedBasis = prevParams.basis;
-      if (!isUserSubscribed && (updatedBasis === "6-311g" || updatedBasis === "cc-pvdz")) {
-        updatedBasis = "6-31g";
-      }
-
-      return {
-        ...prevParams, // Preserve existing params
-        max_iterations: Math.min(
-          prevParams.max_iterations,
-          quantumMaxIterations
-        ),
-        basis: updatedBasis
-      };
-    });
-  };
 
   const handleShowHowToUse = () => {
     setIsHowToUseVisible(true);
@@ -341,38 +288,6 @@ const App = () => {
     }
   };
 
-  const handleSubscriptionSuccess = () => {
-    // Reload user data from context to update subscription status
-    window.location.reload();
-  };
-
-  const handleCancelSubscription = async () => {
-    const confirmCancel = window.confirm(
-      "Are you sure you want to cancel your subscription? This action cannot be undone."
-    );
-
-    if (!confirmCancel) return;
-
-    setIsCancelLoading(true);
-
-    try {
-      // Token is handled by axios interceptor in AuthContext
-      const response = await axios.post(`${apiBaseUrl}/cancel-subscription`, {});
-
-      if (response.data.success) {
-        alert("Your subscription has been canceled.");
-        // Refresh page to update auth context
-        window.location.reload();
-      } else {
-        alert("Failed to cancel subscription. Please try again.");
-      }
-    } catch (error) {
-      console.error("Error canceling subscription:", error);
-      alert("Error canceling subscription. Check the console for details.");
-    } finally {
-      setIsCancelLoading(false);
-    }
-  };
 
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
@@ -561,31 +476,6 @@ const App = () => {
       // Get the correct parameters based on selected optimization type
       const optimizationParams =
         optimizationType === "classical" ? { ...classicalParams } : { ...quantumParams };
-
-      // Apply iteration limits for all users
-      if (optimizationType === "classical") {
-        const maxIterations = isSubscribed
-          ? ITERATION_LIMITS.subscribed.classical
-          : ITERATION_LIMITS.unsubscribed.classical;
-
-        optimizationParams.max_iterations = Math.min(
-          optimizationParams.max_iterations,
-          maxIterations
-        );
-      } else {
-        const maxIterations = isSubscribed
-          ? ITERATION_LIMITS.subscribed.quantum
-          : ITERATION_LIMITS.unsubscribed.quantum;
-
-        optimizationParams.max_iterations = Math.min(
-          optimizationParams.max_iterations,
-          maxIterations
-        );
-
-        if (!isSubscribed && (optimizationParams.basis === "6-311g" || optimizationParams.basis === "cc-pvdz")) {
-          optimizationParams.basis = "6-31g";
-        }
-      }
 
       // Prepare molecule1Data for optimization request
       let requestMolecule1 = null;
@@ -880,44 +770,13 @@ const App = () => {
       // Keep current force_iterations setting when resetting other parameters
       setClassicalParams(prevParams => {
         const params = { ...defaultClassicalParams };
-
         // Preserve force_iterations setting
         params.force_iterations = prevParams.force_iterations;
-
-        // Always apply appropriate limits based on subscription status
-        const maxIterations = isSubscribed
-          ? ITERATION_LIMITS.subscribed.classical
-          : ITERATION_LIMITS.unsubscribed.classical;
-
-        params.max_iterations = Math.min(
-          params.max_iterations,
-          maxIterations
-        );
-
         return params;
       });
     } else {
-      // For quantum parameters - apply subscription-based limits
-      setQuantumParams(prevParams => {
-        const params = { ...defaultQuantumParams };
-
-        // Always apply appropriate limits based on subscription status
-        const maxIterations = isSubscribed
-          ? ITERATION_LIMITS.subscribed.quantum
-          : ITERATION_LIMITS.unsubscribed.quantum;
-
-        params.max_iterations = Math.min(
-          params.max_iterations,
-          maxIterations
-        );
-
-        // Restrict to simpler basis sets for free users only
-        if (!isSubscribed && (params.basis === "6-311g" || params.basis === "cc-pvdz")) {
-          params.basis = "6-31g";
-        }
-
-        return params;
-      });
+      // Reset quantum parameters
+      setQuantumParams({ ...defaultQuantumParams });
     }
   };
 
@@ -1169,27 +1028,6 @@ const App = () => {
             </button>
           )}
 
-          {isSubscribed && (
-            <button
-              onClick={handleCancelSubscription}
-              disabled={isCancelLoading}
-              className={`cancel-subscription-button float ${isCancelLoading ? 'disabled' : ''}`}
-            >
-              {isCancelLoading ? (
-                <>
-                  <span className="spin cancel-subscription-icon">
-                    <Icons.spinner />
-                  </span>
-                  Cancelling...
-                </>
-              ) : (
-                <>
-                  <span className="cancel-subscription-icon"><Icons.cancel /></span>
-                  Cancel Subscription
-                </>
-              )}
-            </button>
-          )}
         </div>
 
         {/* App Header - Now comes after buttons in the DOM */}
@@ -1206,27 +1044,17 @@ const App = () => {
           </p>
         </header>
 
-        {/* Subscription Form or Welcome Message */}
-        <div className={`fade-in glass card ${isSubscribed ? 'card-with-glow' : ''} ${isMobile ? 'mobile-smaller-padding' : ''}`}>
-          {!isSubscribed ? (
-            <div className={`subscription-form ${isMobile ? 'mobile-smaller-padding' : ''}`}>
-              <Elements stripe={stripePromise}>
-                <SubscriptionForm
-                  onSuccess={handleSubscriptionSuccess}
-                  isMobile={isMobile}
-                  isAuthenticated={isAuthenticated}
-                />
-              </Elements>
-            </div>
-          ) : (
+        {/* Welcome Message */}
+        {isAuthenticated && (
+          <div className={`fade-in glass card card-with-glow ${isMobile ? 'mobile-smaller-padding' : ''}`}>
             <div className={`welcome-message ${isMobile ? 'mobile-stack mobile-text-center' : ''}`}>
               <div className="welcome-icon">
                 <Icons.verified />
               </div>
-              <p>Welcome, <strong>{currentUser.email}</strong>! You have full access to all computational capabilities with your premium subscription.</p>
+              <p>Welcome, <strong>{currentUser.email}</strong>! You have full access to all computational capabilities.</p>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Main Optimization Section */}
         <section className="section">
@@ -1471,7 +1299,6 @@ const App = () => {
               {/* Parameter Configuration */}
               {optimizationType === "classical" ? (
                 <ClassicalParametersConfig
-                  isSubscribed={isSubscribed}
                   classicalParams={classicalParams}
                   showAdvancedParams={showAdvancedParams}
                   handleParamChange={handleParamChange}
@@ -1481,7 +1308,6 @@ const App = () => {
                 />
               ) : (
                 <QuantumParametersConfig
-                  isSubscribed={isSubscribed}
                   quantumParams={quantumParams}
                   showAdvancedParams={showAdvancedParams}
                   handleParamChange={handleParamChange}
@@ -1710,17 +1536,11 @@ const App = () => {
                     </>
                   ) : (
                     <>
-                      {`Run ${optimizationType === "classical" ? "Classical" : "Quantum"} Optimization${!isSubscribed ? " (Limited)" : ""}`}
+                      {`Run ${optimizationType === "classical" ? "Classical" : "Quantum"} Optimization`}
                       <div className="optimize-button-shine"></div>
                     </>
                   )}
                 </button>
-
-                {!isSubscribed && (
-                  <div className={`free-user-notice ${isMobile ? 'mobile-smaller-text mobile-text-center' : ''}`}>
-                    Free users are limited to {ITERATION_LIMITS.unsubscribed.classical.toLocaleString()} iterations for classical and {ITERATION_LIMITS.unsubscribed.quantum} for quantum optimizations.
-                  </div>
-                )}
               </div>
 
               {taskStatus && (

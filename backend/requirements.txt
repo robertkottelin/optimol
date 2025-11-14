@@ -2,7 +2,6 @@ flask
 flask-cors
 numpy
 python-dotenv
-stripe
 openmm
 pyscf
 flask_sqlalchemy

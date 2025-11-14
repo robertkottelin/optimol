@@ -3,7 +3,8 @@
     "SQLALCHEMY_TRACK_MODIFICATIONS": false,
     "CORS": {
         "origins": [
-            "https://optimizemolecule.com"
+            "https://optimizemolecule.robertkottelin.com",
+            "http://optimizemolecule.robertkottelin.com"
         ],
         "methods": [
             "GET",

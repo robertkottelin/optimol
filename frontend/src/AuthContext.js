@@ -26,13 +26,11 @@ const isValidJWT = (token) => {
 export const AuthContext = createContext({
   currentUser: null,
   isAuthenticated: false,
-  isSubscribed: false,
   isLoading: true,
   error: null,
   token: null,
   login: () => Promise.resolve({ success: false }),
   register: () => Promise.resolve({ success: false }),
-  registerAndSubscribe: () => Promise.resolve({ success: false }),
   logout: () => Promise.resolve({ success: false })
 });
 
@@ -40,13 +38,13 @@ export const AuthProvider = ({ children }) => {
   const [state, setState] = useState({
     currentUser: null,
     isAuthenticated: false,
-    isSubscribed: false,
     isLoading: true,
     error: null,
     token: localStorage.getItem('access_token') || null
   });
   
-  const apiBaseUrl = "/api";
+  // API Base URL from environment variable (defaults to /api for production with nginx proxy)
+  const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || "/api";
 
   // Configure axios defaults
   useEffect(() => {
@@ -101,7 +99,6 @@ export const AuthProvider = ({ children }) => {
           ...prev,
           currentUser: response.data,
           isAuthenticated: true,
-          isSubscribed: response.data.isSubscribed || false,
           isLoading: false
         }));
       } catch (error) {
@@ -115,7 +112,6 @@ export const AuthProvider = ({ children }) => {
             token: null,
             currentUser: null,
             isAuthenticated: false,
-            isSubscribed: false,
             isLoading: false,
             error: null
           }));
@@ -132,7 +128,6 @@ export const AuthProvider = ({ children }) => {
             token: null,
             currentUser: null,
             isAuthenticated: false,
-            isSubscribed: false,
             isLoading: false,
             error: null
           }));
@@ -145,7 +140,6 @@ export const AuthProvider = ({ children }) => {
           ...prev,
           currentUser: null,
           isAuthenticated: false,
-          isSubscribed: false,
           isLoading: false,
           error: error.message || "Authentication check failed"
         }));
@@ -180,7 +174,6 @@ export const AuthProvider = ({ children }) => {
         token: response.data.token,
         currentUser: response.data.user,
         isAuthenticated: true,
-        isSubscribed: response.data.user.isSubscribed || false,
         isLoading: false,
         error: null
       }));
@@ -224,7 +217,6 @@ export const AuthProvider = ({ children }) => {
         token: response.data.token,
         currentUser: response.data.user,
         isAuthenticated: true,
-        isSubscribed: response.data.user.isSubscribed || false,
         isLoading: false,
         error: null
       }));
@@ -244,75 +236,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // New function: Register and subscribe in one step
-  const registerAndSubscribe = async (email, password, paymentMethodId) => {
-    try {
-      setState(prev => ({ ...prev, isLoading: true }));
-      
-      // Step 1: Register the user
-      const registerResponse = await axios({
-        method: 'post',
-        url: `${apiBaseUrl}/register`,
-        data: { email, password },
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
-      });
-      
-      if (!registerResponse.data.token) {
-        throw new Error("Registration successful but no token received");
-      }
-      
-      // Store token and update auth state
-      const token = registerResponse.data.token;
-      localStorage.setItem('access_token', token);
-      
-      // Step 2: Subscribe with the new account
-      const subscribeResponse = await axios.post(
-        `${apiBaseUrl}/subscribe`, 
-        { paymentMethodId },
-        { 
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
-      
-      if (!subscribeResponse.data.success) {
-        throw new Error(subscribeResponse.data.error || "Subscription failed");
-      }
-      
-      // Update auth state with the registered and subscribed user
-      setState(prev => ({
-        ...prev,
-        token: token,
-        currentUser: registerResponse.data.user,
-        isAuthenticated: true,
-        isSubscribed: true,
-        isLoading: false,
-        error: null
-      }));
-      
-      return { 
-        success: true, 
-        clientSecret: subscribeResponse.data.clientSecret 
-      };
-    } catch (error) {
-      setState(prev => ({ 
-        ...prev, 
-        isLoading: false,
-        error: error.response?.data?.error || error.message || "Registration and subscription failed"
-      }));
-      
-      return { 
-        success: false, 
-        error: error.response?.data?.error || error.message || "Registration and subscription failed"
-      };
-    }
-  };
-
   // Logout function
   const logout = async () => {
     try {
@@ -325,7 +248,6 @@ export const AuthProvider = ({ children }) => {
       setState({
         currentUser: null,
         isAuthenticated: false,
-        isSubscribed: false,
         isLoading: false,
         error: null,
         token: null
@@ -351,7 +273,6 @@ export const AuthProvider = ({ children }) => {
       ...state,
       login,
       register,
-      registerAndSubscribe,
       logout
     }}>
       {children}
